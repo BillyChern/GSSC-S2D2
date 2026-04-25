@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+type: software
+title: "GSSC-S2D2: Structured Source Discrete Diffusion for Generative Semantic Scene Completion"
+abstract: "Official PyTorch implementation of S²D² (Structured Source Discrete Diffusion). State-of-the-art LiDAR semantic scene completion on SemanticKITTI."
+url: "https://github.com/BillyChern/GSSC-S2D2"
+license: Apache-2.0
+version: 1.0.0
+date-released: 2026-04-26
+preferred-citation:
+  type: article
+  title: "Generative Semantic Scene Completion"
+  authors:
+    - family-names: "[AUTHOR_FAMILY_TBD]"
+      given-names: "[AUTHOR_GIVEN_TBD]"
+  journal: "IEEE Transactions on Pattern Analysis and Machine Intelligence"
+  year: 2026
+  doi: "[DOI_TBD]"

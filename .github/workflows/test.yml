@@ -1,0 +1,18 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install pytest pyyaml
+      - run: PYTHONPATH=src python -m pytest tests/test_smoke.py tests/test_config_loader.py -v

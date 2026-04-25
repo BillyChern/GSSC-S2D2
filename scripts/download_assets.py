@@ -8,7 +8,7 @@ Usage::
     python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB headline synth pool
     python scripts/download_assets.py --all              # everything
 
-Hugging Face host: https://huggingface.co/gssc-s2d2
+Hugging Face host: [HF_ORG_URL]
 
 The full 230 GB synthetic pool is mirrored to IEEE DataPort; see
 docs/DATASET.md for direct download links.
@@ -22,9 +22,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-HF_REPO_MODELS = "gssc-s2d2/checkpoints"
-HF_REPO_DATA = "gssc-s2d2/datasets"
-DATAPORT_URL = "https://ieee-dataport.org/documents/gssc-s2d2-synthetic-pool"
+HF_REPO_MODELS = "[HF_REPO_CHECKPOINTS]"
+HF_REPO_DATA = "[HF_REPO_DATASETS]"
+DATAPORT_URL = "[SYNTHETIC_POOL_URL]"
 
 
 def main() -> None:
