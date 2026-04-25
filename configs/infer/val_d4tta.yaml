@@ -1,0 +1,5 @@
+_paper_table: tab:main_results (val with D4 TTA)
+split: val
+sequences: "08"
+algo2_steps: 4
+tta: d4

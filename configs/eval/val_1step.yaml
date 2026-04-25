@@ -1,0 +1,6 @@
+_paper_table: tab:perclass (1-step row)
+_description: 1-step Algo2 evaluation on full val seq 08. Expected 38.54% mIoU.
+split: val
+sequences: "08"
+algo2_steps: 1
+tta: none

@@ -1,0 +1,19 @@
+_paper_table: tab:train_timesteps_curriculum (T=100skewed row)
+_description: Training-timestep schedule ablation T=100skewed.
+data_root: data
+model_type: sparse_full
+s3_mode: teacher
+scpnet_pred_dir: data/scpnet_predictions
+bev_from_scpnet: true
+cold_diffusion: true
+train_sequences: "00,01,02,03,04,05,06,07,09,10,synthetic"
+diffusion_version: v2
+loss_type: kl
+batch_size: 4
+lr: 1.0e-4
+num_iterations: 100000
+ssc_lovasz_weight: 0.3
+auxiliary_loss_weight: 0.0005
+algo2_eval_steps: 100
+save_interval: 5000
+diffusion_timesteps: 100100
