@@ -32,8 +32,8 @@ checkpoints/
 *.safetensors
 
 # Datasets (downloaded separately, see docs/DATASET.md)
-data/
-datasets/
+/data/
+/datasets/
 SemanticKITTI*/
 synthetic_pool*/
 
