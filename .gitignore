@@ -1,0 +1,50 @@
+# Environments
+.venv/
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.so
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Outputs (regenerated)
+outputs/
+runs/
+wandb/
+lightning_logs/
+checkpoints/
+*.pt
+*.pth
+*.safetensors
+
+# Datasets (downloaded separately, see docs/DATASET.md)
+data/
+datasets/
+SemanticKITTI*/
+synthetic_pool*/
+
+# Logs
+*.log
+*.out
+
+# Editor scratch
+*.swp
+*.swo
+*~
+
+# Migration working files (keep in repo until v1.0.0 polish, then strip)
+MIGRATION_AUDIT.md

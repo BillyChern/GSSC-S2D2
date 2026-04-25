@@ -1,0 +1,98 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gssc"
+version = "1.0.0"
+description = "Official PyTorch implementation of S2D2 (Structured Source Discrete Diffusion) -- 'Generative Semantic Scene Completion' (TPAMI 2026)."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10,<3.13"
+authors = []
+keywords = [
+    "semantic-scene-completion",
+    "discrete-diffusion",
+    "lidar",
+    "semantickitti",
+    "autonomous-driving",
+    "computer-vision",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Intended Audience :: Science/Research",
+]
+
+dependencies = [
+    "torch==2.4.0",
+    "torchvision==0.19.0",
+    "numpy>=1.26,<2",
+    "scipy>=1.11",
+    "tqdm>=4.66",
+    "pyyaml>=6.0",
+    "einops>=0.7",
+    "hydra-core>=1.3",
+    "omegaconf>=2.3",
+    "safetensors>=0.4.3",
+    "huggingface-hub>=0.24",
+    "tensorboard>=2.16",
+    # spconv: install separately, see docs/REPRODUCIBILITY.md
+    # spconv-cu121>=2.3.6
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "vulture>=2.11",
+    "pyflakes>=3.2",
+]
+viz = [
+    # Blender 3.6 LTS, headless, called via subprocess (not a pip package).
+    "matplotlib>=3.8",
+    "Pillow>=10.2",
+    "drawsvg>=2.4",
+]
+wandb = [
+    "wandb>=0.17",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/BillyChern/GSSC-S2D2"
+"Issues" = "https://github.com/BillyChern/GSSC-S2D2/issues"
+"Paper" = "https://arxiv.org/abs/TBD"
+
+[project.scripts]
+gssc-train = "gssc.cli.train:main"
+gssc-eval = "gssc.cli.eval:main"
+gssc-infer = "gssc.cli.infer:main"
+gssc-download = "gssc.cli.download:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gssc"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-select = ["I", "B", "UP", "RUF"]
+extend-ignore = ["B008", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+    "gpu: requires CUDA GPU",
+    "slow: takes more than 60 seconds",
+    "data: requires SemanticKITTI data",
+]
