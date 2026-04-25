@@ -235,7 +235,7 @@ class SceneCompletionUNet(nn.Module):
         Enable PaSCo's SPCDense3Dv2 at the bottleneck for dense hallucination.
 
         This helps complete occluded regions that sparse convolutions can't reach.
-        Reference: PaSCo (CVPR 2024) - /workspace/reference/PaSCo/pasco/models/layers.py
+        Reference: PaSCo (CVPR 2024) - <paco-reference>/pasco/models/layers.py
 
         Args:
             dropout: Dropout probability for dense3d (PaSCo default: 0.1)

@@ -14,7 +14,7 @@ road extends higher than expected due to terrain slope (z=0-23), etc.
 
 Reference:
 - S3CNet (CoRL 2020): "2D→3D Lifting" section
-- Architecture plan: /workspace/Semantic_Scene_Completion_LiDAR/docs/architecture_improvement_plan.md
+- Architecture plan: <repo>/docs/architecture_improvement_plan.md
 """
 
 import torch

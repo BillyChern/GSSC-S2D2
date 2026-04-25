@@ -93,7 +93,7 @@ class ExperimentConfig:
     aux_loss_weight: float = 0.001
 
     # Data
-    data_root: str = "/workspace/Semantic_Scene_Completion_LiDAR/datasets/dataset_SemanticKITTI_SSC"
+    data_root: str = "<repo>/datasets/dataset_SemanticKITTI_SSC"
     train_sequences: List[str] = field(default_factory=lambda: ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10'])
     val_sequences: List[str] = field(default_factory=lambda: ['08'])
     num_workers: int = 4
@@ -101,7 +101,7 @@ class ExperimentConfig:
 
     # Checkpointing
     save_every: int = 10
-    output_dir: str = "/workspace/Semantic_Scene_Completion_LiDAR/outputs/bev_experiments"
+    output_dir: str = "<repo>/outputs/bev_experiments"
 
     # Logging
     log_every: int = 50

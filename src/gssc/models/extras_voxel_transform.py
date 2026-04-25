@@ -2,8 +2,8 @@
 Voxel Transformation Utilities for PaSCo-style Augmentation.
 
 Reference: PaSCo (CVPR 2024)
-- Code: /workspace/reference/PaSCo/pasco/models/transform_utils.py
-- Code: /workspace/reference/PaSCo/pasco/data/semantic_kitti/kitti_dataset.py
+- Code: <paco-reference>/pasco/models/transform_utils.py
+- Code: <paco-reference>/pasco/data/semantic_kitti/kitti_dataset.py
 
 These utilities support:
 - Continuous rotation around Z-axis (±30°)

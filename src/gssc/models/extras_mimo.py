@@ -3,7 +3,7 @@ MIMO (Multi-Input Multi-Output) for Scene Completion
 
 Reference: PaSCo (CVPR 2024)
 - Paper: "Panoptic 3D Scene Completion"
-- Code: /workspace/reference/PaSCo/pasco/models/
+- Code: <paco-reference>/pasco/models/
 
 ================================================================================
 CRITICAL: PaSCo's TRUE MIMO Architecture (Jan 2026 Update)
@@ -111,7 +111,7 @@ class BEVGeometricAugmenter(nn.Module):
     - Scale: Resize and crop/pad
     - Flip: Horizontal flip (y-axis in BEV corresponds to horizontal)
 
-    Reference: /workspace/reference/PaSCo/pasco/models/transform_utils.py
+    Reference: <paco-reference>/pasco/models/transform_utils.py
     """
 
     def __init__(
@@ -336,8 +336,8 @@ class Unified3DAugmenter(nn.Module):
     - Same T matrix is applied to both!
 
     Reference:
-    - /workspace/reference/PaSCo/pasco/models/transform_utils.py
-    - /workspace/reference/PaSCo/pasco/data/semantic_kitti/kitti_dataset.py
+    - <paco-reference>/pasco/models/transform_utils.py
+    - <paco-reference>/pasco/data/semantic_kitti/kitti_dataset.py
     """
 
     def __init__(
@@ -667,8 +667,8 @@ class MIMOSceneCompletion(nn.Module):
 
     Reference:
     - Paper Section 3.2.1-3.2.2 (page 4)
-    - Code: /workspace/reference/PaSCo/pasco/models/ensembler.py (lines 159-187)
-    - Code: /workspace/reference/PaSCo/pasco/data/semantic_kitti/kitti_dataset.py (lines 126-140)
+    - Code: <paco-reference>/pasco/models/ensembler.py (lines 159-187)
+    - Code: <paco-reference>/pasco/data/semantic_kitti/kitti_dataset.py (lines 126-140)
     """
 
     def __init__(
@@ -913,7 +913,7 @@ class MIMOEnsembler(nn.Module):
     """
     Ensembler for combining MIMO subnet outputs.
 
-    Reference: /workspace/reference/PaSCo/pasco/models/ensembler.py
+    Reference: <paco-reference>/pasco/models/ensembler.py
     """
 
     def __init__(

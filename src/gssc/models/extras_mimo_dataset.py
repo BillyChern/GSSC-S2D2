@@ -2,7 +2,7 @@
 MIMO Dataset Wrapper for PaSCo-style Training.
 
 Reference: PaSCo (CVPR 2024)
-- Code: /workspace/reference/PaSCo/pasco/data/semantic_kitti/kitti_dataset.py
+- Code: <paco-reference>/pasco/data/semantic_kitti/kitti_dataset.py
 
 ================================================================================
 CRITICAL: PaSCo's TRUE MIMO Architecture (Jan 2026 Update)
@@ -619,8 +619,8 @@ class MIMODatasetWrapper(Dataset):
         - Flip X: 50% chance
         - Flip Y: 50% chance
 
-    Reference: /workspace/reference/PaSCo/pasco/data/semantic_kitti/kitti_dataset.py
-               /workspace/reference/PaSCo/pasco/data/semantic_kitti/kitti_dm.py (val_aug=True default)
+    Reference: <paco-reference>/pasco/data/semantic_kitti/kitti_dataset.py
+               <paco-reference>/pasco/data/semantic_kitti/kitti_dm.py (val_aug=True default)
     """
 
     def __init__(

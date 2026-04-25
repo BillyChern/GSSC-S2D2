@@ -13,7 +13,7 @@ covered by the receptive field of observable regions."
 
 Solution: Convert to dense at low resolution, apply 3D CNN, convert back.
 
-Config reference: /workspace/reference/PaSCo/pasco/models/layers.py
+Config reference: <paco-reference>/pasco/models/layers.py
 - SPCDense3Dv2 is their dense 3D bottleneck (lines 646-726)
 """
 
@@ -27,7 +27,7 @@ class SPCDense3Dv2(nn.Module):
     """
     Sparse-to-Dense Completion block - EXACT copy of PaSCo's implementation.
 
-    Reference: /workspace/reference/PaSCo/pasco/models/layers.py:646-726
+    Reference: <paco-reference>/pasco/models/layers.py:646-726
 
     Key design choices:
     1. Asymmetric kernels: (3,3,1), (5,5,3), (7,7,5) - larger XY than Z

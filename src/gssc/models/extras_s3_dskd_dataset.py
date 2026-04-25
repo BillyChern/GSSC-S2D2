@@ -889,7 +889,7 @@ if __name__ == '__main__':
     # Test teacher mode
     print("\n=== Teacher Mode ===")
     teacher_dataset = S3DSKDDataset(
-        data_root='/workspace/Semantic_Scene_Completion_LiDAR/datasets',
+        data_root='<repo>/datasets',
         sequences=['00'],
         mode='teacher',
         augment=True

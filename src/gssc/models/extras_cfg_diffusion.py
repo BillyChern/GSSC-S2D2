@@ -16,7 +16,7 @@ Key design decision (from architecture plan):
 
 Reference:
 - Classifier-Free Diffusion Guidance (Ho & Salimans, 2021)
-- Architecture plan: /workspace/Semantic_Scene_Completion_LiDAR/docs/architecture_improvement_plan.md
+- Architecture plan: <repo>/docs/architecture_improvement_plan.md
 """
 
 import torch
