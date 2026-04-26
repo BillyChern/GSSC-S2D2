@@ -10,13 +10,14 @@ import os
 
 import numpy as np
 import torch
-from semantic_kitti_utils import (
+from torch.utils.data import Dataset
+
+from gssc.data.semantic_kitti_utils import (
     convert_to_pyramid_format,
     get_sequence_frames,
     load_semantickitti_voxels,
     validate_training_sequence,
 )
-from torch.utils.data import Dataset
 
 # Check for scipy availability
 try:

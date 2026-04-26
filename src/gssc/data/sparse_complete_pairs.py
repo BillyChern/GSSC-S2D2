@@ -44,8 +44,8 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-# Import LiDAR simulation modules
-from gssc.data.lidar_simulator_v2 import (
+# Import LiDAR simulation modules (renamed during migration)
+from gssc.data.lidar_resampler_v2 import (
     VELODYNE_HDL64E_VERTICAL_ANGLES,
     MultiReturnLiDARSimulator,
     create_density_aware_resampler,

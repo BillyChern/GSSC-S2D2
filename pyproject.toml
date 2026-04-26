@@ -88,6 +88,10 @@ extend-exclude = [
     "src/gssc/_improved_diffusion",            # OpenAI improved-diffusion fork
     "src/gssc/models/extras_*.py",              # legacy ablation-only modules
     "src/gssc/models/scene_unet*.py",           # legacy scene-UNet variants used by trainer
+    "src/gssc/models/bev_*.py",                 # vendored BEV second-task pipeline
+    "src/gssc/models/conditioning.py",          # vendored conditioning helpers
+    "src/gssc/data/semantic_kitti_utils.py",    # vendored split + label utility
+    "src/gssc/data/lidar_simulation.py",        # legacy ray-tracer (HDL-64E + Bresenham3D)
     "src/gssc/training/train_pyramid_*.py",     # legacy pyramid training scripts
     "src/gssc/training/pyramid_pipeline.py",
     "external/",                                # third-party (semantic_kitti_api)

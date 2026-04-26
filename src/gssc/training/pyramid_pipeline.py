@@ -8,13 +8,14 @@ from datetime import datetime
 
 import numpy as np
 import torch
-from kitti_dataset import SemanticKITTIDataset
-from pyramid_diffusion import PyramidDiscreteDiffusion
-from pyramid_unet import create_pyramid_denoiser
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
+
+from gssc.data.kitti_dataset import SemanticKITTIDataset
+from gssc.models.pyramid_diffusion import PyramidDiscreteDiffusion
+from gssc.models.pyramid_unet import create_pyramid_denoiser
 
 # Configuration matching original paper (https://arxiv.org/abs/2311.12085)
 # Original train_s_1.yaml settings:

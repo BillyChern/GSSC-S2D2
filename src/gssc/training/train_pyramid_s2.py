@@ -34,10 +34,9 @@ from tqdm import tqdm
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / 'data_augmentation'))
 
-from pyramid_diffusion import PyramidDiscreteDiffusion
-from pyramid_unet import Denoise
+from gssc.models.pyramid_diffusion import PyramidDiscreteDiffusion
+from gssc.models.pyramid_unet import Denoise
 
 
 class S2Dataset(Dataset):

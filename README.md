@@ -280,8 +280,7 @@ This codebase builds on top of:
 
 * **SCPNet** ([CVPR 2023](https://github.com/SCPNet/Codes-for-SCPNet)) — frozen base model whose predictions seed the structured source.
 * **SemanticKITTI** ([ICCV 2019](http://www.semantic-kitti.org/)) — voxelised LiDAR scene completion benchmark.
+* **Pyramid Discrete Diffusion** ([Liu et al., 2023](https://arxiv.org/abs/2311.12085)) — multi-scale discrete diffusion for 3D scene synthesis; the foundation of our Phase-1 data augmentation pipeline (S₁/S₂/S₃ + LiDAR ray-tracing + rare-class object bank).
 * **spconv 2.3** ([traveller59/spconv](https://github.com/traveller59/spconv)) — sparse 3D convolution backend.
 * **D3PM / Multinomial Diffusion** ([NeurIPS 2021](https://arxiv.org/abs/2107.03006)) — discrete diffusion family.
-* **SegRefiner** ([NeurIPS 2023](https://github.com/MengyuWang826/SegRefiner)) — closest 2D refinement predecessor.
 * **TALoS** ([NeurIPS 2024](https://arxiv.org/abs/2410.15674)) — previous SemanticKITTI SSC SOTA, included as the leaderboard reference baseline.
-* **Cold Diffusion** ([Bansal et al., NeurIPS 2023](https://arxiv.org/abs/2208.09392)) — non-noise-degradation correction sampling.

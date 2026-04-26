@@ -7,13 +7,50 @@ Converts completed scenes to realistic incomplete LiDAR observations using:
 - Random pose sampling from SemanticKITTI training sequences
 """
 
-import sys
 
 import numpy as np
 
-# Import Bresenham3D from TALoS
-sys.path.append('TALoS')
-from utils.util import Bresenham3D
+# Bresenham3D was originally vendored from the TALoS reference implementation.
+# We ship a self-contained 26-connectivity 3D rasteriser that needs no
+# external dependency. Used only when this legacy simulator is invoked
+# directly; the headline pipeline uses ``gssc.data.lidar_simulator`` instead.
+
+def Bresenham3D(start: list[np.ndarray], end: list[np.ndarray], line_end: bool = True):
+    """26-connectivity integer line rasteriser between two 3D points."""
+    points = []
+    for s, e in zip(start, end):
+        x1, y1, z1 = int(s[0]), int(s[1]), int(s[2])
+        x2, y2, z2 = int(e[0]), int(e[1]), int(e[2])
+        line = []
+        dx = abs(x2 - x1); dy = abs(y2 - y1); dz = abs(z2 - z1)
+        xs = 1 if x2 > x1 else -1
+        ys = 1 if y2 > y1 else -1
+        zs = 1 if z2 > z1 else -1
+        if dx >= dy and dx >= dz:
+            p1 = 2 * dy - dx; p2 = 2 * dz - dx
+            while x1 != x2:
+                line.append((x1, y1, z1))
+                if p1 >= 0: y1 += ys; p1 -= 2 * dx
+                if p2 >= 0: z1 += zs; p2 -= 2 * dx
+                p1 += 2 * dy; p2 += 2 * dz; x1 += xs
+        elif dy >= dx and dy >= dz:
+            p1 = 2 * dx - dy; p2 = 2 * dz - dy
+            while y1 != y2:
+                line.append((x1, y1, z1))
+                if p1 >= 0: x1 += xs; p1 -= 2 * dy
+                if p2 >= 0: z1 += zs; p2 -= 2 * dy
+                p1 += 2 * dx; p2 += 2 * dz; y1 += ys
+        else:
+            p1 = 2 * dy - dz; p2 = 2 * dx - dz
+            while z1 != z2:
+                line.append((x1, y1, z1))
+                if p1 >= 0: y1 += ys; p1 -= 2 * dz
+                if p2 >= 0: x1 += xs; p2 -= 2 * dz
+                p1 += 2 * dy; p2 += 2 * dx; z1 += zs
+        if line_end:
+            line.append((x2, y2, z2))
+        points.append(np.asarray(line, dtype=np.int64))
+    return points
 
 
 class VelodyneHDL64E:
