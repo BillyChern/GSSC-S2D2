@@ -12,7 +12,7 @@ also supported for advanced users:
 * ``gssc.data`` — dataset loaders + augmentation
 * ``gssc.losses`` — KL + Lovász + auxiliary
 * ``gssc.training`` — trainer
-* ``gssc.inference`` — evaluation + visualisation
+* ``gssc.inference`` — evaluation (3D SSC + 2D BEV) and prediction generation
 * ``gssc.utils`` — shared helpers
 """
 from __future__ import annotations

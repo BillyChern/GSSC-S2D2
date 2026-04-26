@@ -59,7 +59,9 @@ training run at 256×256×32 voxel resolution costs roughly 37 GPU-hours on
 |---|---|---|
 | Tab. I (test mIoU) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_31k_mf_step40000.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl |
 | Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31k_mf_step40000.safetensors --metrics miou per_class` | 38.54 mIoU |
-| Tab. III (safety metrics) | `python scripts/eval.py eval/val_1step --checkpoint ... --metrics safety` | SC-mIoU 35.2, VRU-IoU 19.6 |
+<!-- Tab. III (safety metrics) intentionally omitted from this matrix until
+     the dedicated safety-metric driver is implemented; see issue tracker. -->
+
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint ...` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31K_sf_step100000.safetensors` | See MODEL_ZOO.md |
 | Tab. VIII (DW-IoU) | `python scripts/eval.py eval/val_1step --checkpoint ... --metrics dwiou` | per-T_w table |

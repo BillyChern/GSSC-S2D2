@@ -4,7 +4,9 @@
 
 ### Generative Semantic Scene Completion via Structured Source Discrete Diffusion
 
-📄 **[Paper (TPAMI 2026)](https://arxiv.org/abs/TBD)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility Guide](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
+📄 **[Paper (TPAMI 2026)](https://arxiv.org/abs/TBD)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility Guide](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab Quickstart](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BillyChern/GSSC-S2D2/blob/main/examples/quickstart.ipynb)
 
 [![Test status](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/test.yml/badge.svg)](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/test.yml)
 [![Lint status](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/lint.yml/badge.svg)](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/lint.yml)
@@ -183,7 +185,7 @@ GSSC-S2D2/
 │   ├── data/                       # SemanticKITTI loader, synthetic pool, object bank, HDL-64E ray-tracer
 │   ├── losses/                     # KL posterior + Lovász + auxiliary + focal-CE
 │   ├── training/                   # canonical trainer + EMA + logging
-│   ├── inference/                  # eval (mIoU + safety metrics + DW-IoU), visualisation
+│   ├── inference/                  # eval (3D SSC mIoU + Completion IoU, 2D BEV mIoU), D4 TTA, prediction generation
 │   └── utils/                      # config loader, seeding, registry
 ├── configs/                        # Hydra configs (one per recipe in the paper)
 │   ├── train/{31k_mf,0K_sf,...,T100skewed}.yaml
@@ -220,15 +222,13 @@ The repo ships the exact recipe + checkpoint for every reported number.
 
 | Paper artefact | Command | Expected |
 |---|---|---|
-| **Tab. I** (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_31k_mf_step40000.safetensors --output preds/` then submit to [Codabench](https://codalab.lisn.upsaclay.fr/competitions/7170) | **39.2 %** test mIoU |
-| **Tab. II** (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline> --metrics miou per_class completion_iou` | **38.54 %** val mIoU |
-| **Tab. III** (safety metrics) | `python scripts/eval.py eval/val_1step --checkpoint <headline> --metrics safety` | SC-mIoU 35.2, VRU-IoU 19.6 |
+| **Tab. I** (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt --output preds/` then submit to [Codabench](https://codalab.lisn.upsaclay.fr/competitions/7170) | **39.2 %** test mIoU |
+| **Tab. II** (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline>` | **38.54 %** val mIoU |
 | **Tab. V** (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
 | **Tab. VII** (data scaling) | `python scripts/reproduce_table.py tab:data_scaling` | 0K/10K/20K/31K/57K SF retrains |
-| **Tab. VIII** (DW-IoU) | `python scripts/eval.py eval/val_1step --checkpoint <headline> --metrics dwiou` | per-T_w table |
 | **Tab. XII** (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` | T=10/50/100-skewed/100-uniform |
-| **Tab. XV** (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev_perception_net.safetensors` | **36.09 %** BEV mIoU |
-| **Fig. 4** / **Fig. 5** (qualitative) | `examples/01_render_figures.ipynb` | bicyclist 003096 + motorcyclist 001417 (Fig. 4); 10-row gallery (Fig. 5) |
+| **Tab. XV** (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev_perception_net.pt` | **36.09 %** BEV mIoU |
+| **Fig. 4** / **Fig. 5** (qualitative) | `examples/01_render_figures.ipynb` *(coming soon)* | bicyclist 003096 + motorcyclist 001417 (Fig. 4); 10-row gallery (Fig. 5) |
 
 Full mapping with anticipated wall-clock and disk requirements: **[docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md)**.
 
