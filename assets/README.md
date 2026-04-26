@@ -6,12 +6,12 @@ top-level README. Drop-in convention so the README never breaks:
 | Filename | What | Where it appears |
 |---|---|---|
 | `teaser.png` | Hero teaser — paper Fig. 2 (two-stage pipeline rendered for the README) | top of `README.md`, above the badges |
-| `architecture.png` | Method architecture — paper Fig. 3 (denoiser UNet + Algo2) | `README.md` "Method at a glance" |
+| `architecture.png` | Method architecture — paper Fig. 3 (denoiser UNet + S2D2 correction sampler) | `README.md` "Method at a glance" |
 | `qualitative.png` | Three-panel qualitative example — SCPNet vs Ours vs GT, motorcyclist 000708 | `README.md` "Headline numbers" |
 | `bev_qualitative.png` | BEV second-task qualitative — base BEV vs S²D² BEV vs GT | `README.md` "Secondary task" |
 | `step_sweep.png` | Tab. V step reduction plot (mIoU vs N) | `README.md` "Reproducing every paper number" |
 | `data_scaling.png` | Tab. VII data-scaling plot (mIoU vs synthetic-pool size) | `README.md` "Reproducing every paper number" |
-| `demo.gif` | Optional animation: Algo2 correction over t=99 → t=0 | `README.md` hero |
+| `demo.gif` | Optional animation: S2D2 correction sampling over t=99 → t=0 | `README.md` hero |
 
 ## How figures get here
 

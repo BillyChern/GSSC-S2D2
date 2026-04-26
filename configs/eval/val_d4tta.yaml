@@ -1,5 +1,5 @@
 _paper_table: tab:main_results (val with D4 TTA)
-_description: 4-step Algo2 + D4 dihedral TTA. Expected 38.73% mIoU.
+_description: 4-step S2D2 correction sampling + D4 dihedral TTA. Expected 38.73% mIoU.
 split: val
 sequences: "08"
 algo2_steps: 4

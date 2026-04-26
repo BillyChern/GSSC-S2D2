@@ -1,5 +1,5 @@
 _paper_table: "tab:bev (secondary task, BEV-A run)"
-_description: "BEV-A: cold-diffusion BEV refinement on SCPNet base, 100K steps, Algo2 N=1 deployment. Reproduces 36.09% BEV mIoU on SemanticKITTI val seq 08."
+_description: "BEV-A: S2D2 BEV refinement on SCPNet base, 100K steps, N=1 correction-sampling deployment. Reproduces 36.09% BEV mIoU on SemanticKITTI val seq 08."
 task: bev
 data_root: data
 pred_bev_dir: data/scpnet_predictions

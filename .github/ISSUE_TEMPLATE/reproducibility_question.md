@@ -7,7 +7,7 @@ assignees: BillyChern
 ---
 
 ## Which number?
-<!-- e.g. "Tab. I 38.54% val mIoU at 1-step Algo2" or "Tab. XV 36.09% BEV". -->
+<!-- e.g. "Tab. I 38.54% val mIoU at 1-step S2D2 correction sampling" or "Tab. XV 36.09% BEV". -->
 
 ## Reproduction command
 
