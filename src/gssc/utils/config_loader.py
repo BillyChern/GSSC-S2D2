@@ -11,13 +11,14 @@ from pathlib import Path
 import yaml
 
 
-def load_yaml_to_args(path: Path) -> list[str]:
+def load_yaml_to_args(path: Path | str) -> list[str]:
     """Flatten a YAML config dict into a list of CLI args.
 
     A leading underscore in a key name suppresses it (used for documentation
-    fields like ``_paper_table:``).
+    fields like ``_paper_table:``). Accepts either a :class:`pathlib.Path`
+    or a string path.
     """
-    cfg = yaml.safe_load(path.read_text())
+    cfg = yaml.safe_load(Path(path).read_text())
     args = []
     for k, v in cfg.items():
         if k.startswith("_"):
