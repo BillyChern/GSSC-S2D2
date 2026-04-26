@@ -1,32 +1,25 @@
-from abc import abstractmethod
-
 import math
+from abc import abstractmethod
 
 import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
+from spconv.pytorch.conv import SparseConv3d, SparseInverseConv3d, SubMConv3d
+from spconv.pytorch.core import SparseConvTensor
+from spconv.pytorch.modules import SparseSequential
 from torch.nn import SiLU
 
-from autoencoder.simpleAE import SimpleAE_v2, Encoder
 from .fp16_util import convert_module_to_f16, convert_module_to_f32
 from .nn import (
+    checkpoint,
     conv_nd,
-    depthwise_conv_nd,
     linear,
-    avg_pool_nd,
-    max_pool_nd,
-    zero_module,
     normalization,
     timestep_embedding,
-    lidar_embedding,
-    checkpoint,
+    zero_module,
 )
 
-from spconv.pytorch.modules import SparseModule, SparseSequential
-from spconv.pytorch.conv import SubMConv3d, SparseConv3d, SparseInverseConv3d
-from spconv.pytorch.core import SparseConvTensor
-from spconv.pytorch import functional as Fsp
 
 class TimestepBlock(nn.Module):
     """
@@ -77,7 +70,7 @@ class LidarEmbedding(nn.Module):
                 normalization(model_channels*mult),
             )
             self.lidar_embedding_layers.append(layers)
-            self.add_module('lidar_{}'.format(i), layers)
+            self.add_module(f'lidar_{i}', layers)
             
     def forward(self, lidar_emb):
         embs = []
@@ -113,7 +106,7 @@ class BEVEmbedding(nn.Module):
                 normalization(model_channels*mult),
             )
             self.bev_embedding_layers.append(layers)
-            self.add_module('bev_{}'.format(i), layers)
+            self.add_module(f'bev_{i}', layers)
             
     def forward(self, bev_emb):
         embs = []
@@ -565,9 +558,9 @@ class UNetModel(nn.Module):
                 input_block_chans.append(ch)
             if level != len(channel_mult) - 1:
                 self.input_blocks.append(
-                    TimestepEmbedSequential(Downsample(ch, conv_resample, dims=dims, indice_key="spconv{}".format(level)))
+                    TimestepEmbedSequential(Downsample(ch, conv_resample, dims=dims, indice_key=f"spconv{level}"))
                 )
-                cur_indice_key="subm{}".format(level+1)
+                cur_indice_key=f"subm{level+1}"
                 input_block_chans.append(ch)
                 ds *= 2
 
@@ -667,9 +660,9 @@ class UNetModel(nn.Module):
                         )
                     )
                 if level and i == num_res_blocks:
-                    layers.append(Upsample(ch, conv_resample, dims=dims, indice_key="spconv{}".format(level-1)))
+                    layers.append(Upsample(ch, conv_resample, dims=dims, indice_key=f"spconv{level-1}"))
                     ds //= 2
-                    cur_indice_key = "subm{}".format(level-1)
+                    cur_indice_key = f"subm{level-1}"
                 self.output_blocks.append(TimestepEmbedSequential(*layers))
         self.out = SparseSequential(
             normalization(ch),

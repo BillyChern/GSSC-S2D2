@@ -4,13 +4,14 @@ Adapted from: https://github.com/openai/openai/blob/55363aa496049423c37124b440e9
 
 
 import math
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import torch
 import torch.nn as nn
 
 #from .checkpoint import checkpoint
 from .nn import checkpoint, timestep_embedding
+
 #from .util import timestep_embedding
 
 
@@ -217,7 +218,7 @@ class PointDiffusionTransformer(nn.Module):
         return self._forward_with_cond(x, cond, attn_mask)
 
     def _forward_with_cond(
-        self, x: torch.Tensor, cond_as_token: List[Tuple[torch.Tensor, bool]], attn_mask=None,
+        self, x: torch.Tensor, cond_as_token: list[tuple[torch.Tensor, bool]], attn_mask=None,
     ) -> torch.Tensor:
         h = self.input_proj(x.permute(0, 2, 1))  # NCL -> NLC
         for emb, as_token in cond_as_token:
@@ -246,11 +247,11 @@ class UpsamplePointDiffusionTransformer(PointDiffusionTransformer):
         *,
         device: torch.device,
         dtype: torch.dtype,
-        cond_input_channels: Optional[int] = None,
+        cond_input_channels: int | None = None,
         cond_ctx: int = 1024,
         n_ctx: int = 4096 - 1024,
-        channel_scales: Optional[Sequence[float]] = None,
-        channel_biases: Optional[Sequence[float]] = None,
+        channel_scales: Sequence[float] | None = None,
+        channel_biases: Sequence[float] | None = None,
         **kwargs,
     ):
         super().__init__(device=device, dtype=dtype, n_ctx=n_ctx + cond_ctx, **kwargs)

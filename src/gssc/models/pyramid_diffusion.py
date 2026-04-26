@@ -2,12 +2,11 @@
 Pyramid Discrete Diffusion for SemanticKITTI - Exact implementation from original paper.
 Adapted for SemanticKITTI voxel dimensions: s1(32×32×4) → s2(64×64×8) → s4(256×256×32)
 """
-import torch
-import torch.nn.functional as F
-import numpy as np
-import math
 from inspect import isfunction
 
+import numpy as np
+import torch
+import torch.nn.functional as F
 
 eps = 1e-8
 
@@ -70,7 +69,7 @@ class PyramidDiscreteDiffusion(torch.nn.Module):
     def __init__(self, args, denoise_model, num_classes, num_timesteps=100,
                  multi_criterion=None, auxiliary_loss_weight=0.0005,
                  adaptive_auxiliary_loss=True, recon_loss=False):
-        super(PyramidDiscreteDiffusion, self).__init__()
+        super().__init__()
 
         self.num_classes = num_classes
         self.num_timesteps = num_timesteps

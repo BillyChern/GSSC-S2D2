@@ -13,15 +13,14 @@ Each has its own noise schedule — occupancy gets more aggressive noise
 Coupled at sampling time: final prediction = sem_pred * occ_pred.
 """
 
-import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, Dict
 from tqdm import tqdm
 
 
-def extract(a: torch.Tensor, t: torch.Tensor, x_shape: Tuple[int, ...]) -> torch.Tensor:
+def extract(a: torch.Tensor, t: torch.Tensor, x_shape: tuple[int, ...]) -> torch.Tensor:
     """Extract values from a at timestep t and reshape for broadcasting."""
     B = t.shape[0]
     out = a.gather(-1, t.clamp(0, a.shape[0] - 1))
@@ -164,8 +163,8 @@ class FactoredDiffusion3D(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+        lifted_features: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """Compute factored training loss.
 
         Args:
@@ -235,9 +234,9 @@ class FactoredDiffusion3D(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         show_progress: bool = True,
     ) -> torch.Tensor:
         """Coupled ancestral sampling."""
@@ -310,9 +309,9 @@ class FactoredDiffusion3D(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         guidance_scale: float = 3.0,
         cfg_target: str = 'lidar',
         show_progress: bool = True,
@@ -389,9 +388,9 @@ class FactoredDiffusion3D(nn.Module):
         bev: torch.Tensor,
         lidar: torch.Tensor,
         lsk3d_init: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         start_timestep: int = 50,
         show_progress: bool = True,
     ) -> torch.Tensor:

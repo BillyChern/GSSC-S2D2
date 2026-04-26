@@ -1,18 +1,15 @@
 #import ipdb; ipdb.set_trace()
 import argparse
 import inspect
-import torch as th
 
 from . import gaussian_diffusion as gd
-from .respace import SpacedDiffusion, space_timesteps
 from .multinomial_diffusion import MultinomialDiffusion
+from .respace import SpacedDiffusion, space_timesteps
 from .unet import SuperResModel, UNetModel
 from .unet_factorized import UNetModel as UNetModel_fa
+from .unet_multinomial import UNetModel as UNetModel_multinomial  # error
 from .unet_old_fullres_baseline import UNetModel as UNetModel_old
-from .unet_multinomial import UNetModel as UNetModel_multinomial # error
 from .unet_sparse import UNetModel as UNetModel_sparse
-from .transformer import PointDiffusionTransformer
-from .dist_util import DEBUG
 
 NUM_CLASSES = 1000
 

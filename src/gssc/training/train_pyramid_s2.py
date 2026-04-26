@@ -16,25 +16,21 @@ Usage:
     python train_s2.py --resume outputs/checkpoints/s2/latest.pt
 """
 
+import argparse
 import os
 import sys
-import argparse
-import numpy as np
 from pathlib import Path
-from datetime import datetime
-from typing import Optional, Tuple, List
 
+import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.distributed as dist
-from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.distributed import DistributedSampler
+import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
-import math
 
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -56,7 +52,7 @@ class S2Dataset(Dataset):
     def __init__(
         self,
         quantized_root: str,
-        sequences: List[int],
+        sequences: list[int],
         conditioning_mode: str = 'ground_truth',
         augment: bool = True,
     ):
@@ -390,7 +386,7 @@ class S2Trainer:
             print(f"Resumed from epoch {checkpoint['epoch']}, step {self.global_step}")
             if 'world_size' in checkpoint and checkpoint['world_size'] != self.world_size:
                 print(f"  WARNING: World size changed from {checkpoint['world_size']} to {self.world_size}")
-                print(f"  LR scaling may need adjustment")
+                print("  LR scaling may need adjustment")
 
     def train(
         self,

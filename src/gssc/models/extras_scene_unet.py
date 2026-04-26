@@ -16,10 +16,10 @@ Architecture:
 """
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, List
 
 
 def timestep_embedding(timesteps: torch.Tensor, dim: int, max_period: int = 10000) -> torch.Tensor:
@@ -148,7 +148,7 @@ class SceneCompletionUNet(nn.Module):
         self,
         num_classes: int = 20,
         base_channels: int = 32,
-        channel_mult: Tuple[int, ...] = (1, 2, 4, 8),  # 4 levels for 256→16
+        channel_mult: tuple[int, ...] = (1, 2, 4, 8),  # 4 levels for 256→16
         time_emb_dim: int = 128,
         dropout: float = 0.0,
         num_groups: int = 8,
@@ -284,7 +284,7 @@ class SceneCompletionUNet(nn.Module):
         t: torch.Tensor,    # [B] timesteps
         bev: torch.Tensor,  # [B, num_classes, H, W] BEV semantic map (one-hot)
         lidar: torch.Tensor,  # [B, 1, H, W, D] sparse LiDAR binary voxels
-        lifted_features: Optional[torch.Tensor] = None,  # S1/S2: [B, feat_dim, H, W, D] lifted 3D features
+        lifted_features: torch.Tensor | None = None,  # S1/S2: [B, feat_dim, H, W, D] lifted 3D features
     ) -> torch.Tensor:
         """
         Forward pass: predict clean voxels x_0 from noisy x_t.
@@ -402,8 +402,8 @@ class SceneCompletionUNet(nn.Module):
         t: torch.Tensor,    # [B] timesteps
         bev: torch.Tensor,  # [B, num_classes, H, W] BEV semantic map (one-hot)
         lidar: torch.Tensor,  # [B, 1, H, W, D] sparse LiDAR binary voxels
-        lifted_features: Optional[torch.Tensor] = None,  # S1/S2: [B, feat_dim, H, W, D] lifted 3D features
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        lifted_features: torch.Tensor | None = None,  # S1/S2: [B, feat_dim, H, W, D] lifted 3D features
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass that returns both predictions and bottleneck features.
         Used for DSKD (Dense-to-Sparse Knowledge Distillation).
@@ -517,7 +517,7 @@ class SceneCompletionUNetLite(nn.Module):
         self,
         num_classes: int = 20,
         base_channels: int = 16,  # Half of full model
-        channel_mult: Tuple[int, ...] = (1, 2, 4, 8),
+        channel_mult: tuple[int, ...] = (1, 2, 4, 8),
         time_emb_dim: int = 64,  # Smaller time embedding
         num_groups: int = 4,  # Fewer groups
     ):

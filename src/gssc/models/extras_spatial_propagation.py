@@ -27,11 +27,11 @@ Usage:
     refined = spsr(prediction, lidar_obs=lidar)
 """
 
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple
-import numpy as np
 
 
 class SpatialPropagationRefinement(nn.Module):
@@ -113,7 +113,7 @@ class SpatialPropagationRefinement(nn.Module):
     def _compute_class_histogram(
         self,
         pred_onehot: torch.Tensor,
-        weights: Optional[torch.Tensor] = None,
+        weights: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Compute class histogram in local neighborhood.
@@ -181,7 +181,7 @@ class SpatialPropagationRefinement(nn.Module):
     def _geometric_consistency_score(
         self,
         pred: torch.Tensor,
-        lidar_obs: Optional[torch.Tensor] = None,
+        lidar_obs: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Compute geometric consistency score based on occupancy patterns.
@@ -230,8 +230,8 @@ class SpatialPropagationRefinement(nn.Module):
         self,
         pred: torch.Tensor,
         pred_onehot: torch.Tensor,
-        confidence: Optional[torch.Tensor] = None,
-        lidar_mask: Optional[torch.Tensor] = None,
+        confidence: torch.Tensor | None = None,
+        lidar_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Perform local majority voting for semantic labels.
@@ -310,8 +310,8 @@ class SpatialPropagationRefinement(nn.Module):
     def forward(
         self,
         pred: torch.Tensor,
-        lidar_obs: Optional[torch.Tensor] = None,
-        pred_probs: Optional[torch.Tensor] = None,
+        lidar_obs: torch.Tensor | None = None,
+        pred_probs: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Apply spatial propagation refinement.
@@ -434,7 +434,7 @@ def refine_scene_prediction(
     pred: torch.Tensor,
     num_iterations: int = 3,
     num_classes: int = 20,
-    lidar_obs: Optional[torch.Tensor] = None,
+    lidar_obs: torch.Tensor | None = None,
     preserve_lidar: bool = True,
 ) -> torch.Tensor:
     """

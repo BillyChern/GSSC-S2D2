@@ -1,9 +1,7 @@
 """Unit tests for the YAML→argv config loader."""
 from __future__ import annotations
-import textwrap
-from pathlib import Path
 
-import pytest
+from pathlib import Path
 
 from gssc.utils.config_loader import load_yaml_to_args
 

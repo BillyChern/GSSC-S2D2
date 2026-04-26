@@ -18,11 +18,11 @@ Usage:
     refined = refiner.refine_multi_frame(predictions, lidar_obs_list, poses)
 """
 
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from typing import Optional, List, Tuple, Dict
 
 
 class BEVFeatureEncoder(nn.Module):
@@ -96,7 +96,7 @@ class PositionalEncoder(nn.Module):
     Learnable positional encoding for spatial awareness.
     """
 
-    def __init__(self, channels: int, grid_size: Tuple[int, int] = (256, 256)):
+    def __init__(self, channels: int, grid_size: tuple[int, int] = (256, 256)):
         super().__init__()
         self.channels = channels
         self.grid_size = grid_size
@@ -207,7 +207,7 @@ class LocalPropagationNetwork(nn.Module):
         num_classes: int = 20,
         bev_channels: int = 64,
         num_layers: int = 3,
-        grid_size: Tuple[int, int, int] = (256, 256, 32),
+        grid_size: tuple[int, int, int] = (256, 256, 32),
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -240,7 +240,7 @@ class LocalPropagationNetwork(nn.Module):
     def forward(
         self,
         voxel: torch.Tensor,
-        lidar_mask: Optional[torch.Tensor] = None,
+        lidar_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Args:
@@ -283,9 +283,9 @@ class GlobalPropagation(nn.Module):
     def __init__(
         self,
         num_classes: int = 20,
-        grid_size: Tuple[int, int, int] = (256, 256, 32),
-        voxel_size: Tuple[float, float, float] = (0.2, 0.2, 0.2),
-        lidar_origin: Tuple[int, int, int] = (128, 128, 2),
+        grid_size: tuple[int, int, int] = (256, 256, 32),
+        voxel_size: tuple[float, float, float] = (0.2, 0.2, 0.2),
+        lidar_origin: tuple[int, int, int] = (128, 128, 2),
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -325,8 +325,8 @@ class GlobalPropagation(nn.Module):
     def forward(
         self,
         logits: torch.Tensor,
-        lidar_mask: Optional[torch.Tensor] = None,
-        lidar_labels: Optional[torch.Tensor] = None,
+        lidar_mask: torch.Tensor | None = None,
+        lidar_labels: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Args:
@@ -376,10 +376,10 @@ class OccFiner(nn.Module):
     def __init__(
         self,
         num_classes: int = 20,
-        grid_size: Tuple[int, int, int] = (256, 256, 32),
+        grid_size: tuple[int, int, int] = (256, 256, 32),
         bev_channels: int = 64,
         num_local_layers: int = 3,
-        voxel_size: Tuple[float, float, float] = (0.2, 0.2, 0.2),
+        voxel_size: tuple[float, float, float] = (0.2, 0.2, 0.2),
         device: str = 'cuda',
     ):
         super().__init__()
@@ -407,8 +407,8 @@ class OccFiner(nn.Module):
     def forward(
         self,
         voxel: torch.Tensor,
-        lidar_mask: Optional[torch.Tensor] = None,
-        lidar_labels: Optional[torch.Tensor] = None,
+        lidar_mask: torch.Tensor | None = None,
+        lidar_labels: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Full forward pass through both stages.
@@ -435,8 +435,8 @@ class OccFiner(nn.Module):
     def refine(
         self,
         prediction: torch.Tensor,
-        lidar_obs: Optional[torch.Tensor] = None,
-        lidar_labels: Optional[torch.Tensor] = None,
+        lidar_obs: torch.Tensor | None = None,
+        lidar_labels: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Refine a single scene prediction.
@@ -478,8 +478,8 @@ class OccFiner(nn.Module):
 
 def refine_with_occfiner(
     prediction: np.ndarray,
-    lidar_mask: Optional[np.ndarray] = None,
-    lidar_labels: Optional[np.ndarray] = None,
+    lidar_mask: np.ndarray | None = None,
+    lidar_labels: np.ndarray | None = None,
     num_classes: int = 20,
     device: str = 'cuda',
 ) -> np.ndarray:
@@ -526,7 +526,7 @@ class MultiFrameOccFiner(OccFiner):
     def __init__(
         self,
         num_classes: int = 20,
-        grid_size: Tuple[int, int, int] = (256, 256, 32),
+        grid_size: tuple[int, int, int] = (256, 256, 32),
         bev_channels: int = 64,
         num_frames: int = 5,
         device: str = 'cuda',
@@ -549,9 +549,9 @@ class MultiFrameOccFiner(OccFiner):
 
     def refine_multi_frame(
         self,
-        predictions: List[torch.Tensor],
-        poses: List[torch.Tensor],
-        lidar_masks: Optional[List[torch.Tensor]] = None,
+        predictions: list[torch.Tensor],
+        poses: list[torch.Tensor],
+        lidar_masks: list[torch.Tensor] | None = None,
     ) -> torch.Tensor:
         """
         Refine using multiple frame predictions.

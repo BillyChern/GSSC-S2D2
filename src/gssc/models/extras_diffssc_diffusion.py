@@ -10,12 +10,15 @@ Key design (from DiffSSC paper):
 - CFG: uncond_prob=0.1, uncond_w=6.0
 """
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
-from .diffssc_utils import points_to_sparse_tensor, semantic_encode, semantic_decode, probs_to_semantic_logits
+from .diffssc_utils import (
+    points_to_sparse_tensor,
+    probs_to_semantic_logits,
+)
 
 
 class PointCloudGaussianDiffusion(nn.Module):

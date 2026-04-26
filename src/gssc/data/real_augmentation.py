@@ -27,26 +27,23 @@ Author: SSC Project
 Date: December 2024
 """
 
-import os
-import sys
-import numpy as np
-from pathlib import Path
-from typing import List, Tuple, Optional, Dict, Union
-from dataclasses import dataclass
-from tqdm import tqdm
-import logging
 import json
-from scipy import ndimage
+import logging
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+from tqdm import tqdm
 
 # Add project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from gssc.data.lidar_resampler_v2 import (
-    MultiReturnLiDARSimulator,
     create_multi_return_resampler,
     pack_voxels,
 )
-from gssc.data.object_bank import ObjectBank, ObjectPaster, RARE_CLASSES, RARE_CLASS_IDS
+from gssc.data.object_bank import RARE_CLASS_IDS, RARE_CLASSES, ObjectBank
 
 logger = logging.getLogger(__name__)
 
@@ -88,12 +85,12 @@ class AugmentationConfig:
     enable_flip_x: bool = False  # Training handles this
     enable_flip_y: bool = False  # Training handles this
     enable_rotation: bool = False  # Training handles this
-    rotation_angles: List[int] = None
+    rotation_angles: list[int] = None
 
     # Multi-viewpoint LiDAR (UNIQUE VALUE #1)
     # Creates different (sparse, complete) pairs from same scene
     enable_multi_viewpoint: bool = True
-    viewpoint_offsets: List[Tuple[int, int, int]] = None  # [(dx, dy, dz), ...]
+    viewpoint_offsets: list[tuple[int, int, int]] = None  # [(dx, dy, dz), ...]
     num_viewpoints: int = 4  # How many viewpoints per scene
 
     # Copy-paste (UNIQUE VALUE #2 - Class Rebalancing)
@@ -175,7 +172,7 @@ class GeometricAugmentor:
             raise ValueError(f"Unknown transform: {transform_name}")
         return transforms[transform_name](scene)
 
-    def get_all_transforms(self) -> List[str]:
+    def get_all_transforms(self) -> list[str]:
         """Get list of all available transforms."""
         return ['original', 'flip_x', 'flip_y', 'rot90', 'rot180', 'rot270']
 
@@ -198,7 +195,7 @@ class CopyPasteAugmentor:
         scene: np.ndarray,
         obj_voxels: np.ndarray,
         obj_labels: np.ndarray,
-        position: Tuple[int, int, int],
+        position: tuple[int, int, int],
     ) -> bool:
         """
         Check if placement is valid (no class conflicts, grounded).
@@ -252,7 +249,7 @@ class CopyPasteAugmentor:
         obj_voxels: np.ndarray,
         obj_labels: np.ndarray,
         max_attempts: int = 50,
-    ) -> Optional[Tuple[int, int, int]]:
+    ) -> tuple[int, int, int] | None:
         """
         Find a valid position for placing the object.
 
@@ -265,7 +262,7 @@ class CopyPasteAugmentor:
         if len(ground_coords) == 0:
             return None
 
-        obj_size = obj_voxels.max(axis=0) - obj_voxels.min(axis=0)
+        obj_voxels.max(axis=0) - obj_voxels.min(axis=0)
 
         for _ in range(max_attempts):
             # Random ground position
@@ -285,7 +282,7 @@ class CopyPasteAugmentor:
         self,
         scene: np.ndarray,
         class_id: int,
-    ) -> Tuple[np.ndarray, bool]:
+    ) -> tuple[np.ndarray, bool]:
         """
         Paste a random object of given class into scene.
 
@@ -317,7 +314,7 @@ class CopyPasteAugmentor:
         self,
         scene: np.ndarray,
         num_objects: int = 2,
-        target_classes: List[int] = None,
+        target_classes: list[int] = None,
     ) -> np.ndarray:
         """
         Augment scene with multiple pasted objects.
@@ -394,7 +391,7 @@ class RealDataAugmentor:
     def simulate_lidar(
         self,
         scene: np.ndarray,
-        viewpoint_offset: Tuple[int, int, int] = (0, 0, 0),
+        viewpoint_offset: tuple[int, int, int] = (0, 0, 0),
     ) -> np.ndarray:
         """
         Simulate LiDAR observation from viewpoint.
@@ -453,7 +450,7 @@ class RealDataAugmentor:
         self,
         complete_scene: np.ndarray,
         source_name: str = "unknown",
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Generate multiple augmented (sparse, complete) pairs from one scene.
 
@@ -583,9 +580,9 @@ class RealDataAugmentor:
         self,
         ssc_root: str,
         output_dir: str,
-        sequences: List[int] = None,
+        sequences: list[int] = None,
         max_scenes: int = None,
-    ) -> Dict:
+    ) -> dict:
         """
         Process entire dataset with augmentation.
 
@@ -726,6 +723,6 @@ if __name__ == '__main__':
         max_scenes=args.max_scenes,
     )
 
-    print(f"\nAugmentation complete!")
+    print("\nAugmentation complete!")
     print(f"  Input scenes: {stats['total_input_scenes']}")
     print(f"  Output pairs: {stats['total_output_pairs']}")

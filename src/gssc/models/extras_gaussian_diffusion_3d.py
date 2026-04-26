@@ -24,14 +24,14 @@ Reference: DiffSSC (CVPR 2024) — diffssc/models/models.py, minkunet.py
 """
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, Dict
 from tqdm import tqdm
 
 
-def extract(a: torch.Tensor, t: torch.Tensor, x_shape: Tuple[int, ...]) -> torch.Tensor:
+def extract(a: torch.Tensor, t: torch.Tensor, x_shape: tuple[int, ...]) -> torch.Tensor:
     """Extract values from a at timestep t and reshape for broadcasting."""
     B = t.shape[0]
     out = a.gather(-1, t.clamp(0, a.shape[0] - 1))
@@ -245,7 +245,7 @@ class GaussianDiffusion3D(nn.Module):
         return sem_pred * occ_pred
 
     def q_sample(self, x_0: torch.Tensor, t: torch.Tensor,
-                 noise: Optional[torch.Tensor] = None) -> torch.Tensor:
+                 noise: torch.Tensor | None = None) -> torch.Tensor:
         """Forward process: x_t = √ᾱ_t · x_0 + √(1-ᾱ_t) · W · ε
 
         If anisotropic=True, applies W = diag(sigma) to noise (Paper Eq. 3).
@@ -377,9 +377,9 @@ class GaussianDiffusion3D(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """Compute training loss with occupancy-weighted MSE + Lovász auxiliary.
 
         L = weighted_MSE(ε̂, target) + λ_p·reg_p + λ_s·reg_s + lovasz_w·Lovász(x̂_0, x_0)
@@ -488,7 +488,7 @@ class GaussianDiffusion3D(nn.Module):
     @torch.no_grad()
     def _p_sample_ddpm(self, model: nn.Module, x_t: torch.Tensor, t: torch.Tensor,
                        bev: torch.Tensor, lidar: torch.Tensor,
-                       lifted_features: Optional[torch.Tensor] = None) -> torch.Tensor:
+                       lifted_features: torch.Tensor | None = None) -> torch.Tensor:
         """Single DDPM reverse step: x_{t-1} ~ p(x_{t-1} | x_t)."""
         B = x_t.shape[0]
 
@@ -516,9 +516,9 @@ class GaussianDiffusion3D(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         show_progress: bool = True,
     ) -> torch.Tensor:
         """Sample with DDPM (standard, no fast solver).
@@ -562,9 +562,9 @@ class GaussianDiffusion3D(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         num_steps: int = 50,
         show_progress: bool = True,
     ) -> torch.Tensor:
@@ -627,9 +627,9 @@ class GaussianDiffusion3D(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         guidance_scale: float = 6.0,
         num_steps: int = 50,
         cfg_target: str = 'lidar',
@@ -722,9 +722,9 @@ class GaussianDiffusion3D(nn.Module):
         bev: torch.Tensor,
         lidar: torch.Tensor,
         lsk3d_probs: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         start_timestep: int = 200,
         guidance_scale: float = 6.0,
         num_steps: int = 50,

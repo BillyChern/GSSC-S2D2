@@ -26,37 +26,30 @@ Usage:
     )
 """
 
+import logging
 import os
 import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-from dataclasses import dataclass
 from tqdm import tqdm
-import logging
 
 # Add project root
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from gssc.data.class_balancing import (
-    compute_class_weights,
-    SEMANTICKITTI_CLASS_COUNTS,
-    RARE_CLASSES,
     EXTREME_RARE_CLASSES,
-    HEAD_CLASSES,
+    RARE_CLASSES,
 )
-from gssc.data.object_bank import ObjectBank, RareObjectExtractor, ObjectPaster
 from gssc.data.class_inpainting import (
     RareClassAnchor,
     RePaintInpainting,
-    InpaintingMask,
-    create_diverse_inpainting_masks,
 )
+from gssc.data.object_bank import ObjectBank, ObjectPaster
 from gssc.data.sparse_complete_pairs import (
-    SparseCompletePairGenerator,
-    PairGenerationConfig,
     create_pair_generator,
 )
 
@@ -67,9 +60,9 @@ logger = logging.getLogger(__name__)
 class GenerationConfig:
     """Configuration for synthetic data generation."""
     # Stage resolutions
-    s1_shape: Tuple[int, int, int] = (32, 32, 4)
-    s2_shape: Tuple[int, int, int] = (64, 64, 8)
-    s3_shape: Tuple[int, int, int] = (256, 256, 32)
+    s1_shape: tuple[int, int, int] = (32, 32, 4)
+    s2_shape: tuple[int, int, int] = (64, 64, 8)
+    s3_shape: tuple[int, int, int] = (256, 256, 32)
 
     # Diffusion settings
     num_timesteps: int = 100
@@ -126,7 +119,7 @@ class PyramidSampler:
         self,
         batch_size: int = 1,
         num_steps: int = 100,
-        class_guidance: Optional[Dict[int, float]] = None,
+        class_guidance: dict[int, float] | None = None,
     ) -> torch.Tensor:
         """
         Sample from S1 model (32x32x4).
@@ -214,7 +207,7 @@ class PyramidSampler:
         self,
         s2_samples: torch.Tensor,
         num_steps: int = 100,
-        masked_condition: Optional[torch.Tensor] = None,
+        masked_condition: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Sample from S3 model (256x256x32), conditioned on S2.
@@ -259,7 +252,7 @@ class PyramidSampler:
     def _upsample_labels(
         self,
         labels: torch.Tensor,
-        target_shape: Tuple[int, int, int],
+        target_shape: tuple[int, int, int],
     ) -> torch.Tensor:
         """Upsample discrete labels using nearest neighbor."""
         # Convert to one-hot, upsample, then back to labels
@@ -329,7 +322,7 @@ class SyntheticSceneGenerator:
         else:
             logger.warning(f"Object bank not found at {path}")
 
-    def compute_class_deficit(self) -> Dict[int, float]:
+    def compute_class_deficit(self) -> dict[int, float]:
         """
         Compute how many more samples of each class are needed.
 
@@ -381,7 +374,7 @@ class SyntheticSceneGenerator:
     def generate_single_scene(
         self,
         strategy: str = 'auto',
-        target_classes: List[int] = None,
+        target_classes: list[int] = None,
     ) -> np.ndarray:
         """
         Generate a single scene using specified strategy.
@@ -420,7 +413,7 @@ class SyntheticSceneGenerator:
 
     def _generate_with_copy_paste(
         self,
-        target_classes: List[int] = None,
+        target_classes: list[int] = None,
     ) -> np.ndarray:
         """Generate scene and paste rare objects."""
         if self.object_paster is None:
@@ -460,7 +453,7 @@ class SyntheticSceneGenerator:
 
     def _generate_with_inpainting(
         self,
-        target_classes: List[int] = None,
+        target_classes: list[int] = None,
     ) -> np.ndarray:
         """Generate using inpainting with rare class anchors."""
         if self.object_bank is None or self.object_bank.total_objects == 0:
@@ -486,7 +479,7 @@ class SyntheticSceneGenerator:
             )
 
         # Create inpainting mask
-        mask = self.anchor_creator.create_anchor_mask(
+        self.anchor_creator.create_anchor_mask(
             scene,
             target_classes=target_classes
         )
@@ -506,7 +499,7 @@ class SyntheticSceneGenerator:
         num_scenes: int = 1000,
         output_dir: str = None,
         save_every: int = 100,
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """
         Generate a class-balanced synthetic dataset.
 
@@ -546,7 +539,7 @@ class SyntheticSceneGenerator:
 
     def _save_checkpoint(
         self,
-        scenes: List[np.ndarray],
+        scenes: list[np.ndarray],
         output_dir: str,
         num_generated: int,
     ):
@@ -612,11 +605,11 @@ class InfiniteDataLoader:
         # Build index of real samples by class content
         self.class_to_samples = self._build_class_index()
 
-    def _build_class_index(self) -> Dict[int, List[int]]:
+    def _build_class_index(self) -> dict[int, list[int]]:
         """Build index mapping classes to sample indices."""
         class_to_samples = {i: [] for i in range(20)}
 
-        for idx in range(len(self.real_dataset)):
+        for _idx in range(len(self.real_dataset)):
             # This would need actual implementation based on dataset
             # For now, placeholder
             pass
@@ -628,7 +621,7 @@ class InfiniteDataLoader:
         while True:
             yield self._get_batch()
 
-    def _get_batch(self, batch_size: int = 4) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_batch(self, batch_size: int = 4) -> tuple[np.ndarray, np.ndarray]:
         """
         Get a batch with mixed real and synthetic data.
 
@@ -695,7 +688,7 @@ class InfiniteDataLoader:
 def build_object_bank_from_dataset(
     dataset_path: str,
     output_path: str,
-    sequences: List[str] = None,
+    sequences: list[str] = None,
 ) -> ObjectBank:
     """
     Build object bank from SemanticKITTI dataset.

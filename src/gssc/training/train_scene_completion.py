@@ -16,21 +16,19 @@ Training configuration (adapted for SemanticKITTI):
 Note: Original paper used CarlaSC at 128×128×8. We scale up for SemanticKITTI.
 """
 
-import os
-import sys
 import argparse
 import logging
+import os
+import sys
 from pathlib import Path
-from datetime import datetime
-from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
 # Add parent directory to path
@@ -40,13 +38,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     from cfg_diffusion import CFGWrapper, SDEditSampler
 except ImportError:
-    from gssc.models.cfg_diffusion import CFGWrapper, SDEditSampler
+    pass
 
 # S2: 2D→3D Lifting
 try:
     from lifting import BEVTo3DLifter, LiftingModule
 except ImportError:
-    from gssc.models.lifting import BEVTo3DLifter, LiftingModule
+    pass
 
 # S3: DSKD for Scene Completion (SCPNet-style pairwise feature similarity)
 # Reference: SCPNet CVPR 2023 - matches pairwise feature relationships, not KL divergence
@@ -70,13 +68,17 @@ except ImportError:
 
 # S4: MIMO (Multi-Input Multi-Output)
 try:
-    from mimo import MIMOSceneCompletion, BEVAugmenter, MIMOEnsembler
+    from mimo import BEVAugmenter, MIMOEnsembler, MIMOSceneCompletion
     from mimo_dataset import MIMODatasetWrapper, create_mimo_dataloader, mimo_collate_fn
     from mimo_scene_unet import MIMOSceneCompletionUNet, MIMOSceneCompletionUNetLite
 except ImportError:
     try:
-        from gssc.models.mimo import MIMOSceneCompletion, BEVAugmenter, MIMOEnsembler
-        from gssc.models.mimo_dataset import MIMODatasetWrapper, create_mimo_dataloader, mimo_collate_fn
+        from gssc.models.mimo import BEVAugmenter, MIMOEnsembler, MIMOSceneCompletion
+        from gssc.models.mimo_dataset import (
+            MIMODatasetWrapper,
+            create_mimo_dataloader,
+            mimo_collate_fn,
+        )
         from gssc.models.mimo_scene_unet import MIMOSceneCompletionUNet, MIMOSceneCompletionUNetLite
     except ImportError:
         MIMOSceneCompletion = None
@@ -90,10 +92,14 @@ except ImportError:
 
 # S5: Dense 3D CNN at coarse resolution
 try:
-    from dense_3d_cnn import Dense3DBottleneck, DenseHallucinationModule, Dense3DEnhancer
+    from dense_3d_cnn import Dense3DBottleneck, Dense3DEnhancer, DenseHallucinationModule
 except ImportError:
     try:
-        from gssc.models.dense_3d_cnn import Dense3DBottleneck, DenseHallucinationModule, Dense3DEnhancer
+        from gssc.models.dense_3d_cnn import (
+            Dense3DBottleneck,
+            Dense3DEnhancer,
+            DenseHallucinationModule,
+        )
     except ImportError:
         Dense3DBottleneck = None
         DenseHallucinationModule = None
@@ -203,18 +209,20 @@ class SSCMetrics:
 
 
 # exp_1: Dense Conv3d for LiDAR
-from gssc.models.scene_unet import SceneCompletionUNet, SceneCompletionUNetLite, count_parameters
-# exp_2: Sparse spconv for LiDAR
-from gssc.models.s2d2_unet import SceneCompletionUNetSparse, SceneCompletionUNetSparseLite
-# V2: FiLM conditioning + multi-scale auxiliary BEV (no cascade)
-from gssc.models.scene_unet_v2 import SceneCompletionUNetV2, V2ModelWrapper
-from gssc.models.scene_unet_v3 import SceneCompletionUNetV3, V3ModelWrapper
 # Diffusion
 from gssc.diffusion.multinomial import (
     MultinomialDiffusion3D,
-    MultinomialDiffusion3DV2,
     MultinomialDiffusion3DEMA,
+    MultinomialDiffusion3DV2,
 )
+
+# exp_2: Sparse spconv for LiDAR
+from gssc.models.s2d2_unet import SceneCompletionUNetSparse, SceneCompletionUNetSparseLite
+from gssc.models.scene_unet import SceneCompletionUNet, SceneCompletionUNetLite, count_parameters
+
+# V2: FiLM conditioning + multi-scale auxiliary BEV (no cascade)
+from gssc.models.scene_unet_v2 import SceneCompletionUNetV2, V2ModelWrapper
+from gssc.models.scene_unet_v3 import SceneCompletionUNetV3, V3ModelWrapper
 
 
 class SemanticKITTI3DDataset(Dataset):
@@ -318,7 +326,7 @@ class SemanticKITTI3DDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         sample = self.samples[idx]
 
         # Load sparse LiDAR voxels: 256×256×32
@@ -601,7 +609,7 @@ class SemanticKITTI3DQuantizedDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         sample = self.samples[idx]
 
         # Load pre-processed numpy arrays (very fast)
@@ -675,7 +683,7 @@ class SceneCompletionTrainer:
 
     def __init__(
         self,
-        config: Dict,
+        config: dict,
         device: torch.device,
     ):
         self.config = config
@@ -786,7 +794,7 @@ class SceneCompletionTrainer:
             self.logger.info(f"    lambda_p: {lambda_p}, lambda_s: {lambda_s}")
             self.logger.info(f"    class_0_weight: {class_0_wt}, occupied_weight: {occupied_wt}")
             self.logger.info(f"    lovasz_weight: {lovasz_wt}, obs_weight_factor: {obs_wt}")
-            self.logger.info(f"    encoding: logit_20ch (20ch, mean-centered)")
+            self.logger.info("    encoding: logit_20ch (20ch, mean-centered)")
         elif diffusion_version == 'factored':
             from gssc.models.factored_diffusion_3d import FactoredDiffusion3D
             self.logger.info("Using FactoredDiffusion3D (K=2 occ + K=20 sem)")
@@ -816,9 +824,9 @@ class SceneCompletionTrainer:
             if hasattr(self.model, 'enable_dense3d_bottleneck'):
                 dense3d_dropout = config.get('dense_3d_dropout', 0.1)
                 self.model.enable_dense3d_bottleneck(dropout=dense3d_dropout)
-                self.logger.info(f"S5: Enabled PaSCo's SPCDense3Dv2 at UNet bottleneck")
+                self.logger.info("S5: Enabled PaSCo's SPCDense3Dv2 at UNet bottleneck")
                 self.logger.info(f"    Dropout: {dense3d_dropout}")
-                self.logger.info(f"    Applied at 1:16 resolution (16×16×2 for 256×256×32)")
+                self.logger.info("    Applied at 1:16 resolution (16×16×2 for 256×256×32)")
                 # Reinitialize EMA to include newly added dense3d_bottleneck parameters
                 self.ema = MultinomialDiffusion3DEMA(self.model, decay=config.get('ema_decay', 0.9999))
                 self.logger.info("    EMA reinitialized to include dense3d_bottleneck parameters")
@@ -977,7 +985,7 @@ class SceneCompletionTrainer:
             if lifter_params:
                 self.optimizer.add_param_group({'params': lifter_params})
                 self.logger.info(f"S2: Added lifter to optimizer ({sum(p.numel() for p in lifter_params)} params)")
-            self.logger.info(f"S2: Initialized LiftingModule for 2D→3D lifting")
+            self.logger.info("S2: Initialized LiftingModule for 2D→3D lifting")
 
         # S3: Initialize Enhanced DSKD for knowledge distillation
         # New Strategy: Teacher (GT BEV + Multi-frame) → Student (Pred BEV + Single-frame)
@@ -1012,7 +1020,7 @@ class SceneCompletionTrainer:
                 if hasattr(self.model, 'lifted_embed') and self.model.lifted_embed is not None:
                     self.optimizer.add_param_group({'params': list(self.model.lifted_embed.parameters())})
                     self.logger.info(f"S2: Added lifted_embed to optimizer ({sum(p.numel() for p in self.model.lifted_embed.parameters())} params)")
-                self.logger.info(f"S2: Initialized LiftingModule for 2D→3D lifting")
+                self.logger.info("S2: Initialized LiftingModule for 2D→3D lifting")
                 self._lifted_features_enabled = True
             else:
                 self._lifted_features_enabled = False
@@ -1080,10 +1088,10 @@ class SceneCompletionTrainer:
                 if kd_type == 'output':
                     # Output-level KD (Hinton-style soft labels)
                     self.logger.info(f"S3 KD: {mode_name} mode - loaded teacher from {teacher_ckpt}")
-                    self.logger.info(f"       Type: OUTPUT-LEVEL (soft labels) - more robust for multi→single frame")
+                    self.logger.info("       Type: OUTPUT-LEVEL (soft labels) - more robust for multi→single frame")
                     self.logger.info(f"       Weight={kd_weight}, Temperature={kd_temp}")
                     if self.s3_mode == 'intermediate':
-                        self.logger.info(f"       Teacher: multi-frame lidar, Student: single-frame lidar")
+                        self.logger.info("       Teacher: multi-frame lidar, Student: single-frame lidar")
                 else:
                     # DSKD (pairwise feature similarity)
                     if DSKDLoss3D is not None:
@@ -1094,10 +1102,10 @@ class SceneCompletionTrainer:
                             max_samples=4096,
                         )
                         self.logger.info(f"S3 KD: {mode_name} mode - loaded teacher from {teacher_ckpt}")
-                        self.logger.info(f"       Type: DSKD (pairwise features) - SCPNet-style")
+                        self.logger.info("       Type: DSKD (pairwise features) - SCPNet-style")
                         self.logger.info(f"       Weight={kd_weight}, Temperature={kd_temp}")
                         if self.s3_mode == 'intermediate':
-                            self.logger.info(f"       Teacher: multi-frame lidar, Student: single-frame lidar")
+                            self.logger.info("       Teacher: multi-frame lidar, Student: single-frame lidar")
                     else:
                         self.logger.warning("S3 KD: DSKDLoss3D not available - falling back to output-level KD")
                         self.kd_type = 'output'
@@ -1171,10 +1179,10 @@ class SceneCompletionTrainer:
             )
             self.logger.info(f"S4: Initialized MIMO with {config.get('mimo_num_subnets', 2)} subnets (PaSCo-style)")
             self.logger.info(f"    Ensemble method: {config.get('mimo_ensemble', 'mean_probs')} (avg probs after softmax)")
-            self.logger.info(f"    Unified 3D augmentation: BEV and LiDAR transformed with same T")
+            self.logger.info("    Unified 3D augmentation: BEV and LiDAR transformed with same T")
             self.logger.info(f"    Max angle: {config.get('mimo_max_angle', 30.0)}°, Scale range: {config.get('mimo_scale_range', 0.0)}")
             if self.mimo_use_training_mode:
-                self.logger.info(f"    Training mode: Dataset-level MIMO (different samples per subnet)")
+                self.logger.info("    Training mode: Dataset-level MIMO (different samples per subnet)")
 
         # S1/S2: Reinitialize EMA if lifted_features was enabled earlier (for DSKD compatibility)
         # Note: enable_lifted_features was already called before DSKD setup to ensure teacher model has same architecture
@@ -1344,7 +1352,7 @@ class SceneCompletionTrainer:
             if lidar_film:
                 extra_info += " [FiLM]"
             if tsdf_bev:
-                extra_info += f" [TSDF BEV 4ch]"
+                extra_info += " [TSDF BEV 4ch]"
             if config.get('geom_dir'):
                 extra_info += f" [{lidar_in_ch}ch sparse]"
             self.logger.info(f"exp_2 full: SceneCompletionUNetSparse (35M params){extra_info}")
@@ -1705,7 +1713,7 @@ class SceneCompletionTrainer:
                 collate_fn=collate_fn,
             )
             if split == 'train' and is_mimo_model:
-                self.logger.info(f"    Channel concatenation: ENABLED (single forward pass)")
+                self.logger.info("    Channel concatenation: ENABLED (single forward pass)")
         else:
             loader = DataLoader(
                 dataset,
@@ -1718,7 +1726,7 @@ class SceneCompletionTrainer:
 
         return loader
 
-    def train_step(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
+    def train_step(self, batch: dict[str, torch.Tensor]) -> dict[str, float]:
         """Single training step.
 
         For MIMO models (mimo_lite, mimo_full):
@@ -2030,7 +2038,7 @@ class SceneCompletionTrainer:
                         loss = loss + kd_weight * kd_loss_value
                     else:
                         if not hasattr(self, '_dskd_warning_logged'):
-                            self.logger.warning(f"DSKD skipped: model has no forward_features method")
+                            self.logger.warning("DSKD skipped: model has no forward_features method")
                             self._dskd_warning_logged = True
 
         # Backward
@@ -2241,7 +2249,7 @@ class SceneCompletionTrainer:
             result['e2e_bev_loss'] = bev_loss_e2e.item()
         return result
 
-    def _train_step_mimo(self, batch: Dict[str, torch.Tensor]) -> Dict[str, float]:
+    def _train_step_mimo(self, batch: dict[str, torch.Tensor]) -> dict[str, float]:
         """
         MIMO training step following PaSCo architecture exactly.
 
@@ -2279,7 +2287,7 @@ class SceneCompletionTrainer:
                 bev[mask] = layer[mask]
 
         B = lidar.shape[0]
-        H, W, D = lidar.shape[2], lidar.shape[3], lidar.shape[4]
+        _H, _W, _D = lidar.shape[2], lidar.shape[3], lidar.shape[4]
 
         # Sample timesteps (same for all subnets in batch; uses configurable sampling mode)
         t = self._sample_train_timesteps(B)
@@ -2304,7 +2312,7 @@ class SceneCompletionTrainer:
         # Channel-concatenate noisy voxels for single forward pass
         # Result: [B, N*C, H, W, D]
         x_t_concat = torch.cat(x_t_list, dim=1)
-        x_0_concat = torch.cat(x_0_onehot_list, dim=1)
+        torch.cat(x_0_onehot_list, dim=1)
 
         # Forward through MIMO model
         # Model expects: x_t [B, N*C, H, W, D], t [B], bev [B, N, H, W], lidar [B, N, H, W, D]
@@ -2379,7 +2387,7 @@ class SceneCompletionTrainer:
         return result
 
     @torch.no_grad()
-    def validate(self, full_sampling: bool = False) -> Dict[str, float]:
+    def validate(self, full_sampling: bool = False) -> dict[str, float]:
         """
         Validate model with SemanticKITTI SSC metrics.
 
@@ -3401,7 +3409,7 @@ class SceneCompletionTrainer:
                 self.lifter.load_state_dict(checkpoint['lifter_state_dict'])
             if self.bev_model is not None and self.use_e2e_bev and checkpoint.get('bev_model_state_dict') is not None:
                 self.bev_model.load_state_dict(checkpoint['bev_model_state_dict'])
-                self.logger.info(f"Loaded E2E BEV model weights from checkpoint")
+                self.logger.info("Loaded E2E BEV model weights from checkpoint")
             self.logger.info(f"Loaded checkpoint from step {self.global_step}")
 
 

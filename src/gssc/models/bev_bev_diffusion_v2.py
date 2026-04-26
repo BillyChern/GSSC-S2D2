@@ -19,15 +19,15 @@ Combines:
 Reference: Phase 3 scene_completion achieved 49.01% mIoU using these techniques.
 """
 
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, Dict
 
-from gssc.models.bev_multinomial_diffusion_2d import MultinomialDiffusion2D
-from gssc.models.bev_lidar_encoder import SparseLiDAREncoder
-from gssc.models.bev_unet_v2 import ModularBEVUNet, get_timestep_embedding
 from gssc.models.bev_conditioning import ConditioningType, MultiScaleConditioningFusion
+from gssc.models.bev_lidar_encoder import SparseLiDAREncoder
+from gssc.models.bev_multinomial_diffusion_2d import MultinomialDiffusion2D
+from gssc.models.bev_unet_v2 import ModularBEVUNet
 
 
 class BEVDiffusionUNetWrapper(nn.Module):
@@ -179,7 +179,7 @@ class BEVDiffusionV2(nn.Module):
         lidar_in_channels: int = 1,
         lidar_out_channels: int = 64,
         unet_base_channels: int = 64,
-        input_shape: Tuple[int, int, int] = (256, 256, 32),
+        input_shape: tuple[int, int, int] = (256, 256, 32),
         # New: conditioning options
         conditioning_type: str = "sum",  # "sum", "gated_sum", "gated_film"
         use_multiscale_fusion: bool = False,
@@ -239,7 +239,7 @@ class BEVDiffusionV2(nn.Module):
             conditioning_type=cond_type,
         )
 
-        print(f"[BEVDiffusionV2] Model initialized:")
+        print("[BEVDiffusionV2] Model initialized:")
         print(f"  - LiDAR encoder: {input_shape} → {lidar_out_channels}ch BEV")
         print(f"  - Conditioning: {conditioning_type}" + (f" + multiscale({fusion_type})" if use_multiscale_fusion else ""))
         print(f"  - Diffusion: T={num_timesteps}, beta_max={beta_max}")
@@ -249,8 +249,8 @@ class BEVDiffusionV2(nn.Module):
         self,
         lidar_voxels: torch.Tensor,
         bev_gt: torch.Tensor,
-        t: Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+        t: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """
         Training forward pass.
 
@@ -317,7 +317,7 @@ class BEVDiffusionV2(nn.Module):
         lidar_voxels: torch.Tensor,
         show_progress: bool = True,
         soft: bool = True,
-        num_steps: Optional[int] = None,
+        num_steps: int | None = None,
     ) -> torch.Tensor:
         """
         Generate BEV prediction via reverse diffusion.

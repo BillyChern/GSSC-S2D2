@@ -7,16 +7,16 @@ This is a more flexible version of the BEV U-Net that supports:
 - Configurable model sizes
 """
 
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import math
-from typing import Optional, Tuple, List
 
 from .conditioning import (
     ConditioningType,
-    create_conditioning_block,
     IdentityConditioning,
+    create_conditioning_block,
     get_num_groups,
 )
 
@@ -142,8 +142,8 @@ class DownBlock(nn.Module):
         self,
         x: torch.Tensor,
         emb: torch.Tensor,
-        cond: Optional[torch.Tensor] = None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        cond: torch.Tensor | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         for block, cond_block in zip(self.blocks, self.cond_blocks):
             x = block(x, emb)
             if cond is not None and not isinstance(cond_block, (nn.Identity, IdentityConditioning)):
@@ -191,7 +191,7 @@ class UpBlock(nn.Module):
         x: torch.Tensor,
         skip: torch.Tensor,
         emb: torch.Tensor,
-        cond: Optional[torch.Tensor] = None
+        cond: torch.Tensor | None = None
     ) -> torch.Tensor:
         x = self.upsample(x)
 
@@ -223,9 +223,9 @@ class ModularBEVUNet(nn.Module):
         num_classes: int = 20,
         input_resolution: int = 64,  # 64 for architecture search, 256 for final
         base_channels: int = 64,
-        channel_mults: Tuple[int, ...] = (1, 2, 4, 8),
+        channel_mults: tuple[int, ...] = (1, 2, 4, 8),
         num_res_blocks: int = 2,
-        attention_resolutions: Tuple[int, ...] = (16, 8),  # Relative to input
+        attention_resolutions: tuple[int, ...] = (16, 8),  # Relative to input
         dropout: float = 0.1,
         cond_channels: int = 64,
         conditioning_type: ConditioningType = ConditioningType.SUM,
@@ -281,7 +281,7 @@ class ModularBEVUNet(nn.Module):
         bottleneck_resolution = input_resolution // (2 ** len(channel_mults))
 
         # Encoder
-        for i, ch in enumerate(channels):
+        for ch in channels:
             res_after_down = resolution // 2
             use_attn = resolution in attention_resolutions
             is_bottleneck = (res_after_down <= bottleneck_resolution * 2)
@@ -352,9 +352,9 @@ class ModularBEVUNet(nn.Module):
         x: torch.Tensor,
         t: torch.Tensor,
         condition: torch.Tensor,
-        prev_pred: Optional[torch.Tensor] = None,
+        prev_pred: torch.Tensor | None = None,
         return_aux: bool = True,
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         """
         Args:
             x: Noisy labels [B, H, W]

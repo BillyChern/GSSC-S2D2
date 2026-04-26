@@ -11,14 +11,12 @@ This allows creating diverse scenes while preserving rare object instances.
 Reference: "RePaint: Inpainting using Denoising Diffusion Probabilistic Models" (CVPR 2022)
 """
 
+from dataclasses import dataclass
+
+import numpy as np
+import scipy.ndimage as ndimage
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
-from typing import Dict, List, Optional, Tuple, Union
-from dataclasses import dataclass
-import scipy.ndimage as ndimage
-
 
 # SemanticKITTI class definitions
 RARE_CLASSES = [2, 3, 4, 5, 6, 7, 8, 16, 18, 19]  # Classes to preserve
@@ -49,7 +47,7 @@ class InpaintingMask:
     anchor_mask: np.ndarray  # [X, Y, Z] bool - regions to keep
     inpaint_mask: np.ndarray  # [X, Y, Z] bool - regions to regenerate
     anchor_labels: np.ndarray  # [X, Y, Z] - original labels in anchor region
-    rare_classes_present: List[int]  # Which rare classes are anchored
+    rare_classes_present: list[int]  # Which rare classes are anchored
 
 
 class RareClassAnchor:
@@ -59,7 +57,7 @@ class RareClassAnchor:
 
     def __init__(
         self,
-        rare_classes: List[int] = None,
+        rare_classes: list[int] = None,
         dilation_radius: int = 3,
         min_context_radius: int = 5,
         preserve_context: bool = True,
@@ -79,7 +77,7 @@ class RareClassAnchor:
     def create_anchor_mask(
         self,
         scene: np.ndarray,
-        target_classes: List[int] = None,
+        target_classes: list[int] = None,
     ) -> InpaintingMask:
         """
         Create an inpainting mask that preserves rare objects.
@@ -237,7 +235,7 @@ class RePaintInpainting:
         self.jump_n_sample = jump_n_sample
         self.device = device
 
-    def get_schedule(self) -> List[int]:
+    def get_schedule(self) -> list[int]:
         """
         Get the timestep schedule with jumps for resampling.
 
@@ -314,7 +312,7 @@ class RePaintInpainting:
         t: int,
         anchor_mask: torch.Tensor,
         anchor_labels: torch.Tensor,
-        condition: Optional[torch.Tensor] = None,
+        condition: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Single inpainting step.
@@ -354,9 +352,9 @@ class RePaintInpainting:
         self,
         model: nn.Module,
         inpaint_mask: InpaintingMask,
-        condition: Optional[torch.Tensor] = None,
+        condition: torch.Tensor | None = None,
         batch_size: int = 1,
-        shape: Tuple[int, int, int] = (256, 256, 32),
+        shape: tuple[int, int, int] = (256, 256, 32),
         use_jumps: bool = True,
     ) -> torch.Tensor:
         """
@@ -413,7 +411,7 @@ class ClassConditionedGenerator:
         model: nn.Module,
         num_classes: int = 20,
         guidance_scale: float = 2.0,
-        rare_classes: List[int] = None,
+        rare_classes: list[int] = None,
     ):
         """
         Args:
@@ -429,8 +427,8 @@ class ClassConditionedGenerator:
 
     def generate_with_class_condition(
         self,
-        target_classes: List[int],
-        shape: Tuple[int, int, int] = (256, 256, 32),
+        target_classes: list[int],
+        shape: tuple[int, int, int] = (256, 256, 32),
         num_samples: int = 1,
     ) -> torch.Tensor:
         """
@@ -461,10 +459,10 @@ class ClassConditionedGenerator:
 
 
 def create_diverse_inpainting_masks(
-    scenes: List[np.ndarray],
+    scenes: list[np.ndarray],
     num_variants: int = 5,
-    rare_classes: List[int] = None,
-) -> List[Tuple[np.ndarray, InpaintingMask]]:
+    rare_classes: list[int] = None,
+) -> list[tuple[np.ndarray, InpaintingMask]]:
     """
     Create multiple inpainting variants from a set of scenes.
 
@@ -527,7 +525,7 @@ if __name__ == '__main__':
 
     # Test class-preserving mask
     mask2 = anchor.create_class_preserving_mask(scene, preserve_ratio=0.3)
-    print(f"\nClass-preserving mask:")
+    print("\nClass-preserving mask:")
     print(f"Preserved voxels: {mask2.anchor_mask.sum()}")
     print(f"Inpaint voxels: {mask2.inpaint_mask.sum()}")
 

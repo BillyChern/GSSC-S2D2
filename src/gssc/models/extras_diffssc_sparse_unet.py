@@ -11,11 +11,11 @@ Architecture:
 - Output head: Linear(96, 40) → LeakyReLU → Linear(40, out_channels)
 """
 
+import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
-import spconv.pytorch as spconv
 
-from .diffssc_utils import match_part_to_full, expand_time_to_voxels, get_timestep_embedding
+from .diffssc_utils import expand_time_to_voxels, get_timestep_embedding, match_part_to_full
 
 
 class BasicConvBlock(nn.Module):

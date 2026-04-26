@@ -1,14 +1,15 @@
 # adapted from voxel_fea_generator.py
 # import ipdb; ipdb.set_trace()
-import torch
-import torch_scatter
-import torch.nn as nn
 import numpy as np
 import spconv.pytorch as spconv
+import torch
+import torch.nn as nn
+import torch_scatter
+
 
 class voxelization(nn.Module):
     def __init__(self):
-        super(voxelization, self).__init__()
+        super().__init__()
         
     def set_pc_config(self, coors_range_xyz, spatial_shape):
         self.spatial_shape = spatial_shape
@@ -79,7 +80,7 @@ class voxelization(nn.Module):
 
 class voxel_3d_generator(nn.Module):
     def __init__(self, in_channels, out_channels, batch_size):
-        super(voxel_3d_generator, self).__init__()
+        super().__init__()
         self.batch_size = batch_size
         self.PPmodel = nn.Sequential(
             nn.Linear(in_channels + 6, out_channels),

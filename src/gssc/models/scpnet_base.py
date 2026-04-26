@@ -15,13 +15,12 @@ Reference: SCPNet (Xia et al., CVPR 2023)
 """
 
 import math
+
 import numpy as np
+import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import spconv.pytorch as spconv
-from typing import Optional, List, Tuple, Dict
-
 
 # ---------------------------------------------------------------------------
 # Sparse conv helper functions (matching SCPNet's kernel conventions)
@@ -447,7 +446,7 @@ class CylinderFeatureGenerator(nn.Module):
                 nn.ReLU(),
             )
 
-    def forward(self, pt_fea: List[torch.Tensor], xy_ind: List[torch.Tensor]):
+    def forward(self, pt_fea: list[torch.Tensor], xy_ind: list[torch.Tensor]):
         """
         Args:
             pt_fea: list of [N_i, 7] per-point features for each batch item
@@ -536,7 +535,7 @@ class SCPNetDiffusionDenoiser(nn.Module):
         num_classes: int = 20,
         init_size: int = 32,
         num_input_features: int = 32,
-        sparse_shape: Tuple[int, int, int] = (256, 256, 32),
+        sparse_shape: tuple[int, int, int] = (256, 256, 32),
         time_dim: int = 256,
         use_bev_cond: bool = False,
     ):
@@ -624,13 +623,13 @@ class SCPNetDiffusionDenoiser(nn.Module):
         self,
         x_t: torch.Tensor,
         t: torch.Tensor,
-        bev: Optional[torch.Tensor] = None,
-        lidar: Optional[torch.Tensor] = None,
-        pt_fea: Optional[List[torch.Tensor]] = None,
-        grid_ind: Optional[List[torch.Tensor]] = None,
-        scpnet_pred: Optional[torch.Tensor] = None,
-        completed_features: Optional[torch.Tensor] = None,
-        completed_coords: Optional[torch.Tensor] = None,
+        bev: torch.Tensor | None = None,
+        lidar: torch.Tensor | None = None,
+        pt_fea: list[torch.Tensor] | None = None,
+        grid_ind: list[torch.Tensor] | None = None,
+        scpnet_pred: torch.Tensor | None = None,
+        completed_features: torch.Tensor | None = None,
+        completed_coords: torch.Tensor | None = None,
         **kwargs,
     ) -> torch.Tensor:
         """
@@ -858,7 +857,7 @@ class SCPNetDiffusionDenoiser(nn.Module):
                         bn_reset_count += 1
             print(f"Reset running stats for {bn_reset_count} BN layers in segmentation subnet")
 
-    def _map_scpnet_key(self, key: str) -> Optional[str]:
+    def _map_scpnet_key(self, key: str) -> str | None:
         """Map SCPNet state_dict key to our model's key.
 
         SCPNet structure:

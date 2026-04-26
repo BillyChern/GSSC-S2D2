@@ -3,14 +3,13 @@ Logger copied from OpenAI baselines to avoid extra RL-based dependencies:
 https://github.com/openai/baselines/blob/ea25b9e8b234e6ee1bca43083f8f3cf974143998/baselines/logger.py
 """
 
-import os
-import sys
-import shutil
-import os.path as osp
-import json
-import time
 import datetime
+import json
+import os
+import os.path as osp
+import sys
 import tempfile
+import time
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
@@ -23,12 +22,12 @@ ERROR = 40
 DISABLED = 50
 
 
-class KVWriter(object):
+class KVWriter:
     def writekvs(self, kvs):
         raise NotImplementedError
 
 
-class SeqWriter(object):
+class SeqWriter:
     def writeseq(self, seq):
         raise NotImplementedError
 
@@ -36,7 +35,7 @@ class SeqWriter(object):
 class HumanOutputFormat(KVWriter, SeqWriter):
     def __init__(self, filename_or_file):
         if isinstance(filename_or_file, str):
-            self.file = open(filename_or_file, "wt")
+            self.file = open(filename_or_file, "w")
             self.own_file = True
         else:
             assert hasattr(filename_or_file, "read"), (
@@ -97,7 +96,7 @@ class HumanOutputFormat(KVWriter, SeqWriter):
 
 class JSONOutputFormat(KVWriter):
     def __init__(self, filename):
-        self.file = open(filename, "wt")
+        self.file = open(filename, "w")
 
     def writekvs(self, kvs):
         for k, v in sorted(kvs.items()):
@@ -112,7 +111,7 @@ class JSONOutputFormat(KVWriter):
 
 class CSVOutputFormat(KVWriter):
     def __init__(self, filename):
-        self.file = open(filename, "w+t")
+        self.file = open(filename, "w+")
         self.keys = []
         self.sep = ","
 
@@ -159,8 +158,8 @@ class TensorBoardOutputFormat(KVWriter):
         prefix = "events"
         path = osp.join(osp.abspath(dir), prefix)
         import tensorflow as tf
-        from tensorflow.python import pywrap_tensorflow
         from tensorflow.core.util import event_pb2
+        from tensorflow.python import pywrap_tensorflow
         from tensorflow.python.util import compat
 
         self.tf = tf
@@ -329,7 +328,7 @@ def get_current():
     return Logger.CURRENT
 
 
-class Logger(object):
+class Logger:
     DEFAULT = None  # A logger with no output files. (See right below class definition)
     # So that you can still log to the terminal without setting up any output files
     CURRENT = None  # Current logger being used by the free functions above
@@ -427,9 +426,7 @@ def mpi_weighted_mean(comm, local_name2valcount):
                 except ValueError:
                     if comm.rank == 0:
                         warnings.warn(
-                            "WARNING: tried to compute mean on non-float {}={}".format(
-                                name, val
-                            )
+                            f"WARNING: tried to compute mean on non-float {name}={val}"
                         )
                 else:
                     name2sum[name] += val * count

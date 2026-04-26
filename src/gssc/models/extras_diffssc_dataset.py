@@ -8,14 +8,13 @@ For each frame:
 Both have 23 channels: 3 xyz + 20 semantic (logits for full, probs for partial).
 """
 
-import os
+from pathlib import Path
+
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from pathlib import Path
 
 from .diffssc_utils import semantic_encode
-
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).parent.parent

@@ -3,11 +3,12 @@ Exact Denoise class from pyramid discrete diffusion original codebase.
 Copy of pyramid-discrete-diffusion/models/conditional_diffusion/con_denoise.py
 """
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from einops import rearrange, reduce, repeat
-from torch import nn, einsum
+from einops import rearrange, repeat
+from torch import einsum
 
 
 def conv3x3x3(in_planes, out_planes, stride=1):
@@ -39,7 +40,7 @@ def conv1x1(in_planes, out_planes, stride=1):
 
 class Asymmetric_Residual_Block(nn.Module):
     def __init__(self, in_filters, out_filters, time_filters=32*4):
-        super(Asymmetric_Residual_Block, self).__init__()
+        super().__init__()
         if in_filters<32 :
             self.GroupNorm = nn.GroupNorm(16, in_filters)
             self.bn0 = nn.GroupNorm(16, out_filters)
@@ -99,7 +100,7 @@ class Asymmetric_Residual_Block(nn.Module):
 
 class DDCM(nn.Module):
     def __init__(self, in_filters, out_filters, kernel_size=(3, 3, 3), stride=1):
-        super(DDCM, self).__init__()
+        super().__init__()
         self.conv1 = conv3x1x1(in_filters, out_filters)
         if in_filters<32 :
             self.bn0 = nn.GroupNorm(16, out_filters)
@@ -189,7 +190,7 @@ class Cross_Attention(nn.Module):
 class DownBlock(nn.Module):
     def __init__(self, in_filters, out_filters, time_filters=32*4, kernel_size=(3, 3, 3), stride=1,
                  pooling=True, height_pooling=False):
-        super(DownBlock, self).__init__()
+        super().__init__()
         self.pooling = pooling
 
         self.residual_block = Asymmetric_Residual_Block(in_filters, out_filters, time_filters=time_filters)
@@ -210,7 +211,7 @@ class DownBlock(nn.Module):
 
 class UpBlock(nn.Module):
     def __init__(self, in_filters, out_filters, height_pooling, time_filters=32*4):
-        super(UpBlock, self).__init__()
+        super().__init__()
         if out_filters<32 :
             self.trans_bn = nn.GroupNorm(16, in_filters)
             self.bn1 = nn.GroupNorm(16, out_filters)
@@ -285,7 +286,7 @@ def timestep_embedding(timesteps, dim, max_period=10000, repeat_only=False):
 
 class Denoise(nn.Module):
     def __init__(self, args, num_class = 11, init_size=32, discrete=True):
-        super(Denoise, self).__init__()
+        super().__init__()
         self.args = args
         self.discrete = discrete
         self.num_class = num_class

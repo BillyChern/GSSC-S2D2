@@ -1,7 +1,11 @@
 """GSSC-S2D2 inference entry point - generate .label predictions for SemanticKITTI evaluation server."""
 from __future__ import annotations
-import argparse, sys, subprocess
+
+import argparse
+import subprocess
+import sys
 from pathlib import Path
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 

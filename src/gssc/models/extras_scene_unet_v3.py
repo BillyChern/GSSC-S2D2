@@ -27,19 +27,16 @@ Architecture:
 - Multi-scale aux BEV: HeightCompress(4 levels) + BEVDecoder(FPN) + SegHead
 """
 
-import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, List
 
-from .sparse_lidar_encoder import SparseLiDAREncoder
-from gssc.models.bev_sparse_bev_net import BEVDecoder, SegmentationHead
 from .scene_unet_v2 import (
-    timestep_embedding,
-    DenseHeightCompression,
     MultiScaleAuxBEVHead,
+    timestep_embedding,
 )
+from .sparse_lidar_encoder import SparseLiDAREncoder
 
 
 class InternalBEVCompletion(nn.Module):
@@ -269,7 +266,7 @@ class SceneCompletionUNetV3(nn.Module):
         self,
         num_classes: int = 20,
         base_channels: int = 32,
-        channel_mult: Tuple[int, ...] = (1, 2, 4, 8),
+        channel_mult: tuple[int, ...] = (1, 2, 4, 8),
         time_emb_dim: int = 128,
         lidar_in_channels: int = 20,
         lidar_base_channels: int = 16,
@@ -281,8 +278,8 @@ class SceneCompletionUNetV3(nn.Module):
         no_sparse_film: bool = False,
         dense_mode: str = 'internal_bev',
         cfg_drop_prob: float = 0.0,
-        in_channels: Optional[int] = None,
-        out_channels: Optional[int] = None,
+        in_channels: int | None = None,
+        out_channels: int | None = None,
         fuse_time_cond: bool = False,
         cond_3d_channels: int = 0,
     ):
@@ -391,8 +388,8 @@ class SceneCompletionUNetV3(nn.Module):
             )
 
     def forward(self, x_t: torch.Tensor, t: torch.Tensor,
-                lidar: torch.Tensor, cond_3d: Optional[torch.Tensor] = None,
-                **kwargs) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                lidar: torch.Tensor, cond_3d: torch.Tensor | None = None,
+                **kwargs) -> tuple[torch.Tensor, torch.Tensor | None]:
         """
         Args:
             x_t: [B, 20, H, W, D] one-hot noisy voxels
@@ -525,7 +522,7 @@ class V3ModelWrapper(nn.Module):
 
     def forward(self, x_t: torch.Tensor, t: torch.Tensor,
                 bev: torch.Tensor, lidar: torch.Tensor,
-                lifted_features: Optional[torch.Tensor] = None,
+                lifted_features: torch.Tensor | None = None,
                 **kwargs) -> torch.Tensor:
         # bev and lifted_features are IGNORED — V3 generates its own internal BEV
         ssc_logits, aux_bev = self.model(x_t, t, lidar, **kwargs)
@@ -551,8 +548,8 @@ class V4ModelWrapper(nn.Module):
 
     def forward(self, x_t: torch.Tensor, t: torch.Tensor,
                 bev: torch.Tensor, lidar: torch.Tensor,
-                lifted_features: Optional[torch.Tensor] = None,
-                cond_3d: Optional[torch.Tensor] = None,
+                lifted_features: torch.Tensor | None = None,
+                cond_3d: torch.Tensor | None = None,
                 **kwargs) -> torch.Tensor:
         ssc_logits, aux_bev = self.model(x_t, t, lidar, cond_3d=cond_3d, **kwargs)
         self.last_aux_bev = aux_bev

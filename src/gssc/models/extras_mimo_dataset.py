@@ -27,12 +27,13 @@ Key Code References (PaSCo):
 ================================================================================
 """
 
-import torch
-import numpy as np
 import random
-from torch.utils.data import Dataset, DataLoader
-from typing import Dict, List, Optional, Any, Tuple
 from functools import partial
+from typing import Any
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, Dataset
 
 
 def apply_voxel_augmentation(
@@ -42,7 +43,7 @@ def apply_voxel_augmentation(
     rotation_angle: float = 0.0,  # in degrees (0, 90, 180, 270)
     flip_x: bool = False,
     flip_y: bool = False,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Apply geometric augmentation to voxel data (rotation, flip).
 
@@ -201,8 +202,8 @@ def apply_inverse_bev_feature_augmentation(
 def get_random_augmentation_params(
     use_continuous: bool = True,
     max_angle: float = 30.0,
-    max_translation: Tuple[float, float, float] = (0.6, 0.6, 0.4),
-) -> Dict[str, Any]:
+    max_translation: tuple[float, float, float] = (0.6, 0.6, 0.4),
+) -> dict[str, Any]:
     """
     Generate random augmentation parameters for MIMO inference.
 
@@ -248,9 +249,9 @@ def apply_continuous_augmentation(
     lidar: torch.Tensor,
     bev: torch.Tensor,
     gt_scene: torch.Tensor,
-    aug_params: Dict[str, Any],
-    voxel_shape: Tuple[int, int, int] = (256, 256, 32),
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    aug_params: dict[str, Any],
+    voxel_shape: tuple[int, int, int] = (256, 256, 32),
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Apply PaSCo-style continuous augmentation to voxel data.
 
@@ -324,9 +325,9 @@ def apply_inverse_augmentation(
     rotation_angle: float,
     flip_x: bool,
     flip_y: bool,
-    translation: Tuple[float, float, float] = (0.0, 0.0, 0.0),
+    translation: tuple[float, float, float] = (0.0, 0.0, 0.0),
     use_continuous: bool = False,
-    voxel_shape: Tuple[int, int, int] = (256, 256, 32),
+    voxel_shape: tuple[int, int, int] = (256, 256, 32),
 ) -> torch.Tensor:
     """
     Apply inverse augmentation to prediction to align with original coordinates.
@@ -405,9 +406,9 @@ def apply_augmentation(
     lidar: torch.Tensor,
     bev: torch.Tensor,
     gt_scene: torch.Tensor,
-    aug_params: Dict[str, Any],
-    voxel_shape: Tuple[int, int, int] = (256, 256, 32),
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    aug_params: dict[str, Any],
+    voxel_shape: tuple[int, int, int] = (256, 256, 32),
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Unified augmentation function that dispatches to discrete or continuous mode.
 
@@ -444,7 +445,7 @@ def apply_80_percent_crop(
     bev: torch.Tensor,
     gt_scene: torch.Tensor,
     crop_xy_only: bool = True,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Apply 80% random crop following PaSCo's implementation EXACTLY.
 
@@ -634,8 +635,8 @@ class MIMODatasetWrapper(Dataset):
         train_aug: bool = True,  # NEW: Apply augmentations during training (fixes train/inference mismatch)
         use_continuous_aug: bool = True,  # Use PaSCo-style continuous rotation (default: True)
         max_angle: float = 30.0,  # Maximum rotation angle (PaSCo: ±30°)
-        max_translation: Tuple[float, float, float] = (0.6, 0.6, 0.4),  # Max translation (m)
-        voxel_shape: Tuple[int, int, int] = (256, 256, 32),
+        max_translation: tuple[float, float, float] = (0.6, 0.6, 0.4),  # Max translation (m)
+        voxel_shape: tuple[int, int, int] = (256, 256, 32),
     ):
         """
         Args:
@@ -666,7 +667,7 @@ class MIMODatasetWrapper(Dataset):
         self.max_translation = max_translation
         self.voxel_shape = voxel_shape
 
-        print(f"[MIMODatasetWrapper] Configuration:")
+        print("[MIMODatasetWrapper] Configuration:")
         print(f"  - n_subnets: {n_subnets} (PaSCo paper default: 3)")
         print(f"  - split: {split}")
         print(f"  - 80% random crop: {'ENABLED' if self.apply_crop else 'DISABLED'}")
@@ -680,7 +681,7 @@ class MIMODatasetWrapper(Dataset):
     def __len__(self) -> int:
         return len(self.base_dataset)
 
-    def __getitem__(self, idx: int) -> List[Dict[str, Any]]:
+    def __getitem__(self, idx: int) -> list[dict[str, Any]]:
         """
         Return n_subnets samples following PaSCo behavior.
 
@@ -820,10 +821,10 @@ class MIMODatasetWrapper(Dataset):
 
 
 def mimo_collate_fn(
-    batch: List[List[Dict[str, Any]]],
+    batch: list[list[dict[str, Any]]],
     n_subnets: int,
     concatenate_channels: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Custom collate function for MIMO dataset.
 
@@ -868,10 +869,10 @@ def mimo_collate_fn(
 
 
 def _collate_channel_concat(
-    batch: List[List[Dict[str, Any]]],
+    batch: list[list[dict[str, Any]]],
     n_subnets: int,
     batch_size: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     PaSCo-style collation with channel concatenation.
 
@@ -964,10 +965,10 @@ def _collate_channel_concat(
 
 
 def _collate_separate(
-    batch: List[List[Dict[str, Any]]],
+    batch: list[list[dict[str, Any]]],
     n_subnets: int,
     batch_size: int,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Legacy collation with separate tensors per subnet.
 
@@ -1101,9 +1102,9 @@ class MIMOBatchProcessor:
 
     def forward_mimo(
         self,
-        batch: Dict[str, Any],
+        batch: dict[str, Any],
         device: torch.device,
-    ) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+    ) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
         """
         Forward pass with PaSCo-style MIMO.
 
@@ -1143,9 +1144,9 @@ class MIMOBatchProcessor:
 
     def _forward_separate(
         self,
-        batch: Dict[str, Any],
+        batch: dict[str, Any],
         device: torch.device,
-    ) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+    ) -> tuple[list[torch.Tensor], list[torch.Tensor]]:
         """Legacy: N separate forward passes."""
         n_subnets = batch.get('n_subnets', self.n_subnets)
         outputs_list = []
@@ -1167,8 +1168,8 @@ class MIMOBatchProcessor:
 
     def compute_loss(
         self,
-        outputs_list: List[torch.Tensor],
-        targets_list: List[torch.Tensor],
+        outputs_list: list[torch.Tensor],
+        targets_list: list[torch.Tensor],
         loss_fn: torch.nn.Module,
     ) -> torch.Tensor:
         """
@@ -1285,9 +1286,9 @@ if __name__ == '__main__':
         # Verify shapes
         B = batch['batch_size']
         N = batch['n_subnets']
-        assert batch['lidar'].shape == (B, N, 32, 32, 8), f"LiDAR shape mismatch"
-        assert batch['bev'].shape == (B, N, 32, 32), f"BEV shape mismatch"
-        assert batch['gt_scene'].shape == (B, N, 32, 32, 8), f"GT shape mismatch"
+        assert batch['lidar'].shape == (B, N, 32, 32, 8), "LiDAR shape mismatch"
+        assert batch['bev'].shape == (B, N, 32, 32), "BEV shape mismatch"
+        assert batch['gt_scene'].shape == (B, N, 32, 32, 8), "GT shape mismatch"
         print("✓ All shapes correct for PaSCo-style MIMO")
         break
 

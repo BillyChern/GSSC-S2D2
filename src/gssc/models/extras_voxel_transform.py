@@ -15,13 +15,11 @@ CRITICAL: All modalities (LiDAR, BEV, GT, WaffleIron) must be transformed
 with the SAME transformation matrix T to ensure spatial consistency!
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 import math
-from typing import Tuple, Optional, Dict, Any
 
+import numpy as np
+import torch
+import torch.nn.functional as F
 
 # Default SemanticKITTI voxel grid parameters
 VOXEL_SHAPE = (256, 256, 32)
@@ -30,8 +28,8 @@ VOXEL_RESOLUTION = 0.2  # meters per voxel
 
 def generate_transformation_matrix(
     rot: float = 0.0,
-    translation: Tuple[float, float, float] = (0.0, 0.0, 0.0),
-    flip_dim: Optional[int] = None,
+    translation: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    flip_dim: int | None = None,
     scale: float = 1.0,
 ) -> torch.Tensor:
     """
@@ -81,7 +79,7 @@ def generate_random_transformation(
     max_angle: float = 30.0,
     flip: bool = True,
     scale_range: float = 0.0,  # PaSCo default: 0 (disabled)
-    max_translation: Tuple[float, float, float] = (0.6, 0.6, 0.4),
+    max_translation: tuple[float, float, float] = (0.6, 0.6, 0.4),
 ) -> torch.Tensor:
     """
     Generate random transformation matrix following PaSCo's augmentation.
@@ -136,7 +134,7 @@ class VoxelTransformer:
 
     def __init__(
         self,
-        voxel_shape: Tuple[int, int, int] = VOXEL_SHAPE,
+        voxel_shape: tuple[int, int, int] = VOXEL_SHAPE,
         resolution: float = VOXEL_RESOLUTION,
     ):
         """
@@ -222,7 +220,7 @@ class VoxelAugmenter:
 
     def __init__(
         self,
-        voxel_shape: Tuple[int, int, int] = VOXEL_SHAPE,
+        voxel_shape: tuple[int, int, int] = VOXEL_SHAPE,
         resolution: float = VOXEL_RESOLUTION,
     ):
         """
@@ -289,8 +287,8 @@ class VoxelAugmenter:
         lidar: torch.Tensor,
         bev: torch.Tensor,
         scene: torch.Tensor,
-        T: Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+        T: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """
         Apply the SAME transformation to all modalities.
 

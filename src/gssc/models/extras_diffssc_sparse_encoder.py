@@ -6,9 +6,8 @@ Replaces MinkGlobalEnc from DiffSSC reference with spconv v2.
 Output: SparseConvTensor at coarse resolution (16x spatial reduction), 256ch per voxel.
 """
 
-import torch
-import torch.nn as nn
 import spconv.pytorch as spconv
+import torch.nn as nn
 
 
 class BasicConvBlock(nn.Module):

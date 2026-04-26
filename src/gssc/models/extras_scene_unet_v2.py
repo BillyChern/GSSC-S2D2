@@ -15,13 +15,14 @@ Architecture:
 """
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, List
+
+from gssc.models.bev_sparse_bev_net import BEVDecoder, SegmentationHead
 
 from .sparse_lidar_encoder import SparseLiDAREncoder
-from gssc.models.bev_sparse_bev_net import BEVDecoder, SegmentationHead
 
 
 def timestep_embedding(timesteps: torch.Tensor, dim: int, max_period: int = 10000) -> torch.Tensor:
@@ -135,7 +136,7 @@ class MultiScaleAuxBEVHead(nn.Module):
     ~2.5M extra params (training only, discarded at inference).
     """
 
-    def __init__(self, encoder_channels: List[int] = None, num_classes: int = 20):
+    def __init__(self, encoder_channels: list[int] = None, num_classes: int = 20):
         super().__init__()
         if encoder_channels is None:
             encoder_channels = [32, 64, 128, 256]
@@ -154,7 +155,7 @@ class MultiScaleAuxBEVHead(nn.Module):
         # Segmentation head (same as BEV supervised model)
         self.seg_head = SegmentationHead(decoder_channels[-1], num_classes, dropout=0.1)
 
-    def forward(self, encoder_features: List[torch.Tensor]) -> torch.Tensor:
+    def forward(self, encoder_features: list[torch.Tensor]) -> torch.Tensor:
         """
         Args:
             encoder_features: [e0, e1, e2, e3] from SSC UNet encoder
@@ -183,7 +184,7 @@ class SceneCompletionUNetV2(nn.Module):
         self,
         num_classes: int = 20,
         base_channels: int = 32,
-        channel_mult: Tuple[int, ...] = (1, 2, 4, 8),
+        channel_mult: tuple[int, ...] = (1, 2, 4, 8),
         time_emb_dim: int = 128,
         lidar_in_channels: int = 20,
         lidar_base_channels: int = 16,
@@ -261,7 +262,7 @@ class SceneCompletionUNetV2(nn.Module):
             )
 
     def forward(self, x_t: torch.Tensor, t: torch.Tensor,
-                lidar: torch.Tensor) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+                lidar: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
         """
         Args:
             x_t: [B, 20, H, W, D] one-hot noisy voxels
@@ -339,7 +340,7 @@ class V2ModelWrapper(nn.Module):
 
     def forward(self, x_t: torch.Tensor, t: torch.Tensor,
                 bev: torch.Tensor, lidar: torch.Tensor,
-                lifted_features: Optional[torch.Tensor] = None) -> torch.Tensor:
+                lifted_features: torch.Tensor | None = None) -> torch.Tensor:
         # bev and lifted_features are IGNORED
         ssc_logits, aux_bev = self.model(x_t, t, lidar)
         self.last_aux_bev = aux_bev

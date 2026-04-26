@@ -45,22 +45,20 @@ Usage:
     python train_s3.py --resume outputs/checkpoints/s3/latest.pt
 """
 
+import argparse
 import os
 import sys
-import argparse
-import numpy as np
 from pathlib import Path
-from typing import Optional, Tuple, List
 
+import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.distributed as dist
-from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.distributed import DistributedSampler
+import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -191,7 +189,7 @@ class S3Dataset(Dataset):
         self,
         ssc_root: str,
         quantized_root: str,
-        sequences: List[int],
+        sequences: list[int],
         augment: bool = True,
         use_prequantized: bool = True,
     ):
@@ -206,7 +204,7 @@ class S3Dataset(Dataset):
         # Check if pre-quantized data exists
         if use_prequantized and not self.s3_cond_path.exists():
             print(f"[S3Dataset] Warning: Pre-quantized data not found at {self.s3_cond_path}")
-            print(f"[S3Dataset] Falling back to online upsampling (slower)")
+            print("[S3Dataset] Falling back to online upsampling (slower)")
             self.use_prequantized = False
 
         # Find all valid frames
@@ -240,9 +238,9 @@ class S3Dataset(Dataset):
         print(f"[S3Dataset] Loaded {len(self.frames)} frames from {len(sequences)} sequences")
         print(f"[S3Dataset] Sub-scene size: {self.TARGET_SIZE} with step={self.STEP} (overlap={self.OVERLAP})")
         if self.use_prequantized:
-            print(f"[S3Dataset] Using PRE-QUANTIZED S2 conditioning (fast)")
+            print("[S3Dataset] Using PRE-QUANTIZED S2 conditioning (fast)")
         else:
-            print(f"[S3Dataset] Using ONLINE upsampling for S2 conditioning (slow)")
+            print("[S3Dataset] Using ONLINE upsampling for S2 conditioning (slow)")
             print(f"[S3Dataset] S2 patch size: {self.S2_PATCH_SIZE} with step={self.S2_STEP}")
         print(f"[S3Dataset] {self.NUM_SUB_SCENES} overlapping sub-scenes per frame (2×2 in XY)")
         print(f"[S3Dataset] Mask ratio: {self.MASK_RATIO:.4f} (32/144 for 32-voxel overlap)")
@@ -267,7 +265,7 @@ class S3Dataset(Dataset):
         cond_path = self.s3_cond_path / f'{seq_id:02d}' / f'{frame_id}_sub{sub_idx}.npy'
         return np.load(cond_path).astype(np.int64)
 
-    def _extract_sub_scenes(self, scene: np.ndarray) -> List[np.ndarray]:
+    def _extract_sub_scenes(self, scene: np.ndarray) -> list[np.ndarray]:
         """
         Extract 4 OVERLAPPING sub-scenes from full resolution scene.
 
@@ -288,7 +286,7 @@ class S3Dataset(Dataset):
 
         return sub_scenes
 
-    def _extract_s2_patches(self, s2: np.ndarray) -> List[np.ndarray]:
+    def _extract_s2_patches(self, s2: np.ndarray) -> list[np.ndarray]:
         """
         Extract 4 OVERLAPPING S2 patches corresponding to full resolution sub-scenes.
 
@@ -451,7 +449,7 @@ class S3Dataset(Dataset):
             }
 
 
-def upsample_to_target(labels: torch.Tensor, target_size: Tuple[int, int, int], num_classes: int = 20) -> torch.Tensor:
+def upsample_to_target(labels: torch.Tensor, target_size: tuple[int, int, int], num_classes: int = 20) -> torch.Tensor:
     """
     Upsample labels to target size using trilinear interpolation on one-hot encoding.
 
@@ -586,8 +584,8 @@ class S3Trainer:
             print(f"[S3Trainer] Total parameters: {total_params:,}")
             print(f"[S3Trainer] Device: {self.device}")
             print(f"[S3Trainer] Target sub-scene size: {self.TARGET_SIZE} (full 256×256 coverage)")
-            print(f"[S3Trainer] S2 patch: 36×36×8 → upsampled to 144×144×32")
-            print(f"[S3Trainer] Dual conditioning: upsampled S2 + masked S3 (inpainting)")
+            print("[S3Trainer] S2 patch: 36×36×8 → upsampled to 144×144×32")
+            print("[S3Trainer] Dual conditioning: upsampled S2 + masked S3 (inpainting)")
             print(f"[S3Trainer] Distributed: {distributed}, World size: {world_size}")
             print(f"[S3Trainer] Base LR: {self.base_lr}, Scaled LR: {self.scaled_lr}")
 

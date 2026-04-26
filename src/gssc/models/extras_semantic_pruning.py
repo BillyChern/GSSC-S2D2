@@ -19,10 +19,10 @@ Implementation:
 3. Bounding box pruning: Prune outside predicted object extents
 """
 
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Optional, Dict
 
 
 def compute_occupancy_mask(
@@ -117,13 +117,13 @@ def prune_predictions(
 
 def semantic_pruning_postprocess(
     pred_probs: torch.Tensor,
-    lidar: Optional[torch.Tensor] = None,
+    lidar: torch.Tensor | None = None,
     empty_threshold: float = 0.85,
     lidar_dilation: int = 3,
     use_lidar_mask: bool = True,
     use_occupancy_mask: bool = True,
     combine_mode: str = "intersection",
-) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
     """
     Apply PaSCo-style semantic pruning as post-processing.
 
@@ -233,7 +233,7 @@ class SemanticPruning(nn.Module):
         self,
         pred_probs: torch.Tensor,
         temperature: float = 1.0,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Predict which voxels to keep.
 

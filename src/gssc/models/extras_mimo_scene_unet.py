@@ -21,10 +21,10 @@ Architecture:
 """
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, List, Dict
 
 from .sparse_lidar_encoder import SparseLiDAREncoder, SparseLiDAREncoderLite
 
@@ -141,7 +141,7 @@ class MIMOSceneCompletionUNet(nn.Module):
         num_classes: int = 20,
         n_subnets: int = 3,  # PaSCo paper default
         base_channels: int = 32,
-        channel_mult: Tuple[int, ...] = (1, 2, 4, 8),
+        channel_mult: tuple[int, ...] = (1, 2, 4, 8),
         time_emb_dim: int = 128,
         lidar_base_channels: int = 16,
         lidar_out_channels: int = 32,
@@ -283,12 +283,12 @@ class MIMOSceneCompletionUNet(nn.Module):
         self.lidar_proj_level3 = nn.Conv3d(n_subnets * lidar_out_channels, lidar_out_channels, kernel_size=1)
         self.lidar_proj_level4 = nn.Conv3d(n_subnets * lidar_out_channels, lidar_out_channels, kernel_size=1)
 
-        print(f"[MIMOSceneCompletionUNet] Created with:")
+        print("[MIMOSceneCompletionUNet] Created with:")
         print(f"  - n_subnets: {n_subnets} (N separate completion heads)")
         print(f"  - LiDAR input channels: {n_subnets} (channel-concatenated)")
         print(f"  - BEV input channels: {num_classes * n_subnets}")
         print(f"  - Voxel input channels: {num_classes * n_subnets}")
-        print(f"  - Feature merging: CHANNEL CONCATENATION + PROJECTION (PaSCo-style)")
+        print("  - Feature merging: CHANNEL CONCATENATION + PROJECTION (PaSCo-style)")
         print(f"  - WaffleIron features: {'ENABLED' if use_waffleiron else 'DISABLED'}")
 
     def enable_dense3d_bottleneck(self, dropout: float = 0.1):
@@ -305,7 +305,7 @@ class MIMOSceneCompletionUNet(nn.Module):
 
         device = next(self.parameters()).device
         self.dense3d_bottleneck = self.dense3d_bottleneck.to(device)
-        print(f"[MIMOSceneCompletionUNet] Enabled SPCDense3Dv2 bottleneck")
+        print("[MIMOSceneCompletionUNet] Enabled SPCDense3Dv2 bottleneck")
 
     def enable_multiscale_supervision(self):
         """
@@ -318,7 +318,7 @@ class MIMOSceneCompletionUNet(nn.Module):
         Reference: PaSCo decoder_v3.py lines 258-283
         """
         self.use_multiscale_supervision = True
-        print(f"[MIMOSceneCompletionUNet] Enabled multi-scale supervision at scales [1, 2, 4]")
+        print("[MIMOSceneCompletionUNet] Enabled multi-scale supervision at scales [1, 2, 4]")
 
     def forward(
         self,
@@ -327,7 +327,7 @@ class MIMOSceneCompletionUNet(nn.Module):
         bev: torch.Tensor,  # [B, N, H, W] stacked BEV maps OR [B, N*C, H, W] one-hot
         lidar: torch.Tensor,  # [B, N*1, H, W, D] channel-concat binary voxels
         waffleiron: torch.Tensor = None,  # [B, N, 64, H, W] WaffleIron features (optional, uses zeros if None)
-    ) -> Dict[str, List[torch.Tensor]]:
+    ) -> dict[str, list[torch.Tensor]]:
         """
         Forward pass with PaSCo-style MIMO.
 
@@ -507,7 +507,7 @@ class MIMOSceneCompletionUNetLite(nn.Module):
         num_classes: int = 20,
         n_subnets: int = 3,
         base_channels: int = 16,
-        channel_mult: Tuple[int, ...] = (1, 2, 4, 8),
+        channel_mult: tuple[int, ...] = (1, 2, 4, 8),
         time_emb_dim: int = 64,
         lidar_base_channels: int = 8,
         lidar_out_channels: int = 16,
@@ -600,12 +600,12 @@ class MIMOSceneCompletionUNetLite(nn.Module):
         self.lidar_proj_level3 = nn.Conv3d(n_subnets * lidar_out_channels, lidar_out_channels, kernel_size=1)
         self.lidar_proj_level4 = nn.Conv3d(n_subnets * lidar_out_channels, lidar_out_channels, kernel_size=1)
 
-        print(f"[MIMOSceneCompletionUNetLite] Created with:")
+        print("[MIMOSceneCompletionUNetLite] Created with:")
         print(f"  - n_subnets: {n_subnets} (N separate completion heads)")
         print(f"  - LiDAR input channels: {n_subnets} (channel-concatenated)")
         print(f"  - BEV input channels: {num_classes * n_subnets}")
         print(f"  - Voxel input channels: {num_classes * n_subnets}")
-        print(f"  - Feature merging: CHANNEL CONCATENATION + PROJECTION (PaSCo-style)")
+        print("  - Feature merging: CHANNEL CONCATENATION + PROJECTION (PaSCo-style)")
         print(f"  - WaffleIron features: {'ENABLED' if use_waffleiron else 'DISABLED'}")
 
     def enable_dense3d_bottleneck(self, dropout: float = 0.1):
@@ -622,7 +622,7 @@ class MIMOSceneCompletionUNetLite(nn.Module):
 
         device = next(self.parameters()).device
         self.dense3d_bottleneck = self.dense3d_bottleneck.to(device)
-        print(f"[MIMOSceneCompletionUNetLite] Enabled SPCDense3Dv2 bottleneck")
+        print("[MIMOSceneCompletionUNetLite] Enabled SPCDense3Dv2 bottleneck")
 
     def forward(self, x_t, t, bev, lidar, waffleiron: torch.Tensor = None):
         """Same interface as MIMOSceneCompletionUNet. WaffleIron is optional."""
@@ -739,12 +739,12 @@ if __name__ == "__main__":
 
     # Test with n_subnets=3
     model = MIMOSceneCompletionUNet(num_classes=20, n_subnets=3, base_channels=32)
-    print(f"MIMOSceneCompletionUNet (n_subnets=3):")
+    print("MIMOSceneCompletionUNet (n_subnets=3):")
     print(f"  Parameters: {count_parameters(model):,}")
-    print(f"  Completion heads: 3 separate")
+    print("  Completion heads: 3 separate")
 
     model_lite = MIMOSceneCompletionUNetLite(num_classes=20, n_subnets=3, base_channels=16)
-    print(f"\nMIMOSceneCompletionUNetLite (n_subnets=3):")
+    print("\nMIMOSceneCompletionUNetLite (n_subnets=3):")
     print(f"  Parameters: {count_parameters(model_lite):,}")
 
     # Test forward pass with dummy data

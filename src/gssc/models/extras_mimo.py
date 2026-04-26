@@ -79,19 +79,18 @@ CRITICAL: Both BEV and LiDAR must be transformed with the SAME matrix T.
 - LiDAR: Full 3D voxel grid transformation
 """
 
+import math
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import List, Dict, Tuple, Optional
-import numpy as np
-import math
 
 from .voxel_transform import (
-    VoxelTransformer,
-    generate_transformation_matrix,
-    generate_random_transformation,
-    VOXEL_SHAPE,
     VOXEL_RESOLUTION,
+    VOXEL_SHAPE,
+    VoxelTransformer,
+    generate_random_transformation,
 )
 
 
@@ -117,7 +116,7 @@ class BEVGeometricAugmenter(nn.Module):
     def __init__(
         self,
         max_angle: float = 30.0,  # degrees, PaSCo paper default
-        max_translation: Tuple[float, float] = (0.6, 0.6),  # meters (x, y)
+        max_translation: tuple[float, float] = (0.6, 0.6),  # meters (x, y)
         scale_range: float = 0.0,  # PaSCo default: 0 (DISABLED!)
         flip_prob: float = 0.5,  # PaSCo: 50%
         voxel_size: float = 0.2,  # SemanticKITTI voxel size in meters
@@ -137,7 +136,7 @@ class BEVGeometricAugmenter(nn.Module):
         self.flip_prob = flip_prob
         self.voxel_size = voxel_size
 
-    def generate_random_transform(self) -> Dict[str, float]:
+    def generate_random_transform(self) -> dict[str, float]:
         """
         Generate random transformation parameters following PaSCo.
 
@@ -172,8 +171,8 @@ class BEVGeometricAugmenter(nn.Module):
     def apply_transform(
         self,
         bev: torch.Tensor,
-        transform: Dict[str, float],
-    ) -> Tuple[torch.Tensor, Dict[str, float]]:
+        transform: dict[str, float],
+    ) -> tuple[torch.Tensor, dict[str, float]]:
         """
         Apply geometric transformation to BEV.
 
@@ -242,7 +241,7 @@ class BEVGeometricAugmenter(nn.Module):
     def apply_inverse_transform_3d(
         self,
         output_3d: torch.Tensor,
-        inverse_transform: Dict[str, float],
+        inverse_transform: dict[str, float],
     ) -> torch.Tensor:
         """
         Apply inverse transformation to 3D output.
@@ -297,7 +296,7 @@ class BEVGeometricAugmenter(nn.Module):
         self,
         bev: torch.Tensor,
         num_views: int = 3,
-    ) -> List[Tuple[torch.Tensor, Dict[str, float]]]:
+    ) -> list[tuple[torch.Tensor, dict[str, float]]]:
         """
         Generate multiple augmented views.
 
@@ -343,10 +342,10 @@ class Unified3DAugmenter(nn.Module):
     def __init__(
         self,
         max_angle: float = 30.0,
-        max_translation: Tuple[float, float, float] = (0.6, 0.6, 0.4),
+        max_translation: tuple[float, float, float] = (0.6, 0.6, 0.4),
         scale_range: float = 0.0,  # PaSCo default: 0 (DISABLED!)
         flip_prob: float = 0.5,
-        voxel_shape: Tuple[int, int, int] = VOXEL_SHAPE,
+        voxel_shape: tuple[int, int, int] = VOXEL_SHAPE,
         voxel_resolution: float = VOXEL_RESOLUTION,
     ):
         """
@@ -485,8 +484,8 @@ class Unified3DAugmenter(nn.Module):
         self,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        T: Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+        T: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """
         Augment both BEV and LiDAR with the SAME transformation.
 
@@ -515,7 +514,7 @@ class Unified3DAugmenter(nn.Module):
         bev: torch.Tensor,
         lidar: torch.Tensor,
         num_views: int = 3,
-    ) -> List[Dict[str, torch.Tensor]]:
+    ) -> list[dict[str, torch.Tensor]]:
         """
         Generate multiple augmented views.
 
@@ -610,7 +609,7 @@ class BEVAugmenter(nn.Module):
         """Vertical flip."""
         return torch.flip(bev, dims=[-2])
 
-    def get_augmentations(self, aug_types: List[str] = None) -> List[callable]:
+    def get_augmentations(self, aug_types: list[str] = None) -> list[callable]:
         """Get list of augmentation functions."""
         if aug_types is None:
             aug_types = ['identity', 'noise', 'dropout']
@@ -631,8 +630,8 @@ class BEVAugmenter(nn.Module):
     def forward(
         self,
         bev: torch.Tensor,
-        aug_types: List[str] = None,
-    ) -> List[torch.Tensor]:
+        aug_types: list[str] = None,
+    ) -> list[torch.Tensor]:
         """Apply augmentations to create multiple BEV views."""
         augmentations = self.get_augmentations(aug_types)
         return [aug(bev) for aug in augmentations]
@@ -676,14 +675,14 @@ class MIMOSceneCompletion(nn.Module):
         base_model: nn.Module,
         num_subnets: int = 3,
         num_classes: int = 20,
-        aug_types: List[str] = None,
+        aug_types: list[str] = None,
         ensemble_method: str = 'mean_probs',  # PaSCo default: mean_probs
         use_geometric_aug: bool = True,  # PaSCo-style geometric augmentation
         use_unified_3d_aug: bool = True,  # NEW: Use unified 3D augmenter
         max_angle: float = 30.0,  # PaSCo default
-        max_translation: Tuple[float, float, float] = (0.6, 0.6, 0.4),  # PaSCo default
+        max_translation: tuple[float, float, float] = (0.6, 0.6, 0.4),  # PaSCo default
         scale_range: float = 0.1,  # PaSCo default
-        voxel_shape: Tuple[int, int, int] = VOXEL_SHAPE,
+        voxel_shape: tuple[int, int, int] = VOXEL_SHAPE,
     ):
         """
         Args:
@@ -750,9 +749,9 @@ class MIMOSceneCompletion(nn.Module):
         self,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        t: Optional[torch.Tensor] = None,
+        t: torch.Tensor | None = None,
         **kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """
         Forward pass with MIMO following PaSCo.
 
@@ -929,9 +928,9 @@ class MIMOEnsembler(nn.Module):
 
     def forward(
         self,
-        predictions: List[torch.Tensor],
-        probs: Optional[List[torch.Tensor]] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        predictions: list[torch.Tensor],
+        probs: list[torch.Tensor] | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Ensemble multiple predictions."""
         if len(predictions) == 1:
             return predictions[0], torch.zeros_like(predictions[0]).float()
@@ -950,7 +949,7 @@ class MIMOEnsembler(nn.Module):
         return ensemble_pred, uncertainty
 
     @staticmethod
-    def compute_uncertainty_map(probs: List[torch.Tensor]) -> torch.Tensor:
+    def compute_uncertainty_map(probs: list[torch.Tensor]) -> torch.Tensor:
         """Compute per-voxel uncertainty from probability predictions."""
         stacked = torch.stack(probs, dim=0)
         avg_probs = stacked.mean(dim=0)
@@ -964,13 +963,13 @@ def create_mimo_wrapper(
     base_model: nn.Module,
     num_subnets: int = 3,  # PaSCo paper default: 3 (NOT 2!)
     num_classes: int = 20,
-    aug_types: List[str] = None,
+    aug_types: list[str] = None,
     use_geometric_aug: bool = True,
     use_unified_3d_aug: bool = True,
     ensemble_method: str = 'mean_probs',  # PaSCo default: mean_probs (NOT mean_logits!)
     max_angle: float = 30.0,  # PaSCo paper: 30 degrees
     scale_range: float = 0.0,  # PaSCo default: 0 (disabled)
-    voxel_shape: Tuple[int, int, int] = VOXEL_SHAPE,
+    voxel_shape: tuple[int, int, int] = VOXEL_SHAPE,
 ) -> MIMOSceneCompletion:
     """
     Convenience function to wrap a model with MIMO.

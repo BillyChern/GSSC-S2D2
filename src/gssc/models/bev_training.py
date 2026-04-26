@@ -5,28 +5,22 @@ Supports running multiple experiments in parallel with different
 hyperparameters and model configurations.
 """
 
-import os
-import sys
+import argparse
 import json
 import logging
-import argparse
-from dataclasses import dataclass, field, asdict
-from typing import Optional, Dict, List, Tuple, Any
+import sys
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-import time
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 import numpy as np
+import torch
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from tqdm import tqdm
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from gssc.models.bev_diffusion_model import BEVDiffusionModel, create_bev_diffusion_model
-
 
 # SemanticKITTI class names and frequencies (approximate)
 SEMANTICKITTI_CLASSES = [
@@ -94,8 +88,8 @@ class ExperimentConfig:
 
     # Data
     data_root: str = "<repo>/datasets/dataset_SemanticKITTI_SSC"
-    train_sequences: List[str] = field(default_factory=lambda: ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10'])
-    val_sequences: List[str] = field(default_factory=lambda: ['08'])
+    train_sequences: list[str] = field(default_factory=lambda: ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10'])
+    val_sequences: list[str] = field(default_factory=lambda: ['08'])
     num_workers: int = 4
     use_rare_class_sampling: bool = True
 
@@ -106,11 +100,11 @@ class ExperimentConfig:
     # Logging
     log_every: int = 50
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, d: Dict) -> 'ExperimentConfig':
+    def from_dict(cls, d: dict) -> 'ExperimentConfig':
         return cls(**d)
 
     def save(self, path: str):
@@ -119,7 +113,7 @@ class ExperimentConfig:
 
     @classmethod
     def load(cls, path: str) -> 'ExperimentConfig':
-        with open(path, 'r') as f:
+        with open(path) as f:
             return cls.from_dict(json.load(f))
 
 
@@ -136,7 +130,7 @@ class SemanticKITTIBEVDataset(Dataset):
     def __init__(
         self,
         data_root: str,
-        sequences: List[str],
+        sequences: list[str],
         split: str = 'train',
     ):
         super().__init__()
@@ -174,7 +168,7 @@ class SemanticKITTIBEVDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         sample = self.samples[idx]
 
         # Load sparse LiDAR voxels
@@ -290,7 +284,6 @@ class SemanticKITTIBEVDataset(Dataset):
 
         # For efficiency, we use pre-computed approximations
         # In practice, you'd compute this from actual data statistics
-        rare_classes = [2, 3, 6, 7, 8, 18, 19]  # bicycle, motorcycle, person, etc.
 
         # This is a simplified version - in practice, you'd check each sample
         # for rare class presence
@@ -385,7 +378,7 @@ class BEVTrainer:
             class_weights=class_weights,
         )
 
-    def _build_datasets(self) -> Tuple[Dataset, Dataset]:
+    def _build_datasets(self) -> tuple[Dataset, Dataset]:
         """Build train and validation datasets."""
         train_dataset = SemanticKITTIBEVDataset(
             data_root=self.config.data_root,
@@ -420,7 +413,7 @@ class BEVTrainer:
             drop_last=True,
         )
 
-    def train_epoch(self) -> Dict[str, float]:
+    def train_epoch(self) -> dict[str, float]:
         """Train for one epoch."""
         self.model.train()
 
@@ -476,7 +469,7 @@ class BEVTrainer:
         }
 
     @torch.no_grad()
-    def validate(self) -> Dict[str, float]:
+    def validate(self) -> dict[str, float]:
         """Run validation."""
         self.model.eval()
 
@@ -582,7 +575,7 @@ def run_experiment(config: ExperimentConfig, device: torch.device = None):
     trainer.train()
 
 
-def create_experiment_configs() -> List[ExperimentConfig]:
+def create_experiment_configs() -> list[ExperimentConfig]:
     """
     Create multiple experiment configurations for parallel training.
 

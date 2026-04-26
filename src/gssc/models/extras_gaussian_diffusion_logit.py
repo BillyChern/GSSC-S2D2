@@ -29,14 +29,14 @@ References:
 """
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, Dict
 from tqdm import tqdm
 
 
-def extract(a: torch.Tensor, t: torch.Tensor, x_shape: Tuple[int, ...]) -> torch.Tensor:
+def extract(a: torch.Tensor, t: torch.Tensor, x_shape: tuple[int, ...]) -> torch.Tensor:
     """Extract values from a at timestep t and reshape for broadcasting."""
     B = t.shape[0]
     out = a.gather(-1, t.clamp(0, a.shape[0] - 1))
@@ -84,7 +84,7 @@ class GaussianDiffusionLogit(nn.Module):
         sigma_schedule: str = 'cosine',
         logit_scale: float = 3.0,
         lambda_reg: float = 1.0,  # kept for interface compat, unused
-        sigma_data: Optional[float] = None,
+        sigma_data: float | None = None,
     ):
         super().__init__()
 
@@ -173,7 +173,7 @@ class GaussianDiffusionLogit(nn.Module):
         return F.softmax(z_0, dim=1)
 
     def q_sample(self, z_0: torch.Tensor, t: torch.Tensor,
-                 noise: Optional[torch.Tensor] = None) -> torch.Tensor:
+                 noise: torch.Tensor | None = None) -> torch.Tensor:
         """VE Forward: z_t = z_0 + σ_t * ε"""
         if noise is None:
             noise = torch.randn_like(z_0)
@@ -183,8 +183,8 @@ class GaussianDiffusionLogit(nn.Module):
     def _denoised_estimate(self, model: nn.Module, z_t: torch.Tensor,
                            t: torch.Tensor, bev: torch.Tensor,
                            lidar: torch.Tensor,
-                           lifted_features: Optional[torch.Tensor] = None,
-                           cond_3d: Optional[torch.Tensor] = None,
+                           lifted_features: torch.Tensor | None = None,
+                           cond_3d: torch.Tensor | None = None,
                            force_uncond: bool = False,
                            ) -> torch.Tensor:
         """EDM denoised estimate: D = c_skip * z_t + c_out * F_θ(c_in * z_t).
@@ -218,9 +218,9 @@ class GaussianDiffusionLogit(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
-        cond_3d: Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+        lifted_features: torch.Tensor | None = None,
+        cond_3d: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """EDM training loss: λ(σ) * ||D(z_t) - z_0||²
 
         The loss weight λ(σ) ensures uniform effective loss on F_θ,
@@ -266,8 +266,8 @@ class GaussianDiffusionLogit(nn.Module):
     @torch.no_grad()
     def _p_sample_ve(self, model: nn.Module, z_t: torch.Tensor, t: torch.Tensor,
                      t_prev: torch.Tensor, bev: torch.Tensor, lidar: torch.Tensor,
-                     lifted_features: Optional[torch.Tensor] = None,
-                     cond_3d: Optional[torch.Tensor] = None) -> torch.Tensor:
+                     lifted_features: torch.Tensor | None = None,
+                     cond_3d: torch.Tensor | None = None) -> torch.Tensor:
         """Single VE reverse step with EDM preconditioning (DDIM / deterministic)."""
         B = z_t.shape[0]
 
@@ -291,10 +291,10 @@ class GaussianDiffusionLogit(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
-        cond_3d: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
+        cond_3d: torch.Tensor | None = None,
         show_progress: bool = True,
     ) -> torch.Tensor:
         """Sample from VE diffusion (full reverse process)."""
@@ -325,10 +325,10 @@ class GaussianDiffusionLogit(nn.Module):
         bev: torch.Tensor,
         lidar: torch.Tensor,
         init_probs: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
-        cond_3d: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
+        cond_3d: torch.Tensor | None = None,
         start_timestep: int = 500,
         show_progress: bool = True,
     ) -> torch.Tensor:
@@ -361,12 +361,12 @@ class GaussianDiffusionLogit(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
-        cond_3d: Optional[torch.Tensor] = None,
-        init_probs: Optional[torch.Tensor] = None,
-        start_timestep: Optional[int] = None,
+        lifted_features: torch.Tensor | None = None,
+        cond_3d: torch.Tensor | None = None,
+        init_probs: torch.Tensor | None = None,
+        start_timestep: int | None = None,
         num_steps: int = 50,
         guidance_scale: float = 1.0,
         show_progress: bool = True,
@@ -460,7 +460,7 @@ class LogitModelWrapper(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         **kwargs,
     ) -> torch.Tensor:
         """Forward pass: predict raw F in logit space."""

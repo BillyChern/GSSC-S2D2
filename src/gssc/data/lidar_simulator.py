@@ -15,12 +15,12 @@ Usage:
     sparse_mask, invalid_mask = resampler.resample(complete_voxels)
 """
 
-import numpy as np
-from typing import Tuple, List, Optional
 from pathlib import Path
 
+import numpy as np
 
-def bresenham3d_single(start: Tuple[int, int, int], end: Tuple[int, int, int]) -> List[Tuple[int, int, int]]:
+
+def bresenham3d_single(start: tuple[int, int, int], end: tuple[int, int, int]) -> list[tuple[int, int, int]]:
     """
     3D Bresenham line algorithm for a single ray.
 
@@ -141,7 +141,7 @@ class LiDARResampler:
 
     def __init__(
         self,
-        lidar_position: Tuple[int, int, int] = None,
+        lidar_position: tuple[int, int, int] = None,
         num_beams: int = 64,
         h_resolution: int = 2048,
         v_fov_up: float = 2.0,
@@ -196,14 +196,14 @@ class LiDARResampler:
         print(f"[LiDARResampler] Initialized with {len(self.ray_dirs_flat)} rays")
         print(f"  LiDAR position: {self.lidar_pos}")
         print(f"  Beams: {self.num_beams}, H-resolution: {self.h_resolution}")
-        print(f"  H-FOV: [-90°, +90°] (forward-facing)")
+        print("  H-FOV: [-90°, +90°] (forward-facing)")
         print(f"  V-FOV: [{np.degrees(self.v_fov_down):.1f}°, {np.degrees(self.v_fov_up):.1f}°]")
 
     def _ray_to_voxel_endpoint(
         self,
         direction: np.ndarray,
         max_distance: float = 200.0
-    ) -> Tuple[int, int, int]:
+    ) -> tuple[int, int, int]:
         """
         Convert ray direction to endpoint voxel coordinates.
 
@@ -227,7 +227,7 @@ class LiDARResampler:
         complete_voxels: np.ndarray,
         return_invalid: bool = True,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+    ) -> tuple[np.ndarray, np.ndarray | None]:
         """
         Convert complete voxel scene to sparse LiDAR observation.
 
@@ -307,7 +307,7 @@ class LiDARResampler:
         complete_voxels: np.ndarray,
         subsample_factor: int = 4,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Fast resampling using subsampled rays.
 
@@ -377,7 +377,7 @@ def pack_voxels(voxel_grid: np.ndarray) -> np.ndarray:
     return packed
 
 
-def unpack_voxels(packed: np.ndarray, shape: Tuple[int, int, int] = (256, 256, 32)) -> np.ndarray:
+def unpack_voxels(packed: np.ndarray, shape: tuple[int, int, int] = (256, 256, 32)) -> np.ndarray:
     """
     Unpack bit-compressed voxels to full grid (SemanticKITTI style).
 
@@ -456,7 +456,7 @@ if __name__ == "__main__":
     # Resample
     sparse, invalid = resampler.resample_fast(test_scene, subsample_factor=2, verbose=True)
 
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  Sparse observations: {sparse.sum()}")
     print(f"  Invalid (occluded): {invalid.sum()}")
     print(f"  Observation rate: {100 * sparse.sum() / (test_scene > 0).sum():.1f}%")

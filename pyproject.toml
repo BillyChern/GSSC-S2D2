@@ -82,11 +82,37 @@ packages = ["src/gssc"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+# Vendored / legacy code is excluded from style enforcement; it is kept for
+# auditability of the original training runs but not part of the public API.
+extend-exclude = [
+    "src/gssc/_improved_diffusion",          # OpenAI improved-diffusion fork
+    "src/gssc/models/extras_*.py",            # legacy ablation-only modules
+    "src/gssc/training/train_pyramid_*.py",   # legacy pyramid training scripts
+    "src/gssc/training/pyramid_pipeline.py",
+    "external/",                              # third-party (semantic_kitti_api)
+]
+
+[tool.ruff.lint]
 extend-select = ["I", "B", "UP", "RUF"]
-extend-ignore = ["B008", "RUF012"]
+extend-ignore = [
+    "B008",    # function call in default — common pytorch idiom
+    "RUF012",  # mutable class attributes — irrelevant for nn.Module
+    "RUF001",  # ambiguous unicode in strings — × ² ³ used for shapes
+    "RUF002",  # ambiguous unicode in docstrings
+    "RUF003",  # ambiguous unicode in comments
+    "RUF013",  # implicit Optional — torch ecosystem convention
+    "B905",    # zip without strict — verbose for short pairs
+    "RUF005",  # collection literal concat
+    "RUF046",  # cast-to-int — explicit better than implicit here
+    "RUF059",  # unused-unpacked — common for tuple destructuring
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["B011"]
+"scripts/**" = ["E402"]                                 # sys.path manipulation before import
+"src/gssc/inference/run_scpnet.py" = ["E402"]           # spconv monkey-patches before import
+"src/gssc/training/train_scene_completion.py" = ["E402", "F401"]  # late imports + experimental optional deps
+"src/gssc/models/bev_sparse_bev_net.py" = ["E402"]      # SCPNet vendored layout
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -27,19 +27,19 @@ Usage:
         refined = adapter.adapt_single(model, frame.lidar, frame.prediction)
 """
 
+import copy
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import numpy as np
-from typing import Optional, Tuple, List, Dict
-import copy
 
 
 def bresenham_3d(
     start: np.ndarray,
     ends: np.ndarray,
-    occupied: Optional[np.ndarray] = None,
+    occupied: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Bresenham's line algorithm for 3D.
@@ -162,9 +162,9 @@ class LineOfSightPseudoGT:
 
     def __init__(
         self,
-        grid_size: Tuple[int, int, int] = (256, 256, 32),
-        voxel_size: Tuple[float, float, float] = (0.2, 0.2, 0.2),
-        origin: Tuple[float, float, float] = (-25.6, -25.6, -2.0),
+        grid_size: tuple[int, int, int] = (256, 256, 32),
+        voxel_size: tuple[float, float, float] = (0.2, 0.2, 0.2),
+        origin: tuple[float, float, float] = (-25.6, -25.6, -2.0),
         subsample_ratio: float = 0.125,  # Use 1/8 of points for efficiency
     ):
         self.grid_size = grid_size
@@ -191,7 +191,7 @@ class LineOfSightPseudoGT:
         curr_voxels: np.ndarray,
         aux_voxels: np.ndarray,
         aux_lidar_pos: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Generate LoS pseudo GT.
 
@@ -249,7 +249,7 @@ class EntropyPseudoGT:
     def generate(
         self,
         logits: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Generate semantic pseudo GT from model predictions.
 
@@ -308,7 +308,7 @@ class TALoS(nn.Module):
         self,
         model: nn.Module,
         num_classes: int = 20,
-        grid_size: Tuple[int, int, int] = (256, 256, 32),
+        grid_size: tuple[int, int, int] = (256, 256, 32),
         adapt_lr: float = 3e-4,
         adapt_iters: int = 3,
         continual_lr: float = 3e-5,
@@ -406,9 +406,9 @@ class TALoS(nn.Module):
     def adapt_single(
         self,
         prediction_logits: torch.Tensor,
-        curr_voxels: Optional[torch.Tensor] = None,
-        aux_voxels: Optional[torch.Tensor] = None,
-        aux_lidar_pos: Optional[torch.Tensor] = None,
+        curr_voxels: torch.Tensor | None = None,
+        aux_voxels: torch.Tensor | None = None,
+        aux_lidar_pos: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Perform scan-wise adaptation on a single prediction.
@@ -488,8 +488,8 @@ class TALoS(nn.Module):
     def _update_continual(
         self,
         logits: torch.Tensor,
-        los_pseudo_gt: Optional[torch.Tensor],
-        semantic_pseudo_gt: Optional[torch.Tensor],
+        los_pseudo_gt: torch.Tensor | None,
+        semantic_pseudo_gt: torch.Tensor | None,
     ):
         """Update continual model with current frame."""
         if self.continual_model is None:
@@ -521,9 +521,9 @@ class TALoS(nn.Module):
 def refine_with_talos(
     model: nn.Module,
     prediction_logits: torch.Tensor,
-    curr_lidar_points: Optional[np.ndarray] = None,
-    aux_lidar_points: Optional[np.ndarray] = None,
-    aux_lidar_pose: Optional[np.ndarray] = None,
+    curr_lidar_points: np.ndarray | None = None,
+    aux_lidar_points: np.ndarray | None = None,
+    aux_lidar_pose: np.ndarray | None = None,
     adapt_iters: int = 3,
     use_los: bool = True,
     use_pgt: bool = True,
@@ -609,11 +609,11 @@ class TALoSSequenceAdapter:
 
     def process_sequence(
         self,
-        predictions: List[torch.Tensor],
-        lidar_points: List[np.ndarray],
-        poses: List[np.ndarray],
+        predictions: list[torch.Tensor],
+        lidar_points: list[np.ndarray],
+        poses: list[np.ndarray],
         stride: int = 5,
-    ) -> List[torch.Tensor]:
+    ) -> list[torch.Tensor]:
         """
         Process entire sequence with TALoS.
 

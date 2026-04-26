@@ -16,12 +16,11 @@ This module provides:
 Reference: https://arxiv.org/abs/2305.00562
 """
 
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-
 
 # SemanticKITTI class statistics (from analysis)
 SEMANTICKITTI_CLASS_COUNTS = {
@@ -54,7 +53,7 @@ HEAD_CLASSES = [9, 11, 15, 17]  # road, sidewalk, vegetation, terrain
 
 
 def compute_class_weights(
-    class_counts: Dict[int, int],
+    class_counts: dict[int, int],
     num_classes: int = 20,
     method: str = 'inverse_freq',
     smoothing: float = 1.0,
@@ -120,7 +119,7 @@ class ClassBalancingRegularizer(nn.Module):
         self,
         num_classes: int = 20,
         beta: float = 0.1,
-        class_weights: Optional[torch.Tensor] = None,
+        class_weights: torch.Tensor | None = None,
         target_distribution: str = 'weighted_uniform',
         timestep_scaling: str = 'linear',
     ):
@@ -241,7 +240,7 @@ class RareClassGuidance:
 
     def __init__(
         self,
-        rare_classes: List[int] = None,
+        rare_classes: list[int] = None,
         boost_factor: float = 2.0,
         temperature: float = 1.0,
     ):
@@ -258,8 +257,8 @@ class RareClassGuidance:
     def apply(
         self,
         logits: torch.Tensor,
-        timestep: Optional[int] = None,
-        total_timesteps: Optional[int] = None,
+        timestep: int | None = None,
+        total_timesteps: int | None = None,
     ) -> torch.Tensor:
         """
         Apply rare class guidance to logits.
@@ -305,7 +304,7 @@ class ClassAwareLoss(nn.Module):
         cbdm_beta: float = 0.1,
         focal_gamma: float = 2.0,
         use_focal: bool = True,
-        class_weights: Optional[torch.Tensor] = None,
+        class_weights: torch.Tensor | None = None,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -365,8 +364,8 @@ class ClassAwareLoss(nn.Module):
         targets: torch.Tensor,
         t: torch.Tensor,
         T: int,
-        diffusion_loss: Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+        diffusion_loss: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """
         Compute combined loss.
 
@@ -408,8 +407,8 @@ class ClassAwareLoss(nn.Module):
 
 def get_class_balanced_sampler(
     dataset,
-    class_counts: Dict[int, int] = None,
-    num_samples: Optional[int] = None,
+    class_counts: dict[int, int] = None,
+    num_samples: int | None = None,
 ) -> torch.utils.data.Sampler:
     """
     Create a class-balanced sampler for DataLoader.
@@ -432,7 +431,7 @@ def get_class_balanced_sampler(
             _, label = dataset[idx]
             dominant_class = label.mode().values.item()
             sample_weights.append(weights[dominant_class].item())
-        except:
+        except (IndexError, KeyError, RuntimeError, AttributeError):
             sample_weights.append(1.0)
 
     sample_weights = torch.tensor(sample_weights)

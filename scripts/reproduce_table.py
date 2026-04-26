@@ -62,7 +62,7 @@ def main() -> None:
         ckpt = ckpt_dir / f"{spec['checkpoint']}.safetensors"
         if not ckpt.exists():
             print(f"Missing checkpoint: {ckpt}")
-            print(f"Run: python scripts/download_assets.py --checkpoints")
+            print("Run: python scripts/download_assets.py --checkpoints")
             sys.exit(1)
         cmd = [
             sys.executable, "scripts/eval.py", spec["config"],

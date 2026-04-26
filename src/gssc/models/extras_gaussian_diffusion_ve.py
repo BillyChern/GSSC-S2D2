@@ -29,14 +29,14 @@ Reference: DiffSSC (IROS 2025) — diffssc/models/models.py
 """
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, Dict
 from tqdm import tqdm
 
 
-def extract(a: torch.Tensor, t: torch.Tensor, x_shape: Tuple[int, ...]) -> torch.Tensor:
+def extract(a: torch.Tensor, t: torch.Tensor, x_shape: tuple[int, ...]) -> torch.Tensor:
     """Extract values from a at timestep t and reshape for broadcasting."""
     B = t.shape[0]
     out = a.gather(-1, t.clamp(0, a.shape[0] - 1))
@@ -190,7 +190,7 @@ class GaussianDiffusionVE(nn.Module):
         return x_0_clamped.argmax(dim=1)
 
     def q_sample(self, x_0: torch.Tensor, t: torch.Tensor,
-                 noise: Optional[torch.Tensor] = None) -> torch.Tensor:
+                 noise: torch.Tensor | None = None) -> torch.Tensor:
         """VE Forward process: x_t = x_0 + σ_t * ε
 
         Signal is PRESERVED, only noise is added.
@@ -226,8 +226,8 @@ class GaussianDiffusionVE(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,  # BEV condition [B, H, W] (may be ignored)
         lidar: torch.Tensor,  # LiDAR condition [B, 20, H, W, D]
-        lifted_features: Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+        lifted_features: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """Compute VE diffusion training loss.
 
         L = MSE(ε̂, ε) + λ_reg * (mean² + (std-1)²)
@@ -272,7 +272,7 @@ class GaussianDiffusionVE(nn.Module):
     @torch.no_grad()
     def _p_sample_ve(self, model: nn.Module, x_t: torch.Tensor, t: torch.Tensor,
                      t_prev: torch.Tensor, bev: torch.Tensor, lidar: torch.Tensor,
-                     lifted_features: Optional[torch.Tensor] = None) -> torch.Tensor:
+                     lifted_features: torch.Tensor | None = None) -> torch.Tensor:
         """Single VE reverse step: x_{t-1} from x_t.
 
         VE reverse process:
@@ -312,9 +312,9 @@ class GaussianDiffusionVE(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         show_progress: bool = True,
     ) -> torch.Tensor:
         """Sample from VE diffusion (full reverse process).
@@ -353,9 +353,9 @@ class GaussianDiffusionVE(nn.Module):
         bev: torch.Tensor,
         lidar: torch.Tensor,
         init_probs: torch.Tensor,  # [B, 20, H, W, D] soft probs from LSK3DNet/BEV
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         start_timestep: int = 500,
         show_progress: bool = True,
     ) -> torch.Tensor:
@@ -400,11 +400,11 @@ class GaussianDiffusionVE(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
-        init_probs: Optional[torch.Tensor] = None,
-        start_timestep: Optional[int] = None,
+        lifted_features: torch.Tensor | None = None,
+        init_probs: torch.Tensor | None = None,
+        start_timestep: int | None = None,
         num_steps: int = 50,
         show_progress: bool = True,
     ) -> torch.Tensor:
@@ -412,7 +412,6 @@ class GaussianDiffusionVE(nn.Module):
 
         For VE diffusion, we need to configure the scheduler appropriately.
         """
-        from diffusers import DPMSolverMultistepScheduler
 
         B, H, W, D = shape
         model.eval()
@@ -497,7 +496,7 @@ class VEModelWrapper(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,  # [B, 20, H, W] one-hot (may be ignored)
         lidar: torch.Tensor,  # [B, 20, H, W, D] one-hot LiDAR semantics
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         **kwargs,
     ) -> torch.Tensor:
         """Forward pass: predict noise given noisy input and conditions."""

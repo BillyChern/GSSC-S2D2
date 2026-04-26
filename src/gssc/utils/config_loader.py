@@ -5,12 +5,13 @@ list that the legacy trainer expects. Keeps the config files declarative and
 the trainer untouched.
 """
 from __future__ import annotations
+
 from pathlib import Path
-from typing import List
+
 import yaml
 
 
-def load_yaml_to_args(path: Path) -> List[str]:
+def load_yaml_to_args(path: Path) -> list[str]:
     """Flatten a YAML config dict into a list of CLI args.
 
     A leading underscore in a key name suppresses it (used for documentation

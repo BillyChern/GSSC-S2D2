@@ -19,11 +19,11 @@ Reference:
 - Architecture plan: <repo>/docs/architecture_improvement_plan.md
 """
 
+import random
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Dict, Tuple
-import random
 
 
 class CFGWrapper(nn.Module):
@@ -83,7 +83,7 @@ class CFGWrapper(nn.Module):
                        bev_cond: torch.Tensor,
                        lidar_cond: torch.Tensor,
                        lifted_cond: torch.Tensor,
-                       guidance_scale: Optional[float] = None) -> torch.Tensor:
+                       guidance_scale: float | None = None) -> torch.Tensor:
         """
         CFG-guided inference.
 
@@ -153,7 +153,7 @@ class SDEditSampler:
 
     def add_noise(self,
                   x_0: torch.Tensor,
-                  t: int) -> Tuple[torch.Tensor, torch.Tensor]:
+                  t: int) -> tuple[torch.Tensor, torch.Tensor]:
         """Add noise to x_0 at timestep t."""
         noise = torch.randn_like(x_0.float())
 
@@ -246,7 +246,7 @@ class CFGTrainingMixin:
                           bev_cond: torch.Tensor,
                           lidar_cond: torch.Tensor,
                           lifted_cond: torch.Tensor,
-                          p_uncond: float = 0.1) -> Dict[str, torch.Tensor]:
+                          p_uncond: float = 0.1) -> dict[str, torch.Tensor]:
         """
         CFG training step with hierarchical dropout.
 

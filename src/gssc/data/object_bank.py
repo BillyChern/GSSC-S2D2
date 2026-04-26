@@ -14,13 +14,11 @@ The goal is to create a bank of rare object instances (bicycle, motorcycle,
 truck, person, etc.) that can be pasted into new scenes for augmentation.
 """
 
-import os
 import json
-import numpy as np
-import torch
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Union
-from dataclasses import dataclass, field, asdict
+
+import numpy as np
 from scipy import ndimage
 from tqdm import tqdm
 
@@ -32,11 +30,11 @@ class RareObject:
     class_name: str
     voxels: np.ndarray  # [N, 3] relative coordinates
     labels: np.ndarray  # [N] semantic labels (all same class)
-    bbox_size: Tuple[int, int, int]  # (X, Y, Z) bounding box size
+    bbox_size: tuple[int, int, int]  # (X, Y, Z) bounding box size
     centroid: np.ndarray  # [3] original centroid position
     num_voxels: int
     source_scene: str  # Source scene identifier
-    context_classes: List[int] = field(default_factory=list)  # Adjacent classes
+    context_classes: list[int] = field(default_factory=list)  # Adjacent classes
 
 
 # Class name mapping
@@ -65,7 +63,7 @@ class RareObjectExtractor:
 
     def __init__(
         self,
-        rare_classes: List[int] = None,
+        rare_classes: list[int] = None,
         min_voxels: int = 5,
         max_voxels: int = 10000,
         connectivity: int = 26,  # 6, 18, or 26
@@ -93,7 +91,7 @@ class RareObjectExtractor:
         self,
         scene: np.ndarray,
         scene_id: str = "unknown",
-    ) -> List[RareObject]:
+    ) -> list[RareObject]:
         """
         Extract rare objects from a single scene.
 
@@ -161,16 +159,16 @@ class RareObjectExtractor:
         self,
         scene: np.ndarray,
         scene_id: str = "unknown",
-    ) -> List[RareObject]:
+    ) -> list[RareObject]:
         """Alias for extract_from_scene for compatibility."""
         return self.extract_from_scene(scene, scene_id)
 
     def extract_from_dataset(
         self,
         data_root: str,
-        sequences: List[str] = None,
+        sequences: list[str] = None,
         max_scenes_per_seq: int = 1000,
-    ) -> List[RareObject]:
+    ) -> list[RareObject]:
         """
         Extract rare objects from entire dataset.
 
@@ -223,7 +221,7 @@ class ObjectBank:
             bank_dir: Directory to store object bank
         """
         self.bank_dir = Path(bank_dir) if bank_dir else None
-        self.objects: Dict[int, List[RareObject]] = {cls: [] for cls in range(20)}
+        self.objects: dict[int, list[RareObject]] = {cls: [] for cls in range(20)}
         self.metadata = {
             'total_objects': 0,
             'class_counts': {},
@@ -234,7 +232,7 @@ class ObjectBank:
         """Add object to bank."""
         self.objects[obj.class_id].append(obj)
 
-    def add_objects(self, objects: List[RareObject]):
+    def add_objects(self, objects: list[RareObject]):
         """Add multiple objects to bank."""
         for obj in objects:
             self.add_object(obj)
@@ -259,7 +257,7 @@ class ObjectBank:
         min_voxels: int = None,
         max_voxels: int = None,
         num_samples: int = None,
-    ) -> List[RareObject]:
+    ) -> list[RareObject]:
         """
         Retrieve objects from bank.
 
@@ -294,7 +292,7 @@ class ObjectBank:
 
     def sample_random(
         self,
-        class_weights: Dict[int, float] = None,
+        class_weights: dict[int, float] = None,
     ) -> RareObject:
         """
         Sample a random object with optional class weighting.
@@ -377,7 +375,7 @@ class ObjectBank:
             raise ValueError(f"Bank directory not found: {bank_dir}")
 
         # Load metadata
-        with open(bank_dir / 'metadata.json', 'r') as f:
+        with open(bank_dir / 'metadata.json') as f:
             self.metadata = json.load(f)
 
         # Load objects
@@ -479,7 +477,7 @@ class ObjectPaster:
     def __init__(
         self,
         object_bank: ObjectBank,
-        grid_size: Tuple[int, int, int] = (256, 256, 32),
+        grid_size: tuple[int, int, int] = (256, 256, 32),
     ):
         """
         Args:
@@ -507,7 +505,7 @@ class ObjectPaster:
         self,
         scene: np.ndarray,
         target_class: int,
-        obj_size: Tuple[int, int, int],
+        obj_size: tuple[int, int, int],
     ) -> np.ndarray:
         """
         Find valid positions for placing an object.
@@ -609,7 +607,7 @@ class ObjectPaster:
         self,
         scene: np.ndarray,
         num_objects: int = 5,
-        class_weights: Dict[int, float] = None,
+        class_weights: dict[int, float] = None,
     ) -> np.ndarray:
         """
         Augment scene by pasting multiple rare objects.
@@ -652,7 +650,7 @@ class ObjectPaster:
                 augmented = self.paste_object(augmented, obj, position, rotation)
                 pasted_count += 1
 
-            except Exception as e:
+            except Exception:
                 continue
 
         return augmented
@@ -661,7 +659,7 @@ class ObjectPaster:
 def build_object_bank(
     data_root: str,
     output_dir: str,
-    sequences: List[str] = None,
+    sequences: list[str] = None,
 ) -> ObjectBank:
     """
     Build object bank from SemanticKITTI dataset.

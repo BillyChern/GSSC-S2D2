@@ -13,11 +13,11 @@ Architecture:
 - Convert to dense at each scale for U-Net conditioning
 """
 
+
+import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import spconv.pytorch as spconv
-from typing import List, Tuple, Dict
 
 # Use Native algo to avoid JIT compilation issues with CUDA 12.x headers + spconv-cu118
 _ALGO = spconv.ConvAlgo.Native
@@ -189,7 +189,7 @@ class SparseLiDAREncoder(nn.Module):
             return dense, torch.stack(dist_maps, dim=0)  # [B, 1, H, W, D]
         return dense, None
 
-    def forward(self, lidar: torch.Tensor, nn_indices=None) -> Dict[str, torch.Tensor]:
+    def forward(self, lidar: torch.Tensor, nn_indices=None) -> dict[str, torch.Tensor]:
         """
         Extract multi-scale features from sparse LiDAR.
 
@@ -206,7 +206,6 @@ class SparseLiDAREncoder(nn.Module):
             - 'level4': [B, out_channels, 16, 16, 2]
         """
         B, C, H, W, D = lidar.shape
-        device = lidar.device
 
         # Convert dense to sparse
         sparse_input = self._dense_to_sparse(lidar)
@@ -340,7 +339,7 @@ class SparseLiDAREncoder(nn.Module):
     def _sparse_to_dense(
         self,
         sparse: spconv.SparseConvTensor,
-        shape: Tuple[int, int, int, int],  # (B, H, W, D)
+        shape: tuple[int, int, int, int],  # (B, H, W, D)
     ) -> torch.Tensor:
         """Convert sparse tensor to dense tensor."""
         B, H, W, D = shape
@@ -416,10 +415,9 @@ class SparseLiDAREncoderLite(nn.Module):
         self.proj3 = nn.Conv3d(ch[3], out_channels, 1)
         self.proj4 = nn.Conv3d(ch[4], out_channels, 1)
 
-    def forward(self, lidar: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(self, lidar: torch.Tensor) -> dict[str, torch.Tensor]:
         """Same interface as SparseLiDAREncoder."""
         B, C, H, W, D = lidar.shape
-        device = lidar.device
 
         sparse_input = self._dense_to_sparse(lidar)
 

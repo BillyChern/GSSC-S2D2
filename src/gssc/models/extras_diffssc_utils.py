@@ -5,11 +5,10 @@ semantic encoding/decoding, and time embedding expansion.
 Uses spconv v2 instead of MinkowskiEngine.
 """
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 import spconv.pytorch as spconv
+import torch
+import torch.nn.functional as F
 
 
 def points_to_sparse_tensor(point_feats_list, resolution=0.05, spatial_shape=None, coord_min=None):

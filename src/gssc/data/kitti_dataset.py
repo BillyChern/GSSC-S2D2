@@ -7,18 +7,20 @@ Supports two loading modes:
 2. On-the-fly mode (slow): Loads full-resolution .label files and downsamples using mode pooling
 """
 import os
+
 import numpy as np
 import torch
-from torch.utils.data import Dataset
-from typing import Tuple, List, Optional
 from semantic_kitti_utils import (
-    load_semantickitti_voxels, validate_training_sequence,
-    get_sequence_frames, convert_to_pyramid_format
+    convert_to_pyramid_format,
+    get_sequence_frames,
+    load_semantickitti_voxels,
+    validate_training_sequence,
 )
+from torch.utils.data import Dataset
 
 # Check for scipy availability
 try:
-    import scipy.ndimage
+    import scipy.ndimage  # noqa: F401  # availability probe
     SCIPY_AVAILABLE = True
 except ImportError:
     SCIPY_AVAILABLE = False
@@ -42,10 +44,10 @@ class SemanticKITTIDataset(Dataset):
 
     def __init__(self,
                  dataset_root: str,
-                 sequences: Optional[List[int]] = None,
-                 pyramid_size: Tuple[int, int, int] = (256, 256, 16),
-                 semantickitti_size: Tuple[int, int, int] = (256, 256, 32),
-                 quantized_root: Optional[str] = None,
+                 sequences: list[int] | None = None,
+                 pyramid_size: tuple[int, int, int] = (256, 256, 16),
+                 semantickitti_size: tuple[int, int, int] = (256, 256, 32),
+                 quantized_root: str | None = None,
                  augment: bool = False):
         """
         Args:
@@ -92,9 +94,9 @@ class SemanticKITTIDataset(Dataset):
                 print(f"[SemanticKITTIDataset] Using pre-quantized data from: {quantized_stage_path}")
             else:
                 print(f"[SemanticKITTIDataset] Pre-quantized path not found: {quantized_stage_path}")
-                print(f"[SemanticKITTIDataset] Falling back to on-the-fly mode pooling")
+                print("[SemanticKITTIDataset] Falling back to on-the-fly mode pooling")
         else:
-            print(f"[SemanticKITTIDataset] Using on-the-fly mode pooling (no pre-quantized data)")
+            print("[SemanticKITTIDataset] Using on-the-fly mode pooling (no pre-quantized data)")
 
         # Default to all training sequences (EXCLUDING sequence 08 - used as validation)
         if sequences is None:
@@ -210,7 +212,7 @@ class SemanticKITTIDataset(Dataset):
         data['labels'] = torch.from_numpy(labels).long()
         return data
 
-    def get_frame_info(self, idx: int) -> Tuple[int, str]:
+    def get_frame_info(self, idx: int) -> tuple[int, str]:
         """Get sequence and frame ID for given index."""
         return self.frame_list[idx]
 
@@ -220,7 +222,7 @@ class SemanticKITTIAugmentationDataset(Dataset):
 
     def __init__(self,
                  original_dataset: SemanticKITTIDataset,
-                 augmented_data_path: Optional[str] = None,
+                 augmented_data_path: str | None = None,
                  augmentation_ratio: float = 1.0):
         """
         Args:

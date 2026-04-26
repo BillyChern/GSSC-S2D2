@@ -6,6 +6,7 @@ that ``pytest tests/test_smoke.py`` can run in a torch-free environment
 (pure CI lint job) and still validate the package layout.
 """
 from __future__ import annotations
+
 import importlib
 
 import pytest

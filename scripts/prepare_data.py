@@ -10,7 +10,9 @@ This script:
 3. Optionally precomputes 256x256x32 voxel grids if not already present
 """
 from __future__ import annotations
-import argparse, sys
+
+import argparse
+import sys
 from pathlib import Path
 
 

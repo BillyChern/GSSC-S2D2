@@ -12,11 +12,11 @@ Architecture:
 Reference: https://arxiv.org/abs/1711.10275 (Submanifold Sparse ConvNets)
 """
 
+
+import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import spconv.pytorch as spconv
-from typing import Optional, Tuple, List, Dict
 
 # Use Native algorithm to avoid JIT compilation issues on H100 (sm_90)
 _ALGO = spconv.ConvAlgo.Native
@@ -76,7 +76,7 @@ class SparseDownBlock(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        stride: Tuple[int, int, int] = (2, 2, 2),
+        stride: tuple[int, int, int] = (2, 2, 2),
         indice_key: str = None
     ):
         super().__init__()
@@ -132,7 +132,7 @@ class SparseLiDAREncoder(nn.Module):
         base_channels: int = 32,
         out_channels: int = 128,
         height_pool: str = 'max',
-        input_shape: Tuple[int, int, int] = (256, 256, 32),
+        input_shape: tuple[int, int, int] = (256, 256, 32),
     ):
         super().__init__()
 
@@ -199,8 +199,8 @@ class SparseLiDAREncoder(nn.Module):
     def forward(
         self,
         voxels: torch.Tensor,
-        coords: Optional[torch.Tensor] = None,
-        batch_size: Optional[int] = None,
+        coords: torch.Tensor | None = None,
+        batch_size: int | None = None,
     ) -> torch.Tensor:
         """
         Forward pass.
@@ -269,9 +269,9 @@ class SparseLiDAREncoder(nn.Module):
     def forward_multiscale(
         self,
         voxels: torch.Tensor,
-        coords: Optional[torch.Tensor] = None,
-        batch_size: Optional[int] = None,
-    ) -> Dict[str, torch.Tensor]:
+        coords: torch.Tensor | None = None,
+        batch_size: int | None = None,
+    ) -> dict[str, torch.Tensor]:
         """
         Forward pass returning multi-scale BEV features.
 
@@ -397,7 +397,7 @@ class LightweightLiDAREncoder(nn.Module):
         self,
         in_channels: int = 1,
         out_channels: int = 64,
-        input_shape: Tuple[int, int, int] = (256, 256, 32),
+        input_shape: tuple[int, int, int] = (256, 256, 32),
     ):
         super().__init__()
 

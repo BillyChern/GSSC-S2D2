@@ -18,8 +18,8 @@ Usage:
     python tools/run_scpnet_inference.py --sequences all
 """
 
-import sys
 import os
+import sys
 
 # =====================================================================
 # Monkey-patch spconv v2.3 to reproduce spconv v1 shared indice_key behavior
@@ -35,12 +35,14 @@ _SCT.features = property(_orig_prop.fget, _features_setter)
 
 # Patch 2: Suppress kernel-size check for shared indice_key
 from spconv.pytorch.conv import SparseConvolutionBase
+
+
 def _patched_check_subm(self, inp, spatial_shape, datas):
     assert datas.is_subm, "only support reuse subm indices"
     if inp.spatial_shape != datas.spatial_shape:
-        raise ValueError(f"subm with same indice_key must have same spatial structure")
+        raise ValueError("subm with same indice_key must have same spatial structure")
     if inp.indices.shape[0] != datas.indices.shape[0]:
-        raise ValueError(f"subm with same indice_key must have same num of indices")
+        raise ValueError("subm with same indice_key must have same num of indices")
 SparseConvolutionBase._check_subm_reuse_valid = _patched_check_subm
 
 # Patch 3: Redirect `import spconv` to spconv.pytorch
@@ -54,6 +56,7 @@ SCPNET_ROOT = 'reference/Codes-for-SCPNet'
 sys.path.insert(0, SCPNET_ROOT)
 
 import argparse
+
 import numpy as np
 import torch
 import yaml
@@ -74,8 +77,13 @@ import yaml
 # layer that runs in the forward pass.
 # =====================================================================
 from network.segmentator_3d_asymm_spconv import (
-    ResContextBlock, ResBlock, UpBlock, ReconBlock,
-    conv1x3, conv3x1, conv3x1x1,
+    ReconBlock,
+    ResBlock,
+    ResContextBlock,
+    UpBlock,
+    conv1x3,
+    conv3x1,
+    conv3x1x1,
 )
 
 # ResContextBlock: conv1=conv1x3(1,3,3) runs first
@@ -116,10 +124,11 @@ ReconBlock.__init__ = _patched_reconblock_init
 # Rest of imports
 # =====================================================================
 from pathlib import Path
-from tqdm import tqdm
+
+from network.cylinder_fea_generator import cylinder_fea
 from network.cylinder_spconv_3d import get_model_class
 from network.segmentator_3d_asymm_spconv import Asymm_3d_spconv
-from network.cylinder_fea_generator import cylinder_fea
+from tqdm import tqdm
 
 # =====================================================================
 # Weight loading with kernel reshape
@@ -165,7 +174,7 @@ def reshape_kernel_weight(value, orig_kernel, target_kernel):
 
 def build_scpnet_model(config_path):
     """Build SCPNet model from config."""
-    with open(config_path, 'r') as f:
+    with open(config_path) as f:
         configs = yaml.safe_load(f)
 
     model_config = configs['model_params']
@@ -399,7 +408,7 @@ def main():
     else:
         sequences = [s.strip().zfill(2) for s in args.sequences.split(',')]
 
-    print(f"SCPNet Inference")
+    print("SCPNet Inference")
     print(f"  Checkpoint: {args.checkpoint}")
     print(f"  Sequences: {sequences}")
     print(f"  Output: {args.output_dir}")
@@ -417,7 +426,7 @@ def main():
 
     # Load label remapping
     label_mapping_path = os.path.join(SCPNET_ROOT, dataset_config['label_mapping'])
-    with open(label_mapping_path, 'r') as f:
+    with open(label_mapping_path) as f:
         semkittiyaml = yaml.safe_load(f)
 
     remapdict = semkittiyaml['learning_map']
@@ -501,10 +510,10 @@ def main():
 
     if args.eval and metrics is not None:
         print(f"\n{'='*60}")
-        print(f"SCPNet Evaluation Results")
+        print("SCPNet Evaluation Results")
         print(f"  mIoU: {metrics.get_miou():.2f}%")
         print(f"  Completion IoU: {metrics.get_completion_iou():.2f}%")
-        print(f"\nPer-class IoU:")
+        print("\nPer-class IoU:")
         class_names = {
             1: 'car', 2: 'bicycle', 3: 'motorcycle', 4: 'truck',
             5: 'other-vehicle', 6: 'person', 7: 'bicyclist', 8: 'motorcyclist',

@@ -19,14 +19,13 @@ Curriculum Distillation Strategy:
 Reference: SCPNet CVPR 2023 - uses pairwise feature similarity for DSKD
 """
 
-import os
 import multiprocessing
+import random
+from pathlib import Path
+
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import random
+from torch.utils.data import DataLoader, Dataset
 
 
 class S3DSKDDataset(Dataset):
@@ -51,20 +50,20 @@ class S3DSKDDataset(Dataset):
     def __init__(
         self,
         data_root: str,
-        sequences: List[str],
+        sequences: list[str],
         resolution: int = 256,
         mode: str = 'teacher',  # 'teacher', 'intermediate', or 'student'
-        pred_bev_dir: Optional[str] = None,  # Required for student mode
+        pred_bev_dir: str | None = None,  # Required for student mode
         multi_frame_dir: str = 'SemanticKITTI_3D/256_multi_frame',
         augment: bool = False,
         use_rectified_labels: bool = False,  # SCPNet-style rectified labels
         gt_bev_prob: float = 0.0,  # BEV mixing: probability of using GT BEV in student mode
-        lsk3d_dir: Optional[str] = None,  # LSK3DNet 3D features dir (for S5/S6)
-        geom_dir: Optional[str] = None,  # S43: Geometric features dir (height/normals/intensity/TSDF)
+        lsk3d_dir: str | None = None,  # LSK3DNet 3D features dir (for S5/S6)
+        geom_dir: str | None = None,  # S43: Geometric features dir (height/normals/intensity/TSDF)
         no_tsdf_sparse: bool = False,  # S46: Don't put TSDF in sparse tensor, compute TSDF BEV instead
-        scpnet_pred_dir: Optional[str] = None,  # SCPNet 3D predictions for refinement conditioning
-        talos_pred_dir: Optional[str] = None,  # TALoS TTA predictions (overrides SCPNet for real seqs)
-        bev_cold_dir: Optional[str] = None,  # S2D2 refined BEV predictions dir
+        scpnet_pred_dir: str | None = None,  # SCPNet 3D predictions for refinement conditioning
+        talos_pred_dir: str | None = None,  # TALoS TTA predictions (overrides SCPNet for real seqs)
+        bev_cold_dir: str | None = None,  # S2D2 refined BEV predictions dir
         load_raw_lidar: bool = False,  # Load raw .bin pointcloud for Cylinder3D features
         force_single_frame_lidar: bool = False,  # Force single-frame lidar even in teacher mode
     ):
@@ -263,7 +262,7 @@ class S3DSKDDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         sample = self.samples[idx]
 
         # Load GT 3D scene
@@ -557,7 +556,7 @@ class S3DSKDDataset(Dataset):
 
         return remapped
 
-    def _load_raw_lidar(self, seq: str, frame: str) -> Tuple[np.ndarray, np.ndarray]:
+    def _load_raw_lidar(self, seq: str, frame: str) -> tuple[np.ndarray, np.ndarray]:
         """Load raw .bin pointcloud and compute 7D features + grid indices.
 
         Uses SCPNet's voxelization: compute cylinder coords, per-point
@@ -660,7 +659,7 @@ class S3DSKDDataset(Dataset):
         lidar_is_multichannel: bool = False,
         tsdf_bev: np.ndarray = None,
         scpnet_pred: np.ndarray = None,
-    ) -> Tuple[np.ndarray, ...]:
+    ) -> tuple[np.ndarray, ...]:
         """Apply data augmentation.
 
         For single-channel lidar [H,W,D]: spatial axes are (0,1).
@@ -732,7 +731,7 @@ class S3DSKDDataset(Dataset):
         lidar_is_multichannel: bool = False,
         tsdf_bev: np.ndarray = None,
         scpnet_pred: np.ndarray = None,
-    ) -> Tuple[np.ndarray, ...]:
+    ) -> tuple[np.ndarray, ...]:
         """Apply data augmentation to both lidar arrays (for DSKD).
 
         SCPNet DSKD requires same augmentation applied to both teacher and student inputs.
@@ -817,21 +816,21 @@ def scpnet_collate_fn(batch):
 
 def create_s3_dataloader(
     data_root: str,
-    sequences: List[str],
+    sequences: list[str],
     mode: str = 'teacher',
-    pred_bev_dir: Optional[str] = None,
+    pred_bev_dir: str | None = None,
     batch_size: int = 4,
     num_workers: int = 4,
     shuffle: bool = True,
     augment: bool = True,
     gt_bev_prob: float = 0.0,
     use_rectified_labels: bool = False,
-    lsk3d_dir: Optional[str] = None,
-    geom_dir: Optional[str] = None,
+    lsk3d_dir: str | None = None,
+    geom_dir: str | None = None,
     no_tsdf_sparse: bool = False,
-    scpnet_pred_dir: Optional[str] = None,
-    talos_pred_dir: Optional[str] = None,
-    bev_cold_dir: Optional[str] = None,
+    scpnet_pred_dir: str | None = None,
+    talos_pred_dir: str | None = None,
+    bev_cold_dir: str | None = None,
     load_raw_lidar: bool = False,
 ) -> DataLoader:
     """Create DataLoader for S3 DSKD training.

@@ -2,11 +2,13 @@
 Adapted pyramid diffusion model for SemanticKITTI data augmentation.
 Modified to work with 256x256x32 voxel grids and SemanticKITTI label space.
 """
+import math
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import math
+
 # from einops import rearrange  # Not needed for current implementation
 
 
@@ -22,7 +24,7 @@ class AsymmetricResidualBlock(nn.Module):
     """3D residual block with time embedding for diffusion."""
 
     def __init__(self, in_filters, out_filters, time_filters=128):
-        super(AsymmetricResidualBlock, self).__init__()
+        super().__init__()
 
         # Adaptive group normalization
         groups = min(32, in_filters) if in_filters >= 32 else min(16, in_filters)
@@ -87,7 +89,7 @@ class KittiPyramidUNet(nn.Module):
     """
 
     def __init__(self, num_classes=20, base_filters=32, time_dim=128):
-        super(KittiPyramidUNet, self).__init__()
+        super().__init__()
 
         self.num_classes = num_classes
         self.time_dim = time_dim

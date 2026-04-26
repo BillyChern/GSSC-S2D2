@@ -7,17 +7,14 @@ Converts completed scenes to realistic incomplete LiDAR observations using:
 - Random pose sampling from SemanticKITTI training sequences
 """
 
-import numpy as np
-import torch
-import random
-from pathlib import Path
-from typing import Tuple, List, Optional
 import sys
-import os
+
+import numpy as np
 
 # Import Bresenham3D from TALoS
 sys.path.append('TALoS')
 from utils.util import Bresenham3D
+
 
 class VelodyneHDL64E:
     """Velodyne HDL-64E LiDAR sensor specifications and simulation"""
@@ -57,7 +54,7 @@ class VelodyneHDL64E:
 class VoxelCoordinateSystem:
     """Handle coordinate transformations for SemanticKITTI voxel grid"""
 
-    def __init__(self, voxel_size: Tuple[int, int, int] = (256, 256, 32)):
+    def __init__(self, voxel_size: tuple[int, int, int] = (256, 256, 32)):
         self.voxel_size = voxel_size
 
         # SemanticKITTI coordinate system (from semantic-kitti-api)
@@ -95,7 +92,7 @@ class LiDARSimulator:
 
     def simulate_lidar_scan(self,
                           complete_scene: np.ndarray,
-                          pose: Optional[np.ndarray] = None,
+                          pose: np.ndarray | None = None,
                           azimuth_samples: int = 1800) -> np.ndarray:
         """
         Simulate LiDAR scan to create incomplete scene from complete scene
@@ -154,7 +151,7 @@ class LiDARSimulator:
 
         try:
             ray_voxels = Bresenham3D(start_point, end_points, line_end=True)
-        except:
+        except (ValueError, IndexError, RuntimeError):
             # Fallback to simple ray casting if Bresenham3D fails
             ray_voxels = self._simple_ray_cast(start_pos, end_pos)
 
@@ -174,7 +171,7 @@ class LiDARSimulator:
                 break
             # If empty in complete scene, continue ray (no occlusion)
 
-    def _simple_ray_cast(self, start: np.ndarray, end: np.ndarray) -> List[Tuple[int, int, int]]:
+    def _simple_ray_cast(self, start: np.ndarray, end: np.ndarray) -> list[tuple[int, int, int]]:
         """Simple ray casting fallback using DDA algorithm"""
         start = start.astype(int)
         end = end.astype(int)
@@ -187,7 +184,7 @@ class LiDARSimulator:
         steps = np.linspace(start, end, num_steps)
         return [tuple(step.astype(int)) for step in steps]
 
-def create_complete_incomplete_pair(complete_scene: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def create_complete_incomplete_pair(complete_scene: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """
     Create a complete-incomplete pair for training data augmentation
 

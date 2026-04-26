@@ -13,12 +13,11 @@ Key formulas:
 Training with 100 timesteps (as per paper).
 """
 
-import math
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, Dict
 from tqdm import tqdm
 
 
@@ -33,7 +32,7 @@ def log_add_exp(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     return maximum + torch.log(torch.exp(a - maximum) + torch.exp(b - maximum))
 
 
-def extract(a: torch.Tensor, t: torch.Tensor, x_shape: Tuple[int, ...]) -> torch.Tensor:
+def extract(a: torch.Tensor, t: torch.Tensor, x_shape: tuple[int, ...]) -> torch.Tensor:
     """Extract values from a at timestep t and reshape for broadcasting."""
     B = t.shape[0]
     out = a.gather(-1, t)
@@ -218,10 +217,10 @@ class MultinomialDiffusion3D(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
-        nn_indices: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
+        nn_indices: torch.Tensor | None = None,
         **model_kwargs,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Compute p(x_{t-1} | x_t) using neural network prediction.
 
@@ -270,10 +269,10 @@ class MultinomialDiffusion3D(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
-        nn_indices: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
+        nn_indices: torch.Tensor | None = None,
         **model_kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """
         Compute training loss following the reference paper.
 
@@ -294,7 +293,6 @@ class MultinomialDiffusion3D(nn.Module):
             Dictionary with 'loss' and other metrics
         """
         B = x_0.shape[0]
-        device = x_0.device
 
         # Convert x_0 to one-hot
         x_0_onehot = F.one_hot(x_0.long(), num_classes=self.num_classes).float()
@@ -364,8 +362,8 @@ class MultinomialDiffusion3D(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
-        nn_indices: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
+        nn_indices: torch.Tensor | None = None,
         **model_kwargs,
     ) -> torch.Tensor:
         """
@@ -414,11 +412,11 @@ class MultinomialDiffusion3D(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],  # (B, H, W, D)
+        shape: tuple[int, int, int, int],  # (B, H, W, D)
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         show_progress: bool = True,
-        nn_indices: Optional[torch.Tensor] = None,
+        nn_indices: torch.Tensor | None = None,
         **model_kwargs,
     ) -> torch.Tensor:
         """
@@ -476,11 +474,11 @@ class MultinomialDiffusion3D(nn.Module):
         lidar: torch.Tensor,
         known_labels: torch.Tensor,
         obs_mask: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         show_progress: bool = True,
-        nn_indices: Optional[torch.Tensor] = None,
+        nn_indices: torch.Tensor | None = None,
         repaint_jumps: int = 1,
         **model_kwargs,
     ) -> torch.Tensor:
@@ -547,13 +545,13 @@ class MultinomialDiffusion3D(nn.Module):
         bev: torch.Tensor,
         lidar: torch.Tensor,
         scpnet_pred: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         show_progress: bool = True,
-        nn_indices: Optional[torch.Tensor] = None,
-        start_timestep: Optional[int] = None,
-        start_pred: Optional[torch.Tensor] = None,
+        nn_indices: torch.Tensor | None = None,
+        start_timestep: int | None = None,
+        start_pred: torch.Tensor | None = None,
         **model_kwargs,
     ) -> torch.Tensor:
         """Cold Diffusion: flow from SCPNet prediction to GT.
@@ -605,13 +603,13 @@ class MultinomialDiffusion3D(nn.Module):
         model: nn.Module,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         guidance_scale: float = 1.5,
         cfg_target: str = 'lifted',
         show_progress: bool = True,
-        nn_indices: Optional[torch.Tensor] = None,
+        nn_indices: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Sample with Classifier-Free Guidance.
 
@@ -689,9 +687,9 @@ class MultinomialDiffusion3D(nn.Module):
         bev: torch.Tensor,
         lidar: torch.Tensor,
         lifted_3d: torch.Tensor,  # [B, H, W, D] rough 3D estimate from lifting
-        shape: Tuple[int, int, int, int],  # (B, H, W, D)
+        shape: tuple[int, int, int, int],  # (B, H, W, D)
         device: torch.device,
-        lifted_features: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
         start_timestep: int = 50,  # Start from t=50 instead of t=T
         show_progress: bool = True,
         **model_kwargs,
@@ -761,7 +759,7 @@ class MultinomialDiffusion3D(nn.Module):
         lidar: torch.Tensor,  # [B, 1, H, W, D] single LiDAR
         waffleiron: torch.Tensor,  # [B, C, H, W] WaffleIron BEV features (COMPULSORY like PaSCo)
         n_subnets: int,
-        shape: Tuple[int, int, int, int],  # (B, H, W, D)
+        shape: tuple[int, int, int, int],  # (B, H, W, D)
         device: torch.device,
         show_progress: bool = True,
         use_tta: bool = False,  # Test-time augmentation (PaSCo val_aug=True)
@@ -771,7 +769,7 @@ class MultinomialDiffusion3D(nn.Module):
         # PaSCo-style TTA parameters (only used when use_tta=True)
         use_continuous_tta: bool = True,  # Use continuous rotation + translation
         tta_max_angle: float = 30.0,  # Max rotation ±30° (PaSCo default)
-        tta_max_translation: Tuple[float, float, float] = (0.6, 0.6, 0.4),  # Max translation (m)
+        tta_max_translation: tuple[float, float, float] = (0.6, 0.6, 0.4),  # Max translation (m)
     ) -> torch.Tensor:
         """
         S4: MIMO sampling for PaSCo-style ensemble inference.
@@ -902,7 +900,7 @@ class MultinomialDiffusion3D(nn.Module):
         lidar: torch.Tensor,
         waffleiron: torch.Tensor,  # [B, C, H, W] WaffleIron features (COMPULSORY like PaSCo)
         n_subnets: int,
-        shape: Tuple[int, int, int, int],
+        shape: tuple[int, int, int, int],
         device: torch.device,
         show_progress: bool,
         use_semantic_pruning: bool = False,
@@ -911,7 +909,7 @@ class MultinomialDiffusion3D(nn.Module):
         # PaSCo-style TTA parameters
         use_continuous_tta: bool = True,  # Use continuous rotation + translation
         tta_max_angle: float = 30.0,  # Max rotation ±30° (PaSCo default)
-        tta_max_translation: Tuple[float, float, float] = (0.6, 0.6, 0.4),  # Max translation in meters
+        tta_max_translation: tuple[float, float, float] = (0.6, 0.6, 0.4),  # Max translation in meters
     ) -> torch.Tensor:
         """
         MIMO sampling with test-time augmentation (PaSCo val_aug=True).
@@ -932,9 +930,9 @@ class MultinomialDiffusion3D(nn.Module):
         """
         from gssc.models.mimo_dataset import (
             apply_augmentation,
+            apply_bev_feature_augmentation,
             apply_inverse_augmentation,
             get_random_augmentation_params,
-            apply_bev_feature_augmentation,
         )
 
         B, H, W, D = shape
@@ -960,7 +958,7 @@ class MultinomialDiffusion3D(nn.Module):
             bev_aug_list = []
             lidar_aug_list = []
             waffleiron_aug_list = []
-            for i, params in enumerate(aug_params_list):
+            for params in aug_params_list:
                 # Extract single batch item (unbatched)
                 lidar_3d = lidar[b, 0]  # [H, W, D]
                 bev_single = bev[b]  # [H, W] or [1, H, W] if extra channel dim
@@ -1083,7 +1081,7 @@ class MultinomialDiffusion3D(nn.Module):
                 # INTERMEDIATE STEPS: Each head samples its OWN x_t from its OWN raw probs
                 # This maintains independent denoising trajectories per head (matching training)
                 x_t_list = []
-                for i, head_probs in enumerate(head_probs_raw):
+                for head_probs in head_probs_raw:
                     # Sample x_t for this head from its raw (augmented space) probs
                     probs_flat = head_probs.permute(0, 2, 3, 4, 1).reshape(-1, self.num_classes)
                     probs_flat = probs_flat.clamp(min=1e-10)
@@ -1181,7 +1179,7 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
         alphas_cumprod_prev = F.pad(alphas_cumprod[:-1], (1, 0), value=1.0)
 
         # Log for debugging
-        print(f"[MultinomialDiffusion3DV2] Noise schedule:")
+        print("[MultinomialDiffusion3DV2] Noise schedule:")
         print(f"  beta: {beta_min} → {beta_max}")
         print(f"  alpha_cumprod[0] = {alphas_cumprod[0]:.4f}")
         print(f"  alpha_cumprod[50] = {alphas_cumprod[50]:.4f}")
@@ -1298,10 +1296,10 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
-        nn_indices: Optional[torch.Tensor] = None,
+        lifted_features: torch.Tensor | None = None,
+        nn_indices: torch.Tensor | None = None,
         **model_kwargs,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """
         Compute enhanced training loss with PROPER KL base + enhancements:
         1. KL loss as base (proper multinomial diffusion, not CE!)

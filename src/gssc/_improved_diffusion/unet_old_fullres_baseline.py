@@ -1,31 +1,29 @@
-from abc import abstractmethod
-
 import math
+from abc import abstractmethod
 
 import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
+from autoencoder.simpleAE import Encoder
+from spconv.pytorch.conv import SparseConv3d, SubMConv3d
+from spconv.pytorch.core import SparseConvTensor
+from spconv.pytorch.modules import SparseSequential
 
-from autoencoder.simpleAE import SimpleAE_v2, Encoder
 from .fp16_util import convert_module_to_f16, convert_module_to_f32
 from .nn import (
     SiLU,
+    avg_pool_nd,
+    checkpoint,
     conv_nd,
     depthwise_conv_nd,
+    lidar_embedding,
     linear,
-    avg_pool_nd,
-    max_pool_nd,
-    zero_module,
     normalization,
     timestep_embedding,
-    lidar_embedding,
-    checkpoint,
+    zero_module,
 )
 
-from spconv.pytorch.modules import SparseModule, SparseSequential
-from spconv.pytorch.conv import SubMConv3d, SparseConv3d
-from spconv.pytorch.core import SparseConvTensor
 
 class TimestepBlock(nn.Module):
     """

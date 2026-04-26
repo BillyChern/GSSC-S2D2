@@ -9,11 +9,11 @@ Implements discrete diffusion for categorical data with:
 Reference: https://arxiv.org/abs/2107.03006
 """
 
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from typing import Optional, Tuple, Dict
 
 
 class D3PM(nn.Module):
@@ -35,7 +35,7 @@ class D3PM(nn.Module):
         transition_type: str = 'absorbing',
         schedule_type: str = 'cosine',
         aux_loss_weight: float = 0.001,
-        class_weights: Optional[torch.Tensor] = None,
+        class_weights: torch.Tensor | None = None,
     ):
         super().__init__()
 
@@ -96,7 +96,7 @@ class D3PM(nn.Module):
         self,
         x_0: torch.Tensor,
         t: torch.Tensor,
-        noise: Optional[torch.Tensor] = None
+        noise: torch.Tensor | None = None
     ) -> torch.Tensor:
         """
         Forward diffusion: sample x_t given x_0 and timestep t.
@@ -153,9 +153,9 @@ class D3PM(nn.Module):
         model: nn.Module,
         x_0: torch.Tensor,
         condition: torch.Tensor,
-        t: Optional[torch.Tensor] = None,
-        prev_pred: Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+        t: torch.Tensor | None = None,
+        prev_pred: torch.Tensor | None = None,
+    ) -> dict[str, torch.Tensor]:
         """
         Compute D3PM training loss.
 
@@ -239,7 +239,7 @@ class D3PM(nn.Module):
         self,
         model: nn.Module,
         condition: torch.Tensor,
-        num_steps: Optional[int] = None,
+        num_steps: int | None = None,
         temperature: float = 1.0,
         use_self_conditioning: bool = True,
     ) -> torch.Tensor:

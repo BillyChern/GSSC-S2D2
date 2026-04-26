@@ -20,10 +20,10 @@ Based on research from:
 Author: Data Augmentation Pipeline
 """
 
-import numpy as np
-from typing import Tuple, List, Optional, Dict
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
 
 # Try to import numba for acceleration
 try:
@@ -69,7 +69,7 @@ if HAS_NUMBA:
         dir_x: float, dir_y: float, dir_z: float,
         occupied: np.ndarray,
         max_range_m: float = 80.0
-    ) -> Tuple[int, int, int, bool]:
+    ) -> tuple[int, int, int, bool]:
         """
         Numba-accelerated ray tracing using DDA algorithm.
         Returns (vx, vy, vz, hit) where hit is True if ray hit an occupied voxel.
@@ -302,7 +302,7 @@ class LiDARConfig:
 
     # Horizontal resolution
     h_resolution: int = 2048  # Points per rotation (360°)
-    h_fov: Tuple[float, float] = (-180.0, 180.0)  # Full 360° rotation
+    h_fov: tuple[float, float] = (-180.0, 180.0)  # Full 360° rotation
 
     # Range limits (meters)
     min_range: float = 0.9
@@ -329,7 +329,7 @@ class LiDARConfig:
             self.vertical_angles = VELODYNE_HDL64E_VERTICAL_ANGLES
 
 
-def bresenham3d_single(start: Tuple[int, int, int], end: Tuple[int, int, int]) -> List[Tuple[int, int, int]]:
+def bresenham3d_single(start: tuple[int, int, int], end: tuple[int, int, int]) -> list[tuple[int, int, int]]:
     """
     3D Bresenham line algorithm for a single ray.
     Returns all voxel coordinates along the line from start to end.
@@ -457,7 +457,7 @@ class RealisticLiDARResampler:
         self.ray_dirs_flat = self.ray_dirs.reshape(-1, 3)
         self.beam_indices_flat = self.beam_indices.flatten()
 
-        print(f"[RealisticLiDARResampler] Initialized")
+        print("[RealisticLiDARResampler] Initialized")
         print(f"  Sensor: {config.sensor_name}")
         print(f"  Beams: {num_beams} (non-uniform angles)")
         print(f"  V-FOV: [{config.vertical_angles.min():.1f}°, {config.vertical_angles.max():.1f}°]")
@@ -468,7 +468,7 @@ class RealisticLiDARResampler:
     def _compute_incidence_angle(
         self,
         ray_dir: np.ndarray,
-        hit_voxel: Tuple[int, int, int],
+        hit_voxel: tuple[int, int, int],
         occupied: np.ndarray
     ) -> float:
         """
@@ -548,7 +548,7 @@ class RealisticLiDARResampler:
         self,
         direction: np.ndarray,
         max_dist_voxels: float = 300.0
-    ) -> Tuple[int, int, int]:
+    ) -> tuple[int, int, int]:
         """Convert ray direction to endpoint voxel coordinates."""
         endpoint = np.array(self.LIDAR_POSITION, dtype=float) + direction * max_dist_voxels
         endpoint = np.clip(endpoint, [0, 0, 0],
@@ -563,7 +563,7 @@ class RealisticLiDARResampler:
         enable_divergence: bool = False,
         divergence_rays: int = 4,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Resample complete voxel scene to sparse LiDAR observation.
 
@@ -650,7 +650,7 @@ class RealisticLiDARResampler:
         complete_voxels: np.ndarray,
         num_divergence_rays: int = 4,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Resample with beam divergence simulation.
 
@@ -754,7 +754,7 @@ class PointCloudLiDARSimulator:
         """Precompute ray directions."""
         config = self.config
         v_angles = np.radians(config.vertical_angles)
-        num_beams = len(v_angles)
+        len(v_angles)
 
         # Full 180° forward FOV
         h_angles = np.linspace(np.radians(-90), np.radians(90),
@@ -777,7 +777,7 @@ class PointCloudLiDARSimulator:
         direction: np.ndarray,
         occupied_voxels: np.ndarray,
         max_range: float = 80.0
-    ) -> Optional[np.ndarray]:
+    ) -> np.ndarray | None:
         """
         Trace ray and return hit point in world coordinates.
 
@@ -813,7 +813,7 @@ class PointCloudLiDARSimulator:
 
         return None
 
-    def _world_to_voxel(self, pos: np.ndarray) -> Tuple[int, int, int]:
+    def _world_to_voxel(self, pos: np.ndarray) -> tuple[int, int, int]:
         """Convert world coordinates to voxel indices."""
         vx = int((pos[0] - self.X_BOUNDS[0]) / self.VOXEL_SIZE)
         vy = int((pos[1] - self.Y_BOUNDS[0]) / self.VOXEL_SIZE)
@@ -928,7 +928,7 @@ class PointCloudLiDARSimulator:
         range_noise_std: float = 0.03,
         angular_noise_std: float = 0.002,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Resample complete scene to sparse observation via point cloud generation.
 
@@ -1025,7 +1025,7 @@ class VoxelizationMatcher:
         return voxel_grid
 
     @classmethod
-    def voxel_to_world(cls, vx: int, vy: int, vz: int) -> Tuple[float, float, float]:
+    def voxel_to_world(cls, vx: int, vy: int, vz: int) -> tuple[float, float, float]:
         """Convert voxel indices to world coordinates (center of voxel)."""
         x = cls.X_BOUNDS[0] + (vx + 0.5) * cls.VOXEL_SIZE
         y = cls.Y_BOUNDS[0] + (vy + 0.5) * cls.VOXEL_SIZE
@@ -1033,7 +1033,7 @@ class VoxelizationMatcher:
         return (x, y, z)
 
     @classmethod
-    def world_to_voxel(cls, x: float, y: float, z: float) -> Tuple[int, int, int]:
+    def world_to_voxel(cls, x: float, y: float, z: float) -> tuple[int, int, int]:
         """Convert world coordinates to voxel indices."""
         vx = int((x - cls.X_BOUNDS[0]) / cls.VOXEL_SIZE)
         vy = int((y - cls.Y_BOUNDS[0]) / cls.VOXEL_SIZE)
@@ -1072,7 +1072,7 @@ def pack_voxels(voxel_grid: np.ndarray) -> np.ndarray:
     return packed
 
 
-def unpack_voxels(packed: np.ndarray, shape: Tuple[int, int, int] = (256, 256, 32)) -> np.ndarray:
+def unpack_voxels(packed: np.ndarray, shape: tuple[int, int, int] = (256, 256, 32)) -> np.ndarray:
     """Unpack bit-compressed voxels to full grid."""
     unpacked = np.zeros(packed.shape[0] * 8, dtype=np.uint8)
     for i in range(8):
@@ -1140,13 +1140,13 @@ class DensityAwareLiDARSimulator:
         self.v_angles = np.sort(self.config.vertical_angles)[::-1]  # Top to bottom
         self.v_angles_rad = np.radians(self.v_angles)
 
-        print(f"[DensityAwareLiDARSimulator] Initialized")
+        print("[DensityAwareLiDARSimulator] Initialized")
         print(f"  Horizontal resolution: {self.config.h_resolution} pts/rotation")
         print(f"  Angular resolution: {self.h_angular_res:.4f}° = {self.h_angular_res_rad:.6f} rad")
         print(f"  Vertical beams: {len(self.v_angles)}")
         print(f"  V-FOV: [{self.v_angles.min():.1f}°, {self.v_angles.max():.1f}°]")
 
-    def _world_to_voxel(self, x: float, y: float, z: float) -> Tuple[int, int, int]:
+    def _world_to_voxel(self, x: float, y: float, z: float) -> tuple[int, int, int]:
         """Convert world coordinates to voxel indices."""
         vx = int((x - self.X_BOUNDS[0]) / self.VOXEL_SIZE)
         vy = int((y - self.Y_BOUNDS[0]) / self.VOXEL_SIZE)
@@ -1188,7 +1188,7 @@ class DensityAwareLiDARSimulator:
         self,
         complete_voxels: np.ndarray,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, Dict]:
+    ) -> tuple[np.ndarray, dict]:
         """
         Simulate LiDAR observation with proper ring density.
 
@@ -1235,7 +1235,7 @@ class DensityAwareLiDARSimulator:
             sin_v = np.sin(v_angle_rad)
 
             # For each horizontal angle in the sweep
-            for h_idx, h_angle_rad in enumerate(h_angles_rad):
+            for _h_idx, h_angle_rad in enumerate(h_angles_rad):
                 stats['total_rays'] += 1
 
                 # Ray direction (x=forward, y=left, z=up)
@@ -1278,7 +1278,7 @@ class DensityAwareLiDARSimulator:
         dir_x: float, dir_y: float, dir_z: float,
         occupied: np.ndarray,
         max_range_m: float = 80.0
-    ) -> Optional[Tuple[int, int, int]]:
+    ) -> tuple[int, int, int] | None:
         """
         Trace ray through voxel grid using 3D DDA algorithm.
 
@@ -1314,7 +1314,7 @@ class DensityAwareLiDARSimulator:
         self,
         complete_voxels: np.ndarray,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, np.ndarray, Dict]:
+    ) -> tuple[np.ndarray, np.ndarray, dict]:
         """
         Simulate by generating full point cloud first, then voxelizing.
 
@@ -1348,7 +1348,7 @@ class DensityAwareLiDARSimulator:
         )
 
         if verbose:
-            print(f"[DensityAware+PC] Generating point cloud...")
+            print("[DensityAware+PC] Generating point cloud...")
 
         for beam_idx, v_angle_rad in enumerate(self.v_angles_rad):
             cos_v = np.cos(v_angle_rad)
@@ -1473,12 +1473,12 @@ class HighDensityLiDARSimulator:
         h_angles = np.linspace(-90, 90, self.h_resolution, endpoint=False)
         self.h_angles_rad = np.radians(h_angles)
 
-        print(f"[HighDensityLiDARSimulator] Initialized")
+        print("[HighDensityLiDARSimulator] Initialized")
         print(f"  Horizontal resolution: {self.h_resolution} (including {target_density_multiplier}x multiplier)")
         print(f"  Vertical beams: {len(self.v_angles)}")
         print(f"  Total rays: {len(self.v_angles) * len(self.h_angles_rad)}")
 
-    def _world_to_voxel(self, x: float, y: float, z: float) -> Tuple[int, int, int]:
+    def _world_to_voxel(self, x: float, y: float, z: float) -> tuple[int, int, int]:
         """Convert world coordinates to voxel indices."""
         vx = int((x - self.X_BOUNDS[0]) / self.VOXEL_SIZE)
         vy = int((y - self.Y_BOUNDS[0]) / self.VOXEL_SIZE)
@@ -1493,7 +1493,7 @@ class HighDensityLiDARSimulator:
         self,
         complete_voxels: np.ndarray,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, Dict]:
+    ) -> tuple[np.ndarray, dict]:
         """
         Simulate LiDAR observation with high density.
         """
@@ -1610,14 +1610,14 @@ class MultiReturnLiDARSimulator:
         self.range_noise_std = range_noise_std
         self.angular_noise_std = angular_noise_std
 
-        print(f"[MultiReturnLiDARSimulator] Initialized")
+        print("[MultiReturnLiDARSimulator] Initialized")
         print(f"  Vertical beams: {len(self.v_angles)}")
         print(f"  Horizontal resolution: {h_resolution}")
         print(f"  Max returns per ray: {max_returns}")
         print(f"  Samples per return: {samples_per_return}")
         print(f"  Total rays: {len(self.v_angles) * h_resolution}")
 
-    def _world_to_voxel(self, x: float, y: float, z: float) -> Tuple[int, int, int]:
+    def _world_to_voxel(self, x: float, y: float, z: float) -> tuple[int, int, int]:
         """Convert world coordinates to voxel indices."""
         vx = int(x / self.VOXEL_SIZE)
         vy = int((y + 25.6) / self.VOXEL_SIZE)
@@ -1628,7 +1628,7 @@ class MultiReturnLiDARSimulator:
         self,
         complete_voxels: np.ndarray,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, np.ndarray, Dict]:
+    ) -> tuple[np.ndarray, np.ndarray, dict]:
         """
         Simulate multi-return LiDAR observation.
 
@@ -1656,12 +1656,12 @@ class MultiReturnLiDARSimulator:
             total_rays = len(self.v_angles) * len(self.h_angles)
             print(f"[MultiReturn] Simulating {total_rays:,} rays with up to {self.max_returns} returns each...")
 
-        for beam_idx, v_angle in enumerate(self.v_angles):
+        for beam_idx, _v_angle in enumerate(self.v_angles):
             v_rad = self.v_angles_rad[beam_idx]
             cos_v = np.cos(v_rad)
             sin_v = np.sin(v_rad)
 
-            for h_angle, h_rad in zip(self.h_angles, self.h_angles_rad):
+            for _h_angle, h_rad in zip(self.h_angles, self.h_angles_rad):
                 stats['total_rays'] += 1
 
                 # Base ray direction
@@ -1731,7 +1731,7 @@ class MultiReturnLiDARSimulator:
         stats['unique_voxels'] = int(sparse_mask.sum())
 
         if verbose:
-            print(f"[MultiReturn] Complete:")
+            print("[MultiReturn] Complete:")
             print(f"  Total rays: {stats['total_rays']:,}")
             print(f"  Total returns: {stats['total_returns']:,}")
             print(f"  Total points: {stats['total_points']:,}")
@@ -1743,7 +1743,7 @@ class MultiReturnLiDARSimulator:
         self,
         complete_voxels: np.ndarray,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, np.ndarray, Dict]:
+    ) -> tuple[np.ndarray, np.ndarray, dict]:
         """
         Fast multi-return LiDAR simulation that also returns the point cloud.
         Uses numba-accelerated ray tracing with per-beam point collection.
@@ -1799,7 +1799,7 @@ class MultiReturnLiDARSimulator:
         self,
         complete_voxels: np.ndarray,
         verbose: bool = False
-    ) -> Tuple[np.ndarray, None, Dict]:
+    ) -> tuple[np.ndarray, None, dict]:
         """
         Fast multi-return LiDAR simulation using numba acceleration.
 

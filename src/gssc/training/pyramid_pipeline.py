@@ -2,25 +2,19 @@
 Pyramid Discrete Diffusion Pipeline for SemanticKITTI Data Augmentation.
 Implementation based on grounded evidence from original codebase.
 """
-import os
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
-from torch.utils.data.distributed import DistributedSampler
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torch.distributed as dist
 import logging
-import numpy as np
-from typing import Dict, List, Optional, Tuple
-from tqdm import tqdm
-import json
+import os
 from datetime import datetime
 
+import numpy as np
+import torch
 from kitti_dataset import SemanticKITTIDataset
 from pyramid_diffusion import PyramidDiscreteDiffusion
 from pyramid_unet import create_pyramid_denoiser
-from semantic_kitti_utils import save_semantickitti_voxels
-
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm
 
 # Configuration matching original paper (https://arxiv.org/abs/2311.12085)
 # Original train_s_1.yaml settings:
@@ -70,8 +64,8 @@ class ExactSceneSubdivision:
     """
 
     def __init__(self,
-                 scene_size: Tuple[int, int, int] = (256, 256, 32),
-                 target_resolution: Tuple[int, int, int] = (136, 136, 32),
+                 scene_size: tuple[int, int, int] = (256, 256, 32),
+                 target_resolution: tuple[int, int, int] = (136, 136, 32),
                  sliding_ratio: float = 0.9375):
         """
         Args:
@@ -94,7 +88,7 @@ class ExactSceneSubdivision:
             scene_size[2]  # Full Z dimension (32 for SemanticKITTI)
         )
 
-    def split_scene(self, scene: torch.Tensor) -> List[torch.Tensor]:
+    def split_scene(self, scene: torch.Tensor) -> list[torch.Tensor]:
         """
         Split scene into overlapping patches.
         Exact reproduction of split() function logic.
@@ -145,7 +139,7 @@ class ExactSceneSubdivision:
 
         return patches
 
-    def get_patch_offsets(self) -> List[Tuple[int, int]]:
+    def get_patch_offsets(self) -> list[tuple[int, int]]:
         """Get X,Y offsets for all patches (Z is always 0)."""
         offsets = []
         splits_along_x = 1 + (self.scene_size[0] - self.target_resolution[0]) // self.step_size[0]
@@ -169,7 +163,7 @@ class ExactSceneSubdivision:
 
         return offsets
 
-    def reconstruct_scene(self, patches: List[torch.Tensor]) -> torch.Tensor:
+    def reconstruct_scene(self, patches: list[torch.Tensor]) -> torch.Tensor:
         """
         Reconstruct full scene from patches using voting (exact from fusion code).
         """
@@ -373,7 +367,7 @@ class FinalCorrectedPipeline:
         if self.rank == 0:
             self.logger.info(f"Batch size: {current_batch_size} per GPU × {self.world_size} GPUs = {total_batch_size} total")
             self.logger.info(f"Learning rate: {lr} (no scaling - matching paper)")
-            self.logger.info(f"Adam betas: (0.9, 0.999) (default - matching paper)")
+            self.logger.info("Adam betas: (0.9, 0.999) (default - matching paper)")
 
         optimizer = torch.optim.AdamW(
             model.parameters(),
@@ -515,7 +509,7 @@ class FinalCorrectedPipeline:
                 self.logger.info(f"Total Batches: {num_batches}")
                 self.logger.info(f"Batch Size: {STAGE_CONFIG[stage]['batch_size']}")
                 self.logger.info(f"Checkpoint saved: {checkpoint_path}")
-                self.logger.info(f"====================================")
+                self.logger.info("====================================")
 
                 # Check if target loss achieved (use training loss)
                 if avg_loss < 0.05:
@@ -699,7 +693,7 @@ Loss Improvement: {'✓' if hasattr(self, 'last_val_loss') and val_loss < self.l
 
 
 # GROUNDED EVIDENCE: Essential functions from original codebase
-def mask_scene(input_scenes: List[np.ndarray], mask_ratio: float, mask_prob: List[float]) -> List[np.ndarray]:
+def mask_scene(input_scenes: list[np.ndarray], mask_ratio: float, mask_prob: list[float]) -> list[np.ndarray]:
     """Apply random masking to scenes for stage 1 training.
     EVIDENCE: pyramid-discrete-diffusion/utils/mask_scene.py:3-27
     """
@@ -731,7 +725,7 @@ def mask_scene(input_scenes: List[np.ndarray], mask_ratio: float, mask_prob: Lis
     return masked_scenes
 
 
-def generation_mask(block_idx: int, patch_size: Tuple[int, int, int], mask_ratio: float) -> np.ndarray:
+def generation_mask(block_idx: int, patch_size: tuple[int, int, int], mask_ratio: float) -> np.ndarray:
     """Generate position-specific masks for s3 patch generation.
     EVIDENCE: pyramid-discrete-diffusion/utils/generation_mask.py:14-80
     """

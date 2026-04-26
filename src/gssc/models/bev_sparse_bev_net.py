@@ -12,11 +12,11 @@ Two versions:
 - Production: 256x256x32 input -> 256x256 BEV output
 """
 
+
+import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import spconv.pytorch as spconv
-from typing import List, Tuple, Optional
 
 
 class SparseResBlock3D(nn.Module):
@@ -61,7 +61,7 @@ class SparseBEVEncoder(nn.Module):
     """
 
     def __init__(self, in_channels: int = 1, base_channels: int = 32,
-                 layer_channels: List[int] = None):
+                 layer_channels: list[int] = None):
         super().__init__()
 
         if layer_channels is None:
@@ -106,7 +106,7 @@ class SparseBEVEncoder(nn.Module):
             SparseResBlock3D(layer_channels[3], layer_channels[3]),
         )
 
-    def forward(self, x: spconv.SparseConvTensor) -> List[spconv.SparseConvTensor]:
+    def forward(self, x: spconv.SparseConvTensor) -> list[spconv.SparseConvTensor]:
         """Returns multi-scale sparse features"""
         # Stem
         x = self.stem(x)
@@ -143,7 +143,7 @@ class HeightCompression(nn.Module):
     Converts sparse tensor to dense, then pools
     """
 
-    def __init__(self, in_channels: int, out_channels: int, spatial_shape: Tuple[int, int, int]):
+    def __init__(self, in_channels: int, out_channels: int, spatial_shape: tuple[int, int, int]):
         super().__init__()
         self.spatial_shape = spatial_shape  # [X, Y, Z]
         # Combine max and mean pooling, then project
@@ -212,7 +212,7 @@ class BEVDecoder(nn.Module):
     Takes multi-scale BEV features and produces full-resolution output
     """
 
-    def __init__(self, encoder_channels: List[int], decoder_channels: List[int] = None):
+    def __init__(self, encoder_channels: list[int], decoder_channels: list[int] = None):
         super().__init__()
 
         if decoder_channels is None:
@@ -226,7 +226,7 @@ class BEVDecoder(nn.Module):
         self.up2 = UpBlock2D(decoder_channels[0], encoder_channels[1], decoder_channels[1])
         self.up3 = UpBlock2D(decoder_channels[1], encoder_channels[0], decoder_channels[2])
 
-    def forward(self, bev_features: List[torch.Tensor]) -> torch.Tensor:
+    def forward(self, bev_features: list[torch.Tensor]) -> torch.Tensor:
         """
         Args:
             bev_features: List of BEV features from each encoder stage [f1, f2, f3, f4]
@@ -382,7 +382,9 @@ class ASPP(nn.Module):
     """
 
     def __init__(self, in_channels: int, out_channels: int,
-                 rates: List[int] = [6, 12, 18]):
+                 rates: list[int] = None):
+        if rates is None:
+            rates = [6, 12, 18]
         super().__init__()
 
         # 1x1 convolution branch
@@ -559,8 +561,8 @@ class EnhancedBEVDecoder(nn.Module):
     3. Optional Feature Pyramid Attention
     """
 
-    def __init__(self, encoder_channels: List[int],
-                 decoder_channels: List[int] = None,
+    def __init__(self, encoder_channels: list[int],
+                 decoder_channels: list[int] = None,
                  use_attention: bool = True,
                  use_aspp: bool = True):
         super().__init__()
@@ -594,7 +596,7 @@ class EnhancedBEVDecoder(nn.Module):
         self.up2 = UpBlock2D(decoder_channels[0], encoder_channels[1], decoder_channels[1])
         self.up3 = UpBlock2D(decoder_channels[1], encoder_channels[0], decoder_channels[2])
 
-    def forward(self, bev_features: List[torch.Tensor]) -> torch.Tensor:
+    def forward(self, bev_features: list[torch.Tensor]) -> torch.Tensor:
         """
         Args:
             bev_features: List of BEV features from each encoder stage [f1, f2, f3, f4]
@@ -633,9 +635,9 @@ class SparseBEVNet(nn.Module):
     def __init__(self,
                  in_channels: int = 1,
                  num_classes: int = 20,
-                 spatial_shape: Tuple[int, int, int] = (32, 32, 4),
-                 encoder_channels: List[int] = None,
-                 decoder_channels: List[int] = None,
+                 spatial_shape: tuple[int, int, int] = (32, 32, 4),
+                 encoder_channels: list[int] = None,
+                 decoder_channels: list[int] = None,
                  dropout: float = 0.1):
         super().__init__()
 
@@ -960,7 +962,7 @@ class DeeperSparseBEVEncoder(nn.Module):
     """
 
     def __init__(self, in_channels: int = 1, base_channels: int = 32,
-                 layer_channels: List[int] = None):
+                 layer_channels: list[int] = None):
         super().__init__()
 
         if layer_channels is None:
@@ -1013,7 +1015,7 @@ class DeeperSparseBEVEncoder(nn.Module):
             SparseResBlock3D(layer_channels[3], layer_channels[3]),
         )
 
-    def forward(self, x: spconv.SparseConvTensor) -> List[spconv.SparseConvTensor]:
+    def forward(self, x: spconv.SparseConvTensor) -> list[spconv.SparseConvTensor]:
         """Returns multi-scale sparse features"""
         # Stem
         x = self.stem(x)
@@ -1063,7 +1065,7 @@ class VeryDeepSparseBEVEncoder(nn.Module):
     """
 
     def __init__(self, in_channels: int = 1, base_channels: int = 32,
-                 layer_channels: List[int] = None):
+                 layer_channels: list[int] = None):
         super().__init__()
 
         if layer_channels is None:
@@ -1108,7 +1110,7 @@ class VeryDeepSparseBEVEncoder(nn.Module):
             for _ in range(6)
         ])
 
-    def forward(self, x: spconv.SparseConvTensor) -> List[spconv.SparseConvTensor]:
+    def forward(self, x: spconv.SparseConvTensor) -> list[spconv.SparseConvTensor]:
         """Returns multi-scale sparse features"""
         # Stem
         x = self.stem(x)
@@ -1327,7 +1329,7 @@ class FullSparseBEVNet_Deeper(nn.Module):
         return logits
 
     def forward_features(self, voxels: torch.Tensor, coords: torch.Tensor,
-                         batch_size: int, tsdf_bev: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor]:
+                         batch_size: int, tsdf_bev: torch.Tensor = None) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass that returns both features and logits.
 
@@ -1759,7 +1761,7 @@ class ObservationWeightedFocalLoss(nn.Module):
         self.register_buffer('class_weights', class_weights)
 
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor,
-                obs_density: Optional[torch.Tensor] = None) -> torch.Tensor:
+                obs_density: torch.Tensor | None = None) -> torch.Tensor:
         """
         Args:
             inputs: [B, C, H, W] logits
@@ -1987,7 +1989,7 @@ class CombinedLossV2(nn.Module):
         self.boundary_weight = boundary_weight
 
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor,
-                obs_density: Optional[torch.Tensor] = None) -> torch.Tensor:
+                obs_density: torch.Tensor | None = None) -> torch.Tensor:
         """
         Args:
             inputs: [B, C, H, W] logits
@@ -2073,7 +2075,7 @@ class ProgressiveLoss(nn.Module):
             return self.lovasz_weight
 
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor,
-                obs_density: Optional[torch.Tensor] = None) -> torch.Tensor:
+                obs_density: torch.Tensor | None = None) -> torch.Tensor:
         """
         Args:
             inputs: [B, C, H, W] logits
@@ -2117,7 +2119,7 @@ def test_model():
 
     print(f"Input: {num_points} voxels")
     print(f"Output shape: {output.shape}")
-    print(f"Expected: [2, 20, 32, 32]")
+    print("Expected: [2, 20, 32, 32]")
 
     # Count parameters
     params = sum(p.numel() for p in model.parameters())

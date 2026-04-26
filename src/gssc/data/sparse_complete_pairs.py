@@ -36,23 +36,19 @@ Author: SSC Project
 Date: December 2024
 """
 
-import os
-import sys
-import numpy as np
-from pathlib import Path
-from typing import Tuple, List, Dict, Optional, Union
-from dataclasses import dataclass
-from tqdm import tqdm
-import logging
 import json
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+from tqdm import tqdm
 
 # Import LiDAR simulation modules
 from gssc.data.lidar_simulator_v2 import (
-    MultiReturnLiDARSimulator,
-    create_multi_return_resampler,
-    DensityAwareLiDARSimulator,
-    create_density_aware_resampler,
     VELODYNE_HDL64E_VERTICAL_ANGLES,
+    MultiReturnLiDARSimulator,
+    create_density_aware_resampler,
     pack_voxels,
     unpack_voxels,
 )
@@ -138,7 +134,7 @@ class SparseCompletePairGenerator:
         self,
         complete_scene: np.ndarray,
         return_point_cloud: bool = False,
-    ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    ) -> tuple[np.ndarray, np.ndarray] | tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Generate a sparse-complete pair from a complete scene.
 
@@ -209,11 +205,11 @@ class SparseCompletePairGenerator:
 
     def process_batch(
         self,
-        complete_scenes: List[np.ndarray],
+        complete_scenes: list[np.ndarray],
         output_dir: str,
         start_index: int = 0,
         sequence_id: str = "synthetic",
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """
         Process a batch of complete scenes and save pairs to disk.
 
@@ -306,7 +302,7 @@ class SparseCompletePairGenerator:
         input_dir: str,
         output_dir: str,
         scene_key: str = 'scenes',
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """
         Process complete scenes from NPZ files in a directory.
 
@@ -377,7 +373,7 @@ class SparseCompleteDataset:
     def __len__(self) -> int:
         return len(self.frame_ids)
 
-    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
         """
         Load a sparse-complete pair.
 
@@ -401,7 +397,7 @@ class SparseCompleteDataset:
 
         return sparse_mask, complete_labels
 
-    def load_with_invalid(self, idx: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def load_with_invalid(self, idx: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Load pair with invalid mask."""
         frame_id = self.frame_ids[idx]
 
@@ -446,7 +442,7 @@ def create_pair_generator(
 def generate_pair_from_complete(
     complete_scene: np.ndarray,
     method: str = 'multi_return',
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Convenience function to generate a single pair.
 
@@ -505,7 +501,7 @@ class SyntheticPairPipeline:
         num_scenes: int = 100,
         output_dir: str = "datasets/synthetic_pairs",
         strategy: str = 'auto',
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """
         Generate complete scenes and their sparse observations.
 

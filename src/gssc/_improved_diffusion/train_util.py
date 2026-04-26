@@ -2,29 +2,26 @@ import copy
 import functools
 import os
 import time
-from math import log, exp
+from math import log
 
 import blobfile as bf
 import numpy as np
 import torch as th
-import torch.nn.functional as F
 import torch.distributed as dist
+import torch.nn.functional as F
+from apex import amp
 from torch.nn.parallel.distributed import DistributedDataParallel as DDP
 from torch.optim import AdamW
-from apex import amp
 
 from . import dist_util, logger
 from .fp16_util import (
     make_master_params,
     master_params_to_model_params,
     model_grads_to_master_grads,
-    unflatten_master_params,
     zero_grad,
 )
 from .nn import update_ema
 from .resample import LossAwareSampler, UniformSampler
-
-from spconv.pytorch.utils import PointToVoxel
 
 # For ImageNet experiments, this was a good default value.
 # We found that the lg_loss_scale quickly climbed to

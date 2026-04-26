@@ -15,10 +15,10 @@ Architecture:
 """
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple, List, Dict
 
 from .sparse_lidar_encoder import SparseLiDAREncoder, SparseLiDAREncoderLite
 
@@ -89,7 +89,7 @@ class ResidualBlock3DSparse(nn.Module):
         self,
         x: torch.Tensor,
         t_emb: torch.Tensor,
-        bev_emb: Optional[torch.Tensor],
+        bev_emb: torch.Tensor | None,
         lidar_emb: torch.Tensor,
     ) -> torch.Tensor:
         h = x
@@ -144,7 +144,7 @@ class SceneCompletionUNetSparse(nn.Module):
         self,
         num_classes: int = 20,
         base_channels: int = 32,
-        channel_mult: Tuple[int, ...] = (1, 2, 4, 8),
+        channel_mult: tuple[int, ...] = (1, 2, 4, 8),
         time_emb_dim: int = 128,
         lidar_base_channels: int = 16,
         lidar_out_channels: int = 32,
@@ -292,11 +292,11 @@ class SceneCompletionUNetSparse(nn.Module):
         t: torch.Tensor,    # [B] timesteps
         bev: torch.Tensor,  # [B, num_classes, H, W] BEV semantic map (one-hot)
         lidar: torch.Tensor,  # [B, 1, H, W, D] sparse LiDAR binary voxels
-        lifted_features: Optional[torch.Tensor] = None,  # [B, feature_dim, H, W, D] for CFG
-        nn_indices: Optional[torch.Tensor] = None,  # [B, 3, H, W, D] precomputed NN indices
-        geom_bev: Optional[torch.Tensor] = None,  # [B, 4, H, W] TSDF BEV features
-        ssc_pred: Optional[torch.Tensor] = None,  # [B, num_classes, H, W, D] SCPNet one-hot prediction
-        obs_mask: Optional[torch.Tensor] = None,  # [B, 1, H, W, D] observation mask
+        lifted_features: torch.Tensor | None = None,  # [B, feature_dim, H, W, D] for CFG
+        nn_indices: torch.Tensor | None = None,  # [B, 3, H, W, D] precomputed NN indices
+        geom_bev: torch.Tensor | None = None,  # [B, 4, H, W] TSDF BEV features
+        ssc_pred: torch.Tensor | None = None,  # [B, num_classes, H, W, D] SCPNet one-hot prediction
+        obs_mask: torch.Tensor | None = None,  # [B, 1, H, W, D] observation mask
     ) -> torch.Tensor:
         # Concatenate observation mask with x_t if enabled
         if self.obs_mask_channel and obs_mask is not None:
@@ -413,11 +413,11 @@ class SceneCompletionUNetSparse(nn.Module):
         t: torch.Tensor,    # [B] timesteps
         bev: torch.Tensor,  # [B, num_classes, H, W] BEV semantic map (one-hot)
         lidar: torch.Tensor,  # [B, 1, H, W, D] sparse LiDAR binary voxels
-        lifted_features: Optional[torch.Tensor] = None,  # [B, feature_dim, H, W, D] for CFG
-        nn_indices: Optional[torch.Tensor] = None,  # [B, 3, H, W, D] precomputed NN indices
-        geom_bev: Optional[torch.Tensor] = None,  # [B, 4, H, W] TSDF BEV features
-        ssc_pred: Optional[torch.Tensor] = None,  # [B, num_classes, H, W, D] SCPNet one-hot prediction
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        lifted_features: torch.Tensor | None = None,  # [B, feature_dim, H, W, D] for CFG
+        nn_indices: torch.Tensor | None = None,  # [B, 3, H, W, D] precomputed NN indices
+        geom_bev: torch.Tensor | None = None,  # [B, 4, H, W] TSDF BEV features
+        ssc_pred: torch.Tensor | None = None,  # [B, num_classes, H, W, D] SCPNet one-hot prediction
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass that returns both predictions and decoder features (full resolution).
         Used for DSKD (Dense-to-Sparse Knowledge Distillation).
@@ -551,7 +551,7 @@ class SceneCompletionUNetSparseLite(nn.Module):
         self,
         num_classes: int = 20,
         base_channels: int = 16,
-        channel_mult: Tuple[int, ...] = (1, 2, 4, 8),
+        channel_mult: tuple[int, ...] = (1, 2, 4, 8),
         time_emb_dim: int = 64,
         lidar_base_channels: int = 8,
         lidar_out_channels: int = 16,
@@ -650,7 +650,7 @@ class SceneCompletionUNetSparseLite(nn.Module):
             device = next(self.voxel_embed.parameters()).device
             self.lifted_embed = self.lifted_embed.to(device)
 
-    def forward(self, x_t, t, bev, lidar, lifted_features: Optional[torch.Tensor] = None):
+    def forward(self, x_t, t, bev, lidar, lifted_features: torch.Tensor | None = None):
         """Same interface as SceneCompletionUNetSparse."""
         B, C, H, W, D = x_t.shape
 
@@ -718,8 +718,8 @@ class SceneCompletionUNetSparseLite(nn.Module):
         t: torch.Tensor,
         bev: torch.Tensor,
         lidar: torch.Tensor,
-        lifted_features: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        lifted_features: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass returning both predictions and decoder features (full resolution) for DSKD."""
         B, C, H, W, D = x_t.shape
 
@@ -792,16 +792,16 @@ if __name__ == "__main__":
 
     # Parameter counts
     model = SceneCompletionUNetSparse(num_classes=20, base_channels=32)
-    print(f"SceneCompletionUNetSparse (Full):")
+    print("SceneCompletionUNetSparse (Full):")
     print(f"  Parameters: {count_parameters(model):,}")
-    print(f"  U-Net channels: 32 → 64 → 128 → 256")
-    print(f"  LiDAR encoder: 16 → 32 → 64 → 128")
+    print("  U-Net channels: 32 → 64 → 128 → 256")
+    print("  LiDAR encoder: 16 → 32 → 64 → 128")
 
     model_lite = SceneCompletionUNetSparseLite(num_classes=20, base_channels=16)
-    print(f"\nSceneCompletionUNetSparseLite:")
+    print("\nSceneCompletionUNetSparseLite:")
     print(f"  Parameters: {count_parameters(model_lite):,}")
-    print(f"  U-Net channels: 16 → 32 → 64 → 128")
-    print(f"  LiDAR encoder: 8 → 16 → 32 → 64")
+    print("  U-Net channels: 16 → 32 → 64 → 128")
+    print("  LiDAR encoder: 8 → 16 → 32 → 64")
 
     print("\n=== Comparison with exp_1 (Dense Conv3d) ===")
     from .scene_unet import SceneCompletionUNet, SceneCompletionUNetLite

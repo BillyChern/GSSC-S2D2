@@ -17,12 +17,11 @@ Reference:
 - Architecture plan: <repo>/docs/architecture_improvement_plan.md
 """
 
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from typing import Dict, Tuple, Optional
-
 
 # Z-ranges for each class (in voxel units, grid is 256x256x32)
 # Computed from actual SemanticKITTI data: 2nd-98th percentile of z-coordinates
@@ -61,7 +60,7 @@ class BEVTo3DLifter(nn.Module):
     def __init__(self,
                  num_classes: int = 20,
                  num_z: int = 32,
-                 class_z_ranges: Optional[Dict[int, Tuple[int, int]]] = None,
+                 class_z_ranges: dict[int, tuple[int, int]] | None = None,
                  learnable: bool = False):
         """
         Args:
@@ -214,7 +213,7 @@ class BEVTo3DLifter(nn.Module):
         return fused
 
     def forward_column_mvf(self, bev_pred: torch.Tensor, scene_3d_pred: torch.Tensor,
-                           pred_probs: Optional[torch.Tensor] = None) -> torch.Tensor:
+                           pred_probs: torch.Tensor | None = None) -> torch.Tensor:
         """
         Column-consistency MVF: only modify columns where BEV and 3D disagree.
 
@@ -451,7 +450,7 @@ class LiftingModule(nn.Module):
             )
             print(f"[LiftingModule] Enabled SPCDense3Dv2 (feature_dim={feature_dim}, dropout={dense3d_dropout})")
 
-    def forward(self, bev_logits: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, bev_logits: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Lift BEV and encode for conditioning.
 
@@ -503,13 +502,14 @@ class LiftingModule(nn.Module):
         return lifted_3d, lifted_features
 
 
-def compute_class_z_statistics(data_root: str, sequences: list) -> Dict[int, Tuple[float, float]]:
+def compute_class_z_statistics(data_root: str, sequences: list) -> dict[int, tuple[float, float]]:
     """
     Compute z-range statistics for each class from data.
 
     Useful for calibrating the CLASS_Z_RANGES dict.
     """
     from pathlib import Path
+
     from tqdm import tqdm
 
     class_z_min = {c: float('inf') for c in range(20)}

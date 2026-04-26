@@ -16,10 +16,10 @@ Key SCPNet insight:
 - Only compute similarity at SHARED occupied locations (intersection)
 """
 
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple
 
 
 class DSKDLoss3D(nn.Module):
@@ -56,8 +56,8 @@ class DSKDLoss3D(nn.Module):
         self,
         student_features: torch.Tensor,
         teacher_features: torch.Tensor,
-        student_occupancy: Optional[torch.Tensor] = None,
-        teacher_occupancy: Optional[torch.Tensor] = None,
+        student_occupancy: torch.Tensor | None = None,
+        teacher_occupancy: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """
         Compute DSKD loss using SCPNet's pairwise similarity approach.

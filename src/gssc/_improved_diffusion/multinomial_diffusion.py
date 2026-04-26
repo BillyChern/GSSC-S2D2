@@ -1,8 +1,9 @@
+from inspect import isfunction
+
+import numpy as np
 import torch
 import torch.nn.functional as F
-import numpy as np
-import math
-from inspect import isfunction
+
 """
 Based in part on: https://github.com/lucidrains/denoising-diffusion-pytorch/blob/5989f4c77eafcdc6be0fb4739f0f277a6dd7f7d8/denoising_diffusion_pytorch/denoising_diffusion_pytorch.py#L281
 """
@@ -82,7 +83,7 @@ class MultinomialDiffusion(torch.nn.Module):
                  multi_criterion,
                  auxiliary_loss_weight=0.05, 
                  adaptive_auxiliary_loss=True):
-        super(MultinomialDiffusion, self).__init__()
+        super().__init__()
 
         #self._denoise_fn = SSCNet(num_classes=args.num_classes*50, num_steps=args.diffusion_steps)
         self.num_classes = num_classes

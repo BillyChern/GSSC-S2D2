@@ -17,10 +17,10 @@ Config reference: <paco-reference>/pasco/models/layers.py
 - SPCDense3Dv2 is their dense 3D bottleneck (lines 646-726)
 """
 
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, Tuple, Optional
 
 
 class SPCDense3Dv2(nn.Module):
@@ -63,7 +63,7 @@ class SPCDense3Dv2(nn.Module):
         Args:
             init_size: Number of input/output channels (C in [B, C, H, W, D])
         """
-        super(SPCDense3Dv2, self).__init__()
+        super().__init__()
 
         bias = False
         chs = [init_size, init_size, init_size, init_size]
@@ -209,7 +209,7 @@ class CoarseToFineDecoder(nn.Module):
         in_channels: int = 1,
         num_classes: int = 20,
         base_channels: int = 32,
-        coarse_resolution: Tuple[int, int, int] = (32, 32, 4),
+        coarse_resolution: tuple[int, int, int] = (32, 32, 4),
     ):
         """
         Args:
@@ -329,7 +329,7 @@ class DenseHallucinationModule(nn.Module):
         in_channels: int = 128,
         hidden_channels: int = 128,
         out_channels: int = 128,
-        target_resolution: Tuple[int, int, int] = (32, 32, 4),
+        target_resolution: tuple[int, int, int] = (32, 32, 4),
         num_blocks: int = 3,
     ):
         """
@@ -423,7 +423,7 @@ class DenseHallucinationModule(nn.Module):
     def forward(
         self,
         sparse_feat: torch.Tensor,
-        sparse_coords: Optional[torch.Tensor] = None,
+        sparse_coords: torch.Tensor | None = None,
         batch_size: int = 1,
         return_dense: bool = False,
     ) -> torch.Tensor:
@@ -538,7 +538,7 @@ def create_dense_bottleneck(
 
 def create_hallucination_module(
     channels: int = 128,
-    resolution: Tuple[int, int, int] = (32, 32, 4),
+    resolution: tuple[int, int, int] = (32, 32, 4),
 ) -> DenseHallucinationModule:
     """Create a dense hallucination module."""
     return DenseHallucinationModule(

@@ -29,18 +29,17 @@ Pipeline:
   Clean Scene → LiDAR Simulation → (sparse, complete) pair
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 from scipy import ndimage
-from typing import Tuple, List, Dict, Optional
-from dataclasses import dataclass
-from pathlib import Path
 
 # Import object bank for enhancement
 try:
-    from .object_bank import ObjectBank, RARE_CLASS_IDS, CLASS_NAMES
+    from .object_bank import CLASS_NAMES, RARE_CLASS_IDS, ObjectBank
     from .real_augmentation import CopyPasteAugmentor
 except ImportError:
-    from object_bank import ObjectBank, RARE_CLASS_IDS, CLASS_NAMES
+    from object_bank import CLASS_NAMES, RARE_CLASS_IDS, ObjectBank
     from real_augmentation import CopyPasteAugmentor
 
 
@@ -84,7 +83,7 @@ class PostProcessConfig:
 
     # Inpainting options
     enable_inpainting: bool = False
-    inpaint_anchor_classes: List[int] = None  # Classes to use as anchors
+    inpaint_anchor_classes: list[int] = None  # Classes to use as anchors
 
     def __post_init__(self):
         if self.inpaint_anchor_classes is None:
@@ -99,7 +98,7 @@ class QualityFilter:
     def __init__(self, config: PostProcessConfig):
         self.config = config
 
-    def check(self, scene: np.ndarray) -> Tuple[bool, Dict]:
+    def check(self, scene: np.ndarray) -> tuple[bool, dict]:
         """
         Check if scene passes quality filters.
 
@@ -156,7 +155,7 @@ class GeometricCleaner:
         # 3D connectivity structure (26-connected)
         self.structure = ndimage.generate_binary_structure(3, 3)
 
-    def clean(self, scene: np.ndarray) -> Tuple[np.ndarray, Dict]:
+    def clean(self, scene: np.ndarray) -> tuple[np.ndarray, dict]:
         """
         Apply geometric cleaning operations.
 
@@ -185,7 +184,7 @@ class GeometricCleaner:
 
         return cleaned, stats
 
-    def _remove_floating(self, scene: np.ndarray) -> Tuple[np.ndarray, int]:
+    def _remove_floating(self, scene: np.ndarray) -> tuple[np.ndarray, int]:
         """Remove objects not connected to ground."""
         # Find ground layer (z=0 to z=2)
         ground_mask = np.zeros_like(scene, dtype=bool)
@@ -220,7 +219,7 @@ class GeometricCleaner:
 
         return cleaned, removed
 
-    def _remove_small_components(self, scene: np.ndarray) -> Tuple[np.ndarray, int]:
+    def _remove_small_components(self, scene: np.ndarray) -> tuple[np.ndarray, int]:
         """Remove small isolated components."""
         occupied = scene > 0
         labeled, num_features = ndimage.label(occupied, structure=self.structure)
@@ -293,7 +292,7 @@ class RareClassEnhancer:
             except Exception as e:
                 print(f"Warning: Could not load object bank: {e}")
 
-    def _compute_class_deficits(self, scene: np.ndarray) -> Dict[int, float]:
+    def _compute_class_deficits(self, scene: np.ndarray) -> dict[int, float]:
         """
         Compute how underrepresented each class is in the scene.
 
@@ -301,7 +300,7 @@ class RareClassEnhancer:
             Dict mapping class_id -> deficit_score (higher = more underrepresented)
         """
         deficits = {}
-        total_occupied = np.sum(scene > 0)
+        np.sum(scene > 0)
 
         for cls_id in RARE_CLASS_IDS[:8]:  # Dynamic objects
             current_count = np.sum(scene == cls_id)
@@ -328,7 +327,7 @@ class RareClassEnhancer:
 
         return deficits
 
-    def enhance(self, scene: np.ndarray) -> Tuple[np.ndarray, Dict]:
+    def enhance(self, scene: np.ndarray) -> tuple[np.ndarray, dict]:
         """
         Enhance scene to ensure ALL rare classes are present and balanced.
 
@@ -394,11 +393,11 @@ class RareClassEnhancer:
             self.config.min_objects_to_add,
             self.config.max_objects_to_add + 1
         )
-        remaining_to_add = max(0, target_objects - total_objects_added)
+        max(0, target_objects - total_objects_added)
 
         # Round-robin: add objects prioritizing classes with lowest counts
         max_rounds = 10
-        for round_num in range(max_rounds):
+        for _round_num in range(max_rounds):
             if total_objects_added >= target_objects:
                 break
 
@@ -407,7 +406,7 @@ class RareClassEnhancer:
             sorted_classes = sorted(class_counts, key=lambda x: x[1])
 
             added_this_round = False
-            for cls_id, count in sorted_classes:
+            for cls_id, _count in sorted_classes:
                 if total_objects_added >= target_objects:
                     break
 
@@ -463,7 +462,7 @@ class InpaintingEnhancer:
             except Exception as e:
                 print(f"Warning: Could not load object bank for inpainting: {e}")
 
-    def enhance(self, scene: np.ndarray) -> Tuple[np.ndarray, Dict]:
+    def enhance(self, scene: np.ndarray) -> tuple[np.ndarray, dict]:
         """
         Apply inpainting-style enhancement.
 
@@ -481,7 +480,6 @@ class InpaintingEnhancer:
 
         # Find road edges (good places for pedestrians, bikes)
         road_mask = scene == 9
-        sidewalk_mask = scene == 11
 
         # Dilate to find edges
         struct = ndimage.generate_binary_structure(3, 1)
@@ -557,7 +555,7 @@ class CascadePostProcessor:
         self,
         scene: np.ndarray,
         skip_quality_check: bool = False,
-    ) -> Tuple[Optional[np.ndarray], Dict]:
+    ) -> tuple[np.ndarray | None, dict]:
         """
         Apply full post-processing pipeline.
 
@@ -604,9 +602,9 @@ class CascadePostProcessor:
 
     def process_batch(
         self,
-        scenes: List[np.ndarray],
+        scenes: list[np.ndarray],
         skip_quality_check: bool = False,
-    ) -> Tuple[List[np.ndarray], Dict]:
+    ) -> tuple[list[np.ndarray], dict]:
         """
         Process multiple scenes.
 

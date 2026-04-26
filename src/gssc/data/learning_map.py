@@ -2,9 +2,9 @@
 SemanticKITTI data format utilities for data augmentation pipeline.
 Handles binary file I/O and voxel format conversions.
 """
-import numpy as np
 import os
-from typing import Tuple, Optional
+
+import numpy as np
 
 # Official SemanticKITTI learning_map from config/semantic-kitti.yaml
 SEMANTICKITTI_LEARNING_MAP = {
@@ -77,7 +77,7 @@ def pack_binary_mask(uncompressed: np.ndarray) -> np.ndarray:
 
 
 def load_semantickitti_voxels(base_path: str, frame_id: str,
-                            voxel_size: Tuple[int, int, int] = (256, 256, 32)) -> dict:
+                            voxel_size: tuple[int, int, int] = (256, 256, 32)) -> dict:
     """
     Load SemanticKITTI voxel data for a single frame.
 
@@ -91,7 +91,7 @@ def load_semantickitti_voxels(base_path: str, frame_id: str,
     """
     frame_path = os.path.join(base_path, frame_id)
     H, W, D = voxel_size
-    total_voxels = H * W * D
+    H * W * D
 
     # Load input (sparse voxels)
     input_data = unpack_binary_mask(
@@ -189,7 +189,7 @@ def _get_max_occurrence_label(block: np.ndarray) -> int:
         return 0
 
 
-def convert_to_pyramid_format(voxel_data: np.ndarray, target_size: Tuple[int, int, int]) -> np.ndarray:
+def convert_to_pyramid_format(voxel_data: np.ndarray, target_size: tuple[int, int, int]) -> np.ndarray:
     """
     Convert SemanticKITTI voxel data to pyramid diffusion format using MODE POOLING.
 
@@ -231,7 +231,7 @@ def convert_to_pyramid_format(voxel_data: np.ndarray, target_size: Tuple[int, in
     return result
 
 
-def convert_from_pyramid_format(pyramid_data: np.ndarray, target_size: Tuple[int, int, int]) -> np.ndarray:
+def convert_from_pyramid_format(pyramid_data: np.ndarray, target_size: tuple[int, int, int]) -> np.ndarray:
     """Convert pyramid diffusion output back to SemanticKITTI format."""
     from scipy import ndimage
 
