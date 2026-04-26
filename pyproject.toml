@@ -93,6 +93,7 @@ extend-exclude = [
     "src/gssc/data/semantic_kitti_utils.py",    # vendored split + label utility
     "src/gssc/data/lidar_simulation.py",        # legacy ray-tracer (HDL-64E + Bresenham3D)
     "src/gssc/training/train_pyramid_*.py",     # legacy pyramid training scripts
+    "src/gssc/training/train_bev_secondary.py", # vendored BEV-A trainer (legacy script)
     "src/gssc/training/pyramid_pipeline.py",
     "external/",                                # third-party (semantic_kitti_api)
 ]

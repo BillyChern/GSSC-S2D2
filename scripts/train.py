@@ -101,7 +101,19 @@ def main() -> None:
     forwarded.extend(["--seed", str(args.seed)])
     forwarded.extend(remainder)
 
-    cmd = [sys.executable, "-m", "gssc.training.train_scene_completion", *forwarded]
+    # Dispatch to the BEV second-task trainer for bev_* configs; otherwise the
+    # canonical 3D SSC trainer.
+    if args.config.startswith("train/bev_") or args.config.startswith("train/pyramid_"):
+        if args.config.startswith("train/bev_"):
+            entry = "gssc.training.train_bev_secondary"
+        elif "_s2" in args.config or args.config.endswith("/s2"):
+            entry = "gssc.training.train_pyramid_s2"
+        else:
+            entry = "gssc.training.train_pyramid_s3"
+    else:
+        entry = "gssc.training.train_scene_completion"
+
+    cmd = [sys.executable, "-m", entry, *forwarded]
     print(f"$ {' '.join(cmd)}")
     subprocess.run(cmd, env=env, check=True)
 

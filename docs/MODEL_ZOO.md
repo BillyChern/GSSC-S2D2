@@ -41,7 +41,7 @@ All checkpoints are released under Apache-2.0. Hosted on Hugging Face Hub at
 
 | File | Task | mIoU | Config | Size |
 |---|---|---|---|---|
-| `bev_perception_net.safetensors` | LiDAR-only BEV semantic segmentation | 36.09 | `configs/train/bev_secondary.yaml` | 85 MB |
+| `bev_perception_net.pt` | LiDAR-only BEV refinement (S²D² applied to BEV) | 36.09 | `configs/train/bev_secondary.yaml` | 85 MB |
 
 ## SCPNet base (frozen)
 

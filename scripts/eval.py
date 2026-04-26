@@ -14,6 +14,11 @@ Reproduce the 38.73% val mIoU under D4 TTA::
 
     python scripts/eval.py eval/val_d4tta \
         --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt
+
+Reproduce the 36.09% BEV mIoU (secondary task, paper Sec. 4)::
+
+    python scripts/eval.py eval/bev_secondary \
+        --checkpoint data/checkpoints/bev_perception_net.pt
 """
 from __future__ import annotations
 
@@ -61,19 +66,35 @@ def main() -> None:
         format="[%(name)s] %(message)s",
     )
 
-    from gssc.inference.evaluate import run_evaluation
+    # Dispatch by config family. The 3D SSC headline path uses run_evaluation
+    # (subprocess into generate_predictions + semantic_kitti_api scoring).
+    # The BEV second-task path needs its own loader because it never produces
+    # .label files in SemanticKITTI's 3D layout.
+    is_bev = args.config.startswith("eval/bev_")
 
-    metrics = run_evaluation(
-        checkpoint=args.checkpoint,
-        config=args.config,
-        data_root=args.data_root,
-        output=args.output,
-        gpu=args.gpu,
-        steps=args.steps,
-        tta=args.tta,
-        metrics=args.metrics,
-        keep_predictions=args.keep_predictions,
-    )
+    if is_bev:
+        from gssc.inference.evaluate_bev import evaluate_bev
+        metrics = evaluate_bev(
+            checkpoint=args.checkpoint,
+            data_root=args.data_root,
+            n_steps=args.steps if args.steps is not None else 1,
+            sequence="08",
+            output=args.output,
+            gpu=args.gpu,
+        )
+    else:
+        from gssc.inference.evaluate import run_evaluation
+        metrics = run_evaluation(
+            checkpoint=args.checkpoint,
+            config=args.config,
+            data_root=args.data_root,
+            output=args.output,
+            gpu=args.gpu,
+            steps=args.steps,
+            tta=args.tta,
+            metrics=args.metrics,
+            keep_predictions=args.keep_predictions,
+        )
 
     print()
     print("=" * 60)

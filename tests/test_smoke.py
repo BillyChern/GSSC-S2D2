@@ -65,13 +65,17 @@ def test_heavy_module_imports(module: str) -> None:
     ("gssc.data.sparse_complete_pairs", ["PairGenerationConfig"]),
     # LiDAR-only BEV S2D2 (second-task, paper Sec. 4 36.09 percent result)
     ("gssc.models.bev_unet", ["BEVUNet", "LightweightBEVUNet"]),
-    ("gssc.models.bev_unet_v2", ["ModularBEVUNet"]),
+    ("gssc.models.bev_unet_v2", ["ModularBEVUNet", "create_modular_bev_unet"]),
     ("gssc.models.bev_lidar_encoder", ["SparseLiDAREncoder", "TinySparseLiDAREncoder"]),
     ("gssc.models.bev_d3pm", ["D3PM", "AbsorbingD3PM", "UniformD3PM"]),
     ("gssc.models.bev_bev_diffusion_v2", ["BEVDiffusionV2"]),
     ("gssc.models.bev_diffusion_model", ["BEVDiffusionModel", "create_bev_diffusion_model"]),
     ("gssc.models.bev_sparse_bev_net", ["FullSparseBEVNet_Deeper"]),
     ("gssc.models.bev_training", ["BEVTrainer"]),
+    ("gssc.models.bev_multinomial_diffusion_2d", ["MultinomialDiffusion2D"]),
+    # BEV second-task driver scripts (visitor reproduction path)
+    ("gssc.inference.evaluate_bev", ["evaluate_bev"]),
+    ("gssc.training.train_bev_secondary", []),
 ])
 def test_capability_modules_expose_public_api(module: str, attrs: list[str]) -> None:
     """Every capability the paper claims must import + expose its public API.

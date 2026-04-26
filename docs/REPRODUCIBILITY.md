@@ -51,7 +51,7 @@ training run at 256×256×32 voxel resolution costs roughly 37 GPU-hours on
 | Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31K_sf_step100000.safetensors` | See MODEL_ZOO.md |
 | Tab. VIII (DW-IoU) | `python scripts/eval.py eval/val_1step --checkpoint ... --metrics dwiou` | per-T_w table |
 | Tab. XII (training timesteps) | Per-row checkpoint | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
-| Tab. XV (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev_perception_net.safetensors` | 36.09 BEV mIoU |
+| Tab. XV (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev_perception_net.pt` | 36.09 BEV mIoU |
 | Fig. 4 / Fig. 5 (qualitative) | See `examples/` notebooks | — |
 
 All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`).

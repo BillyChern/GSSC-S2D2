@@ -1,0 +1,7 @@
+_paper_table: "tab:bev (secondary task, BEV-A 36.09%)"
+_description: "LiDAR-only BEV refinement via S2D2: SCPNet-derived base BEV -> S2D2 BEV diffusion -> refined BEV. Expected 36.09% BEV mIoU on SemanticKITTI val seq 08, paper Tab. XV (secondary task)."
+task: bev
+split: val
+sequences: "08"
+algo2_steps: 1
+tta: none

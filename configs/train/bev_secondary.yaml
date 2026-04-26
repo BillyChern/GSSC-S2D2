@@ -1,0 +1,15 @@
+_paper_table: "tab:bev (secondary task, BEV-A run)"
+_description: "BEV-A: cold-diffusion BEV refinement on SCPNet base, 100K steps, Algo2 N=1 deployment. Reproduces 36.09% BEV mIoU on SemanticKITTI val seq 08."
+task: bev
+data_root: data
+pred_bev_dir: data/scpnet_predictions
+output_dir: outputs/bev_secondary
+batch_size: 8
+lr: 1.0e-4
+num_iterations: 100000
+algo2_eval_steps: 100
+save_interval: 5000
+num_classes: 20
+num_timesteps: 100
+base_channels: 128
+lidar_channels: 128

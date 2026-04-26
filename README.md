@@ -94,6 +94,25 @@ That's it. Expected output (truncated):
 
 For the full hidden-test leaderboard submission flow (39.2 % via *D*<sub>4</sub> TTA), see [docs/INFERENCE.md](docs/INFERENCE.md).
 
+### Secondary task: LiDAR-only BEV refinement
+
+S²D² is not specific to 3D scene completion. The same correction-sampling
+mechanism, applied to a 2D BEV diffusion model, refines the SCPNet-derived
+base BEV map and lifts BEV mIoU from **34.27 %** (base-derived) to
+**36.09 %** (S²D²-refined) on val seq 08 — paper Sec. 4 Tab. XV.
+
+```bash
+# After step 3 above (predictions already downloaded), eval the BEV pipeline:
+python scripts/eval.py eval/bev_secondary \
+    --checkpoint data/checkpoints/bev_perception_net.pt
+```
+
+To retrain the BEV-A checkpoint from scratch (~24 h on 1× H100):
+
+```bash
+python scripts/train.py train/bev_secondary
+```
+
 ---
 
 ## Repository layout
