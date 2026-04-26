@@ -1,0 +1,63 @@
+name: release
+
+# Auto-publish a GitHub Release whenever a v* tag is pushed.
+# Generates a changelog from commit messages between the previous tag
+# and HEAD, plus a one-liner reproduction snippet.
+#
+# Checkpoint binaries are NOT attached to the Release (they live on
+# Hugging Face / IEEE DataPort -- see docs/MODEL_ZOO.md). The Release
+# carries source + changelog only.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag
+        id: tag
+        env:
+          REF: ${{ github.ref_name }}
+        run: echo "tag=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog from commits
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null \
+                || git rev-list --max-parents=0 HEAD)
+          {
+            echo "## Changes in ${TAG}"
+            echo
+            git log --pretty=format:'- %s (%h)' "${PREV}..${TAG}"
+            echo
+            echo
+            echo "## Reproduction"
+            echo
+            echo "Reproduce the headline 38.54 % val mIoU on SemanticKITTI seq 08:"
+            echo
+            echo '```bash'
+            echo 'python scripts/eval.py eval/val_1step \'
+            echo '    --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt'
+            echo '```'
+          } > RELEASE_NOTES.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: GSSC-S2D2 ${{ steps.tag.outputs.tag }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false

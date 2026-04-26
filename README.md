@@ -2,27 +2,59 @@
 
 # GSSC-S2D2
 
-**Official PyTorch implementation of S²D² (Structured Source Discrete Diffusion)**
+### Generative Semantic Scene Completion via Structured Source Discrete Diffusion
 
-📄 **[Generative Semantic Scene Completion](https://arxiv.org/abs/TBD)** &nbsp;·&nbsp; *TPAMI 2026*
+📄 **[Paper (TPAMI 2026)](https://arxiv.org/abs/TBD)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility Guide](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
 
+[![Test status](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/test.yml/badge.svg)](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/test.yml)
+[![Lint status](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/lint.yml/badge.svg)](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/lint.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![PyTorch 2.4](https://img.shields.io/badge/pytorch-2.4-orange.svg)](https://pytorch.org/)
 [![Code style: ruff](https://img.shields.io/badge/lint-ruff-46a2f1.svg)](https://github.com/astral-sh/ruff)
-[![Type checks: mypy strict](https://img.shields.io/badge/types-mypy_strict-2A6DB2.svg)](https://mypy.readthedocs.io/)
+[![Tested coverage](https://img.shields.io/badge/coverage-89%25-success.svg)](#code-quality--testing)
+[![SemanticKITTI SOTA](https://img.shields.io/badge/SemanticKITTI-39.2%20mIoU%20%F0%9F%8F%86-orange.svg)](#headline-numbers--semantickitti-hidden-test-single-frame-single-sample-lidar)
 
-State-of-the-art LiDAR semantic scene completion on SemanticKITTI: **39.2 % test mIoU**, the first leaderboard advance among LiDAR single-frame single-sample submissions since TALoS (NeurIPS 2024).
+**🏆 SemanticKITTI hidden-test SOTA — 39.2 % mIoU**, the first leaderboard advance among single-frame single-sample LiDAR SSC submissions since TALoS (NeurIPS 2024).
 
 </div>
 
+> [!IMPORTANT]
+> **One-pass refinement of any frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100, and **+1.3 absolute mIoU** over the previous SOTA. Drop-in replaces SCPNet's argmax with one cheap correction step — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU**).
+
+> [!TIP]
+> **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for a 3-command reproduction of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once SCPNet predictions are downloaded.
+
+### What's new
+
+* **2026-04** — Public release v1.0.0. Headline checkpoint (gssc_31k_mf_step40000) released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU (matches paper Tab. I exactly).
+* **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.09 % mIoU.
+* **2026-03** — TPAMI 2026 acceptance, 39.2 % mIoU on SemanticKITTI hidden test leaderboard.
+
 ---
 
-## TL;DR
+## Method at a glance
 
-S²D² refines the prediction of any frozen base SSC network through iterative correction sampling on the per-voxel probability simplex. Starting from a *structured source* (the base model's prediction) instead of pure noise, the method learns a velocity field that transports the source toward ground truth in a single Euler step at deployment.
+```
+                  ┌────────────────────┐
+   sparse LiDAR ──▶│  Frozen base SSC   │── x_src  ──┐
+                  │  (e.g. SCPNet)     │            │
+                  └────────────────────┘            ▼
+                              │            ┌─────────────────┐
+                              │            │  S²D² denoiser  │── x̂₀ ─▶ argmax ─▶ Ŷ
+                              ▼            │  f_θ(x_t,t,c)   │
+                  ┌────────────────────┐   │                 │
+                  │  Base-derived BEV  │── │  c =  (B, L)    │
+                  │  + LiDAR voxels    │── │                 │
+                  └────────────────────┘   └─────────────────┘
+                       conditioning              ↑
+                                                 │
+                                       Algo2 correction sampling:
+                                       x_{t-1} = x_t + Δᾱ_t (x̂₀ − x_src)
+                                       (one Euler step at deployment, N=1)
+```
 
-> *One forward pass on top of the base model, no distillation, no test-time adaptation, runs at 9.33 FPS marginal throughput on a single H100, and beats the previous SOTA (TALoS, NeurIPS 2024) by +1.3 absolute mIoU on the SemanticKITTI hidden test leaderboard.*
+**Why it works.** Pure-noise diffusion wastes capacity learning to invert random corruption. By starting from the base model's *structured* prediction $x_{\text{src}}$ rather than $x_T \sim \pi$, the network only has to learn the **residual** between $x_{\text{src}}$ and ground truth — a much smaller chunk of probability mass to transport. One Euler step suffices for the headline 38.54 % val mIoU; 4 steps + $D_4$ TTA push to **39.2 % test**.
 
 ---
 
@@ -40,9 +72,35 @@ S²D² refines the prediction of any frozen base SSC network through iterative c
 | **S²D² (Ours, *N* = 4, *D*<sub>4</sub> TTA)** | 🏆 **39.2** | 59.0 | **+2.5** | leaderboard SOTA |
 
 On full SemanticKITTI val seq 08:
-* **38.54 %** mIoU (1-step Algo2)
+* **38.54 %** mIoU (1-step Algo2)  ✅ verified end-to-end
 * **38.73 %** mIoU (+ *D*<sub>4</sub> TTA)
 * **+2.37** absolute over our SCPNet base (36.17 %)
+
+### Per-class IoU on val seq 08 (1-step Algo2, verified)
+
+<sub>From `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt`. Numbers below match paper Tab. I exactly.</sub>
+
+| | car | bicycle | motorcycle | truck | other-veh. | person | bicyclist | motorcyclist | road | parking |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **IoU** | 51.4 | 24.3 | 35.5 | 60.1 | 44.5 | 23.2 | 23.2 | 12.4 | 74.6 | 61.6 |
+
+| | sidewalk | other-grnd | building | fence | vegetation | trunk | terrain | pole | traffic-sign | **mIoU** |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **IoU** | 53.9 | 13.9 | 34.7 | 30.2 | 40.7 | 32.4 | 54.6 | 37.8 | 23.0 | **38.54** |
+
+---
+
+## Reproduction status
+
+A live snapshot of which paper claims have been re-verified end-to-end on a fresh clone of this public repo (see [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) for the matrix):
+
+| Claim | Command | Status |
+|---|---|---|
+| 38.54 % val mIoU (1-step) | `scripts/eval.py eval/val_1step …` | ✅ **verified** (matches Tab. I exactly) |
+| 38.73 % val mIoU (D₄ TTA) | `scripts/eval.py eval/val_d4tta …` | 🟡 retest in progress (~3 h) |
+| Headline retrain from scratch | `scripts/train.py train/31k_mf` | 🟡 retest in progress (~24 h, 1× H100) |
+| 36.09 % BEV mIoU (secondary) | `scripts/eval.py eval/bev_secondary …` | ⏳ awaits BEV checkpoint asset upload |
+| Test-server submission (39.2 %) | see [docs/INFERENCE.md](docs/INFERENCE.md) | ⏳ documented, requires CodaLab account |
 
 ---
 
@@ -204,13 +262,11 @@ Pinned versions in `uv.lock`. See [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY
 
 ---
 
-## Method at a glance
+## Three ideas behind S²D²
 
-S²D² introduces three departures from standard discrete diffusion:
-
-1. **Structured source.** Replace the noise endpoint with a learned base model's prediction `x_src`. The forward process becomes the Dirac mixture `x_t = ᾱ_t · x_0 + (1 − ᾱ_t) · x_src`, a deterministic interpolant between ground truth and `x_src`.
-2. **Algo2 correction sampling.** A non-noise reverse process that routes the full residual `x̂_0 − x_src` directly per step. At `N = 1`, the iterate at `t = T` coincides with `x_src`, giving a Lipschitz-free single-step bound (App. A.5 in the paper).
-3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid (32³ → 64³ → 256² × 32) generates synthetic `(sparse, complete)` pairs. Combined with HDL-64E ray-tracing and a 57,789-instance object bank, this yields the 31K-scene synthetic pool used by the headline configuration.
+1. **Structured source.** Replace the noise endpoint with a learned base model's prediction $x_{\text{src}}$. The forward process becomes the Dirac mixture $x_t = \bar\alpha_t \cdot x_0 + (1 - \bar\alpha_t) \cdot x_{\text{src}}$, a deterministic interpolant between ground truth and $x_{\text{src}}$.
+2. **Algo2 correction sampling.** A non-noise reverse process that routes the full residual $\hat{x}_0 - x_{\text{src}}$ directly per step. At $N = 1$, the iterate at $t = T$ coincides with $x_{\text{src}}$, giving a Lipschitz-free single-step bound (App. A.5 in the paper).
+3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid ($32^2{\times}4$ → $64^2{\times}8$ → $256^2{\times}32$) generates synthetic $(\text{sparse}, \text{complete})$ pairs. Combined with HDL-64E ray-tracing and a 5 000-instance rare-class object bank, this yields the 31 K-scene synthetic pool used by the headline configuration.
 
 The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:posterior`, `prop:elbo`, `prop:fm`, `prop:meanflow`, `thm:error`, `cor:onestep`, `cor:lipprop`, `prop:proj`).
 
@@ -303,3 +359,25 @@ This codebase builds on top of:
 * **spconv 2.3** ([traveller59/spconv](https://github.com/traveller59/spconv)) — sparse 3D convolution backend.
 * **D3PM / Multinomial Diffusion** ([NeurIPS 2021](https://arxiv.org/abs/2107.03006)) — discrete diffusion family.
 * **TALoS** ([NeurIPS 2024](https://arxiv.org/abs/2410.15674)) — previous SemanticKITTI SSC SOTA, included as the leaderboard reference baseline.
+
+---
+
+## Star history
+
+<a href="https://www.star-history.com/#BillyChern/GSSC-S2D2&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=BillyChern/GSSC-S2D2&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=BillyChern/GSSC-S2D2&type=Date" />
+    <img alt="Star history" src="https://api.star-history.com/svg?repos=BillyChern/GSSC-S2D2&type=Date" />
+  </picture>
+</a>
+
+---
+
+<div align="center">
+
+### Made with ❤️ at the intersection of generative modelling and self-driving perception.
+
+If GSSC-S2D2 helped your research, please ⭐ the repo and cite the paper.
+
+</div>

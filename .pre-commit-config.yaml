@@ -1,0 +1,54 @@
+# Pre-commit hooks for GSSC-S2D2.
+#
+# Install:
+#   uv pip install pre-commit
+#   pre-commit install
+#
+# Manually run on the whole repo:
+#   pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(material|external|src/gssc/_improved_diffusion)/
+      - id: end-of-file-fixer
+        exclude: ^(material|external|src/gssc/_improved_diffusion)/
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ['--maxkb=2048']
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+        # Format only the public-API files; legacy modules are excluded
+        # via pyproject.toml's [tool.ruff] extend-exclude.
+
+  - repo: local
+    hooks:
+      - id: pytest-light
+        name: pytest (light, no torch)
+        entry: env PYTHONPATH=src python -m pytest
+        language: system
+        pass_filenames: false
+        args:
+          - tests/test_smoke.py::test_light_module_imports
+          - tests/test_smoke.py::test_version
+          - tests/test_config_loader.py
+          - tests/test_evaluate_parser.py
+          - -q
+        stages: [pre-commit]
+
+      - id: forbid-claude-attribution
+        name: forbid Claude/AI attribution in commits
+        entry: scripts/check_no_ai_attribution.py
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
