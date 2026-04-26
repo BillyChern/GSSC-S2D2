@@ -6,8 +6,6 @@ sweep — caught here in a millisecond instead of after a 5-min generation.
 """
 from __future__ import annotations
 
-import struct
-
 import numpy as np
 import pytest
 

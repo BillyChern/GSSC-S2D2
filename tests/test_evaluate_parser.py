@@ -13,7 +13,6 @@ import pytest
 
 from gssc.inference.evaluate import _parse_eval_completion_output, _resolve_config
 
-
 SAMPLE_OUTPUT = """\
   ========================== RESULTS ==========================
 Validation set:

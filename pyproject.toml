@@ -109,7 +109,7 @@ extend-ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["B011"]
+"tests/**" = ["B011", "E402"]                           # importorskip before package imports
 "scripts/**" = ["E402"]                                 # sys.path manipulation before import
 "src/gssc/inference/run_scpnet.py" = ["E402"]           # spconv monkey-patches before import
 "src/gssc/training/train_scene_completion.py" = ["E402", "F401"]  # late imports + experimental optional deps

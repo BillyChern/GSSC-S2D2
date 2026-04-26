@@ -16,6 +16,7 @@ docs/DATASET.md for direct download links.
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -24,6 +25,25 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 HF_REPO_MODELS = "[HF_REPO_CHECKPOINTS]"
 HF_REPO_DATA = "[HF_REPO_DATASETS]"
 DATAPORT_URL = "[SYNTHETIC_POOL_URL]"
+
+logger = logging.getLogger("gssc.download")
+
+
+def _ensure_url_configured(url: str, label: str) -> None:
+    """Bail out early when the asset URL is still a placeholder.
+
+    The hosted mirrors come online on paper acceptance; until then,
+    direct visitors at the manual-download docs instead of failing
+    inside huggingface_hub with a confusing 'Repository not found'.
+    """
+    if url.startswith("[") and url.endswith("]"):
+        sys.exit(
+            f"\n{label} URL is not yet configured (placeholder: {url}).\n"
+            "The hosted mirrors come online on paper acceptance. Until then:\n"
+            "  - Manual instructions:    docs/DATASET.md\n"
+            "  - Reproducibility guide:  docs/REPRODUCIBILITY.md\n"
+            "  - Issues:                 https://github.com/BillyChern/GSSC-S2D2/issues\n"
+        )
 
 
 def main() -> None:
@@ -49,27 +69,36 @@ def main() -> None:
     root = Path(args.root)
     root.mkdir(parents=True, exist_ok=True)
 
+    logging.basicConfig(level=logging.INFO, format="[%(name)s] %(message)s")
+
     if args.checkpoints or args.all:
-        print(f"Downloading checkpoints from {HF_REPO_MODELS} ...")
+        _ensure_url_configured(HF_REPO_MODELS, "Checkpoints")
+        logger.info("Downloading checkpoints from %s ...", HF_REPO_MODELS)
         snapshot_download(repo_id=HF_REPO_MODELS, local_dir=root / "checkpoints", local_dir_use_symlinks=False)
     if args.predictions or args.all:
-        print(f"Downloading SCPNet predictions from {HF_REPO_DATA} ...")
+        _ensure_url_configured(HF_REPO_DATA, "Datasets (predictions)")
+        logger.info("Downloading SCPNet predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["scpnet_predictions/*"],
                           local_dir=root / "scpnet_predictions", local_dir_use_symlinks=False)
     if args.object_bank or args.all:
-        print(f"Downloading object bank from {HF_REPO_DATA} ...")
+        _ensure_url_configured(HF_REPO_DATA, "Datasets (object bank)")
+        logger.info("Downloading object bank from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["object_bank/*"],
                           local_dir=root / "object_bank", local_dir_use_symlinks=False)
     if args.synthetic_pool:
-        print(f"Synthetic pool '{args.synthetic_pool}' is hosted on IEEE DataPort.")
-        print(f"  → {DATAPORT_URL}")
-        print("Direct command:")
-        print(f"  wget -O {root}/synthetic_pool_{args.synthetic_pool}.tar.gz {DATAPORT_URL}/synthetic_pool_{args.synthetic_pool}.tar.gz")
-        print(f"  tar -xzf {root}/synthetic_pool_{args.synthetic_pool}.tar.gz -C {root}/")
+        _ensure_url_configured(DATAPORT_URL, "Synthetic pool (IEEE DataPort)")
+        logger.info("Synthetic pool '%s' is hosted on IEEE DataPort.", args.synthetic_pool)
+        logger.info("  -> %s", DATAPORT_URL)
+        logger.info(
+            "Direct: wget -O %s/synthetic_pool_%s.tar.gz %s/synthetic_pool_%s.tar.gz "
+            "&& tar -xzf %s/synthetic_pool_%s.tar.gz -C %s/",
+            root, args.synthetic_pool, DATAPORT_URL, args.synthetic_pool,
+            root, args.synthetic_pool, root,
+        )
 
-    print("Done.")
+    logger.info("Done.")
 
 
 if __name__ == "__main__":

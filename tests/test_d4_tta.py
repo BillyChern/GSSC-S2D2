@@ -21,7 +21,6 @@ from gssc.inference.d4_tta import (
     unpack_voxels,
 )
 
-
 # ---------------------------------------------------------------------------
 # unpack_voxels: kitti's bit-packed binary occupancy decoder.
 # ---------------------------------------------------------------------------

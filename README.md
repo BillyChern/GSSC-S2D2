@@ -55,26 +55,41 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
 
 # 2. Pull pretrained checkpoint + SCPNet predictions
+#    URLs come online on paper acceptance; until then the script prints
+#    a pointer to docs/DATASET.md for manual download instructions.
 python scripts/download_assets.py --checkpoints --predictions
-# → data/checkpoints/gssc_31k_mf_step40000.safetensors  (150 MB)
+# → data/checkpoints/gssc_31k_mf_step40000.pt           (~140 MB)
 # → data/scpnet_predictions/                            (~50 GB, val + test)
 
 # 3. Reproduce the headline 38.54 % val mIoU
 python scripts/eval.py eval/val_1step \
-    --checkpoint data/checkpoints/gssc_31k_mf_step40000.safetensors
+    --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt
 ```
 
-That's it. Expected output:
+That's it. Expected output (truncated):
 
 ```
-[gssc.eval] Loading checkpoint: data/checkpoints/gssc_31k_mf_step40000.safetensors
-[gssc.eval] SemanticKITTI val seq 08 (4071 frames)
-[gssc.eval] Algo2 correction sampling, N=1
-...
-[gssc.eval] mIoU       38.54 %
-[gssc.eval] IoU_cmpl   55.45 %
-[gssc.eval] Per-class:
-[gssc.eval]   motorcyclist 12.4   bicyclist 23.2   person 23.2   ...
+[gssc.inference.evaluate] Eval config: eval/val_1step
+[gssc.inference.evaluate] Sequences=08 steps=1 tta=none
+[gssc.inference.evaluate] Stage 1 done. Predictions written under <tmpdir>
+[gssc.inference.evaluate] Stage 2 (score): ... evaluate_completion.py ...
+[gssc.inference.evaluate] mIoU         38.54 %
+[gssc.inference.evaluate] IoU_cmpl     52.66 %
+
+============================================================
+ GSSC-S2D2 evaluation: eval/val_1step
+============================================================
+  mIoU       : 38.54 %
+  Completion : 52.66 %
+------------------------------------------------------------
+ Per-class IoU:
+  bicycle               24.30 %
+  bicyclist             23.20 %
+  car                   51.40 %
+  motorcyclist          12.40 %
+  pole                  37.80 %
+  ...
+============================================================
 ```
 
 For the full hidden-test leaderboard submission flow (39.2 % via *D*<sub>4</sub> TTA), see [docs/INFERENCE.md](docs/INFERENCE.md).
