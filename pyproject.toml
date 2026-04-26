@@ -43,7 +43,7 @@ dependencies = [
     "huggingface-hub>=0.24",
     "tensorboard>=2.16",
     # spconv: install separately, see docs/REPRODUCIBILITY.md
-    # spconv-cu121>=2.3.6
+    # spconv-cu126==2.3.8
 ]
 
 [project.optional-dependencies]

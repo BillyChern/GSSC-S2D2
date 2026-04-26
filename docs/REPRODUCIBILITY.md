@@ -15,7 +15,7 @@
 Python:         3.10.14 or 3.11.x
 PyTorch:        2.4.0
 CUDA:           12.8
-spconv:         2.3.6 (built for cu121, with our kernel-shape patches)
+spconv:        2.3.8 (built for cu126, with our kernel-shape patches)
 NumPy:          1.26.x (NOT 2.x — spconv v2.3 incompat)
 ```
 
@@ -24,7 +24,7 @@ The exact pin set is in `uv.lock`. Reproduce with:
 ```bash
 uv venv --python 3.10
 uv sync
-uv pip install spconv-cu121==2.3.6
+uv pip install spconv-cu126==2.3.8
 ```
 
 ## Random seeds

@@ -52,7 +52,7 @@ On full SemanticKITTI val seq 08:
 # 1. Clone + install (uv recommended)
 git clone https://github.com/BillyChern/GSSC-S2D2.git && cd GSSC-S2D2
 curl -LsSf https://astral.sh/uv/install.sh | sh
-uv venv --python 3.10 && uv sync && uv pip install spconv-cu121==2.3.6
+uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
 
 # 2. Pull pretrained checkpoint + SCPNet predictions
 python scripts/download_assets.py --checkpoints --predictions
@@ -164,7 +164,7 @@ Expected best-EMA val mIoU ∈ [38.3 %, 38.7 %] (within seed noise of the 38.54 
 | OS | Ubuntu 22.04 + CUDA 12.8 | Linux + CUDA 12.x |
 | Python | 3.10 / 3.11 | 3.10+ |
 | PyTorch | 2.4.0 | 2.4.x |
-| spconv | 2.3.6 (cu121, with our patches) | required |
+| spconv | 2.3.8 (cu126, with our patches) | required |
 
 Pinned versions in `uv.lock`. See [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) for the exact environment matrix.
 
