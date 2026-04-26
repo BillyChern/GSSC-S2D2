@@ -23,7 +23,7 @@
 </div>
 
 > [!IMPORTANT]
-> **One-pass refinement of any frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100, and **+1.3 absolute mIoU** over the previous SOTA. Drop-in replaces SCPNet's argmax with one cheap correction step — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU**).
+> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100, and **+1.3 absolute mIoU** over the previous SOTA. Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU**).
 
 > [!TIP]
 > **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for a 3-command reproduction of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once SCPNet predictions are downloaded.
@@ -32,7 +32,7 @@
 
 * **2026-04** — Public release v1.0.0. Headline checkpoint (gssc_31k_mf_step40000) released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU (matches paper Tab. I exactly).
 * **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.09 % mIoU.
-* **2026-03** — TPAMI 2026 acceptance, 39.2 % mIoU on SemanticKITTI hidden test leaderboard.
+* **2026-03** — 39.2 % mIoU on SemanticKITTI hidden test leaderboard — paper under review at TPAMI.
 
 ---
 
@@ -266,7 +266,7 @@ Pinned versions in `uv.lock`. See [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY
 
 1. **Structured source.** Replace the noise endpoint with a learned base model's prediction $x_{\text{src}}$. The forward process becomes the Dirac mixture $x_t = \bar\alpha_t \cdot x_0 + (1 - \bar\alpha_t) \cdot x_{\text{src}}$, a deterministic interpolant between ground truth and $x_{\text{src}}$.
 2. **S²D² correction sampling.** A non-noise deterministic reverse process (we specialise the non-noise correction sampler of Cold Diffusion, Bansal et al. 2022, to our linear simplex interpolant) that routes the full residual $\hat{\mathbf{x}}_0 - \mathbf{x}_{\text{src}}$ directly per step. At $N = 1$, the iterate at $t = T$ coincides with $\mathbf{x}_{\text{src}}$, giving a Lipschitz-free single-step bound (App. A.5 in the paper).
-3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid ($32^2{\times}4$ → $64^2{\times}8$ → $256^2{\times}32$) generates synthetic $(\text{sparse}, \text{complete})$ pairs. Combined with HDL-64E ray-tracing and a 5 000-instance rare-class object bank, this yields the 31 K-scene synthetic pool used by the headline configuration.
+3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid ($32^2{\times}4$ → $64^2{\times}8$ → $256^2{\times}32$) generates synthetic $(\text{sparse}, \text{complete})$ pairs. Combined with HDL-64E ray-tracing and a 57,789-instance / 8-class rare-class object bank, this yields the 31 K-scene synthetic pool used by the headline configuration.
 
 The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:posterior`, `prop:elbo`, `prop:fm`, `prop:meanflow`, `thm:error`, `cor:onestep`, `cor:lipprop`, `prop:proj`).
 
@@ -355,7 +355,7 @@ This codebase builds on top of:
 
 * **SCPNet** ([CVPR 2023](https://github.com/SCPNet/Codes-for-SCPNet)) — frozen base model whose predictions seed the structured source.
 * **SemanticKITTI** ([ICCV 2019](http://www.semantic-kitti.org/)) — voxelised LiDAR scene completion benchmark.
-* **Pyramid Discrete Diffusion** ([Liu et al., 2023](https://arxiv.org/abs/2311.12085)) — multi-scale discrete diffusion for 3D scene synthesis; the foundation of our Phase-1 data augmentation pipeline (S₁/S₂/S₃ + LiDAR ray-tracing + rare-class object bank).
+* **Pyramid Discrete Diffusion** ([Liu et al., 2023](https://arxiv.org/abs/2311.12085)) — multi-scale discrete diffusion for 3D scene synthesis; the foundation of our offline data augmentation pipeline (S₁/S₂/S₃ + LiDAR ray-tracing + rare-class object bank).
 * **spconv 2.3** ([traveller59/spconv](https://github.com/traveller59/spconv)) — sparse 3D convolution backend.
 * **D3PM / Multinomial Diffusion** ([NeurIPS 2021](https://arxiv.org/abs/2107.03006)) — discrete diffusion family.
 * **TALoS** ([NeurIPS 2024](https://arxiv.org/abs/2410.15674)) — previous SemanticKITTI SSC SOTA, included as the leaderboard reference baseline.
