@@ -6,15 +6,29 @@ This repository targets **Google/Apple production-grade standards**.
 
 ### Hard requirements (CI-enforced)
 
+| Standard | Tool | Command | Scope |
+|---|---|---|---|
+| Style + import order | `ruff` | `ruff check src/ tests/ scripts/` | All non-vendored code |
+| Tests | `pytest` | `pytest tests/ -v` | 80 cases, all CPU-runnable |
+| Coverage | `pytest-cov` | `pytest --cov --cov-fail-under=80` | `src/gssc/{utils,inference}` (the testable subset) |
+| Static types | `mypy` | `mypy src/gssc/inference src/gssc/utils` | Public-API modules only |
+| Pre-commit | `pre-commit run --all-files` | local + CI | every commit |
+
+### Aspirational (run manually until CI gates are added)
+
 | Standard | Tool | Command |
 |---|---|---|
-| Style + import order | `ruff` | `ruff check src/ tests/ scripts/` |
-| Static types | `mypy` (strict mode) | `mypy --strict src/gssc/` |
-| Tests | `pytest` | `pytest tests/ -v` |
-| Coverage | `pytest-cov` | `pytest --cov=gssc --cov-fail-under=80` |
 | Dead code | `vulture` | `vulture src/` |
 | Unused imports | `pyflakes` | `pyflakes src/` |
 | Security | `bandit` | `bandit -r src/` |
+| Strict types | `mypy --strict` | `mypy --strict src/gssc/inference` |
+
+> **Scope note.** Type-checking is enforced on the public-API surface
+> (`gssc.inference`, `gssc.utils`) where annotations are complete.
+> Legacy modules under `src/gssc/_improved_diffusion/`,
+> `src/gssc/models/extras_*.py`, and `src/gssc/training/train_pyramid_*.py`
+> are deliberately excluded from style + type gating until they're
+> refactored or removed (tracked in `CHANGELOG.md` Unreleased).
 
 ### Style conventions
 

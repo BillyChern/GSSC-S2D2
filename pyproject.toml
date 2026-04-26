@@ -52,8 +52,10 @@ dev = [
     "pytest-cov>=4.1",
     "ruff>=0.6",
     "mypy>=1.10",
+    "types-PyYAML>=6.0",
     "vulture>=2.11",
     "pyflakes>=3.2",
+    "pre-commit>=3.7",
 ]
 viz = [
     # Blender 3.6 LTS, headless, called via subprocess (not a pip package).
@@ -128,6 +130,40 @@ markers = [
     "slow: takes more than 60 seconds",
     "data: requires SemanticKITTI data",
 ]
+
+[tool.mypy]
+# Type-check only the public-API surface where annotations are complete.
+# Legacy / vendored modules are intentionally out of scope; they are
+# excluded from style enforcement too (see [tool.ruff] above).
+python_version = "3.10"
+files = [
+    "src/gssc/inference/evaluate.py",
+    "src/gssc/inference/evaluate_bev.py",
+    "src/gssc/inference/d4_tta.py",
+    "src/gssc/inference/generate_predictions.py",
+    "src/gssc/utils",
+]
+exclude = [
+    "src/gssc/inference/run_scpnet.py",  # vendored SCPNet wrapper
+]
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = false           # spconv / torch return Any in many places
+no_implicit_optional = true
+check_untyped_defs = true
+# Aspirational --strict knobs (toggled per-module as we tighten):
+disallow_untyped_defs = false     # flip on per module via overrides below
+disallow_any_generics = false
+
+[[tool.mypy.overrides]]
+module = "gssc.inference.evaluate"
+disallow_untyped_defs = true      # this module is fully typed
+
+[[tool.mypy.overrides]]
+module = "gssc.utils.config_loader"
+disallow_untyped_defs = true      # this module is fully typed
 
 [tool.coverage.run]
 # Coverage targets the unit-testable subset: pure-Python helpers, parsers,

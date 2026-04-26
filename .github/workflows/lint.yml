@@ -14,3 +14,14 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv pip install --system ruff
       - run: ruff check src/ tests/ scripts/
+
+  mypy:
+    name: mypy (public API surface)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Install mypy + stubs
+        run: uv pip install --system "mypy>=1.10" "types-PyYAML>=6.0"
+      - name: Type-check public API
+        run: mypy

@@ -226,7 +226,8 @@ def main() -> None:
             lidar_base = load_lidar_voxels(voxel_path).to(device)
             scp_base = torch.from_numpy(scpnet_pred.astype(np.int64)).unsqueeze(0).to(device)
 
-            soft_sum = None
+            assert D4_ELEMENTS, "D4 group must have >= 1 element"
+            soft_sum: torch.Tensor | None = None
             for (fx, fy, rk) in D4_ELEMENTS:
                 lidar_t, scp_t, _ = apply_d4(lidar_base, scp_base, torch.zeros(1, 256, 256, dtype=torch.long, device=device), fx, fy, rk)
                 bev_t = derive_bev(scp_t)
@@ -234,6 +235,7 @@ def main() -> None:
                 soft_back = invert_d4(soft, fx, fy, rk)
                 soft_sum = soft_back if soft_sum is None else (soft_sum + soft_back)
 
+            assert soft_sum is not None  # guaranteed by D4_ELEMENTS non-empty assertion
             soft_avg = soft_sum / len(D4_ELEMENTS)
             pred = soft_avg.argmax(dim=1)
 

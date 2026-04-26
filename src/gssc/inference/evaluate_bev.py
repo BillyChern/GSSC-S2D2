@@ -146,9 +146,12 @@ def evaluate_bev(
     _ = MultinomialDiffusion2D(
         num_classes=num_classes, num_timesteps=num_timesteps,
     ).to(device)
+    # Note: create_modular_bev_unet's body channel count is fixed by
+    # ``model_size``; ``base_channels`` from the checkpoint config is
+    # informational and only checked for consistency.
+    del base_channels  # silence "unused" until we wire model_size from cfg
     denoiser = create_modular_bev_unet(
         num_classes=num_classes,
-        base_channels=base_channels,
         cond_channels=lidar_channels,
     ).to(device)
     lidar_encoder = SparseLiDAREncoder(

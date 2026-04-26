@@ -14,6 +14,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![PyTorch 2.4](https://img.shields.io/badge/pytorch-2.4-orange.svg)](https://pytorch.org/)
 [![Code style: ruff](https://img.shields.io/badge/lint-ruff-46a2f1.svg)](https://github.com/astral-sh/ruff)
+[![Type checks: mypy](https://img.shields.io/badge/types-mypy-2A6DB2.svg)](https://mypy.readthedocs.io/)
 [![Tested coverage](https://img.shields.io/badge/coverage-89%25-success.svg)](#code-quality--testing)
 [![SemanticKITTI SOTA](https://img.shields.io/badge/SemanticKITTI-39.2%20mIoU%20%F0%9F%8F%86-orange.svg)](#headline-numbers--semantickitti-hidden-test-single-frame-single-sample-lidar)
 
@@ -37,26 +38,19 @@
 
 ## Method at a glance
 
-```
-                  ┌────────────────────┐
-   sparse LiDAR ──▶│  Frozen base SSC   │── x_src  ──┐
-                  │  (e.g. SCPNet)     │            │
-                  └────────────────────┘            ▼
-                              │            ┌─────────────────┐
-                              │            │  S²D² denoiser  │── x̂₀ ─▶ argmax ─▶ Ŷ
-                              ▼            │  f_θ(x_t,t,c)   │
-                  ┌────────────────────┐   │                 │
-                  │  Base-derived BEV  │── │  c =  (B, L)    │
-                  │  + LiDAR voxels    │── │                 │
-                  └────────────────────┘   └─────────────────┘
-                       conditioning              ↑
-                                                 │
-                                       Algo2 correction sampling:
-                                       x_{t-1} = x_t + Δᾱ_t (x̂₀ − x_src)
-                                       (one Euler step at deployment, N=1)
-```
+<p align="center">
+  <img src="assets/teaser.png" width="92%" alt="GSSC-S2D2 two-stage pipeline: offline data augmentation + S²D² one-step deployment" />
+</p>
 
-**Why it works.** Pure-noise diffusion wastes capacity learning to invert random corruption. By starting from the base model's *structured* prediction $x_{\text{src}}$ rather than $x_T \sim \pi$, the network only has to learn the **residual** between $x_{\text{src}}$ and ground truth — a much smaller chunk of probability mass to transport. One Euler step suffices for the headline 38.54 % val mIoU; 4 steps + $D_4$ TTA push to **39.2 % test**.
+<sub>**Stage A** (top) — offline data augmentation: pyramid discrete diffusion synthesises complete scenes; ray-tracing converts them to sparse LiDAR; an object bank pastes rare classes; the resulting synthetic pool is pooled with the SemanticKITTI training split. **Stage B** (bottom) — at deployment, a single forward pass through the frozen base model produces $\mathbf{x}_{\text{src}}$, then one correction-sampling step through $f_\theta$ yields the refined output $\hat{\mathbf{x}}_0$. The whole deployment path is one extra forward pass on top of the base model. Source: paper Fig. 2.</sub>
+
+**Why it works.** Pure-noise diffusion wastes capacity learning to invert random corruption. By starting from the base model's *structured* prediction $\mathbf{x}_{\text{src}}$ rather than $x_T \sim \pi$, the network only has to learn the **residual** between $\mathbf{x}_{\text{src}}$ and ground truth — a much smaller chunk of probability mass to transport. One correction step suffices for the headline 38.54 % val mIoU; four steps + $D_4$ TTA push to **39.2 % test**.
+
+<p align="center">
+  <img src="assets/architecture.png" width="92%" alt="S²D² simplex transport + 4-level sparse 3D UNet denoiser" />
+</p>
+
+<sub>The denoiser $f_\theta$ — a 4-level sparse 3D UNet with per-voxel FiLM modulation from time, LiDAR, and BEV conditioning streams — transports each voxel's distribution along a simplex path from $\mathbf{x}_{\text{src}}$ to $\mathbf{x}_0$ in one Euler step. The bottom panel shows a representative rare-class win on val seq 08. Source: paper Fig. 3.</sub>
 
 ---
 
@@ -74,11 +68,17 @@
 | **S²D² (Ours, *N* = 4, *D*<sub>4</sub> TTA)** | 🏆 **39.2** | 59.0 | **+2.5** | leaderboard SOTA |
 
 On full SemanticKITTI val seq 08:
-* **38.54 %** mIoU (1-step Algo2)  ✅ verified end-to-end
-* **38.73 %** mIoU (+ *D*<sub>4</sub> TTA)
+* **38.54 %** mIoU (single correction step, $N{=}1$)  ✅ verified end-to-end
+* **38.73 %** mIoU (4-step correction sampling + *D*<sub>4</sub> TTA)
 * **+2.37** absolute over our SCPNet base (36.17 %)
 
-### Per-class IoU on val seq 08 (1-step Algo2, verified)
+<p align="center">
+  <img src="assets/qualitative.png" width="92%" alt="Qualitative comparison on SemanticKITTI val seq 08 vs SOTA baselines" />
+</p>
+
+<sub>Two seq-08 frames where S²D² recovers a rare class the base SOTA misses entirely. Left → right: GT, SCPNet, TALoS, S²D² (ours, $N{=}4$), Ground Truth. Source: paper Fig. 4.</sub>
+
+### Per-class IoU on val seq 08 (single correction step, verified)
 
 <sub>From `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt`. Numbers below match paper Tab. I exactly.</sub>
 
@@ -181,7 +181,7 @@ python scripts/train.py train/bev_secondary
 GSSC-S2D2/
 ├── src/gssc/                       # the Python package
 │   ├── models/                     # sparse 3D U-Net, SCPNet base, pyramid, BEV variant, FiLM
-│   ├── diffusion/                  # forward process, Dirac posterior, Algo2 sampler, D4 TTA
+│   ├── diffusion/                  # forward process, Dirac posterior, correction sampler, D4 TTA
 │   ├── data/                       # SemanticKITTI loader, synthetic pool, object bank, HDL-64E ray-tracer
 │   ├── losses/                     # KL posterior + Lovász + auxiliary + focal-CE
 │   ├── training/                   # canonical trainer + EMA + logging
@@ -265,7 +265,7 @@ Pinned versions in `uv.lock`. See [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY
 ## Three ideas behind S²D²
 
 1. **Structured source.** Replace the noise endpoint with a learned base model's prediction $x_{\text{src}}$. The forward process becomes the Dirac mixture $x_t = \bar\alpha_t \cdot x_0 + (1 - \bar\alpha_t) \cdot x_{\text{src}}$, a deterministic interpolant between ground truth and $x_{\text{src}}$.
-2. **Algo2 correction sampling.** A non-noise reverse process that routes the full residual $\hat{x}_0 - x_{\text{src}}$ directly per step. At $N = 1$, the iterate at $t = T$ coincides with $x_{\text{src}}$, giving a Lipschitz-free single-step bound (App. A.5 in the paper).
+2. **Correction sampling.** A non-noise deterministic reverse process (Bansal et al.'s Cold Diffusion Algorithm 2) that routes the full residual $\hat{\mathbf{x}}_0 - \mathbf{x}_{\text{src}}$ directly per step. At $N = 1$, the iterate at $t = T$ coincides with $\mathbf{x}_{\text{src}}$, giving a Lipschitz-free single-step bound (App. A.5 in the paper).
 3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid ($32^2{\times}4$ → $64^2{\times}8$ → $256^2{\times}32$) generates synthetic $(\text{sparse}, \text{complete})$ pairs. Combined with HDL-64E ray-tracing and a 5 000-instance rare-class object bank, this yields the 31 K-scene synthetic pool used by the headline configuration.
 
 The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:posterior`, `prop:elbo`, `prop:fm`, `prop:meanflow`, `thm:error`, `cor:onestep`, `cor:lipprop`, `prop:proj`).
