@@ -1,11 +1,11 @@
 """GSSC-S2D2 evaluation pipeline.
 
-Loads a checkpoint, runs Algo2 correction sampling on SemanticKITTI val, and
+Loads a checkpoint, runs S2D2 correction sampling on SemanticKITTI val, and
 returns per-class IoU + mIoU + completion IoU.
 
 The evaluation is a two-stage pipeline:
 
-1. ``gssc.inference.generate_predictions`` (Algo2 sampler) writes ``.label``
+1. ``gssc.inference.generate_predictions`` (S2D2 correction sampler) writes ``.label``
    files for each frame in the requested split.
 2. ``external/semantic_kitti_api/evaluate_completion.py`` reads those
    ``.label`` files and produces the official scoring numbers.
@@ -113,7 +113,7 @@ def run_evaluation(
             ``scpnet_predictions/``).
         output: Optional path to dump per-class metrics as JSON.
         gpu: CUDA device id (default ``"0"``).
-        steps: Algo2 step count override; ``None`` uses the config default.
+        steps: Correction-step count override; ``None`` uses the config default.
         tta: TTA mode override; one of ``{"none", "flip_y", "d4"}``.
         metrics: Reserved for future safety-metric subset selection.
         keep_predictions: If True, keep the intermediate ``.label`` files
@@ -138,7 +138,9 @@ def run_evaluation(
 
     cfg = _resolve_config(config)
     sequences = str(cfg.get("sequences", "08"))
-    n_steps = steps if steps is not None else int(cfg.get("algo2_steps", 1))
+    n_steps = steps if steps is not None else int(
+        cfg.get("correction_steps", cfg.get("algo2_steps", 1))
+    )
     tta_mode = tta if tta is not None else str(cfg.get("tta", "none"))
 
     logger.info("Eval config: %s", config)

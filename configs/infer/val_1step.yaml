@@ -1,5 +1,5 @@
 _paper_table: tab:perclass
 split: val
 sequences: "08"
-algo2_steps: 1
+correction_steps: 1
 tta: none

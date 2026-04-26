@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""BEV Cold Diffusion Training — refine SCPNet/TALoS BEV predictions toward GT BEV.
+"""BEV S2D2 Refinement Training -- refine SCPNet/TALoS BEV predictions toward GT BEV.
 
 Cold diffusion forward: bev_t = alpha_t * GT_BEV + (1-alpha_t) * SCPNet_BEV
 Training: KL posterior loss (provides regularization)
-Sampling: Algorithm 2 correction sampling (bypasses posterior bottleneck)
+Sampling: S2D2 correction sampling (bypasses posterior bottleneck)
 
 Usage:
   # BEV-A: Refine SCPNet BEV
@@ -51,7 +51,7 @@ except ImportError:
 # ============================================================================
 
 class BEVColdDiffusionDataset(Dataset):
-    """Dataset for BEV cold diffusion training.
+    """Dataset for BEV S2D2 refinement training.
 
     Loads GT BEV, predicted BEV (SCPNet or TALoS), and LiDAR voxels.
     """
@@ -316,7 +316,7 @@ class BEVColdDiffusionTrainer:
 
     @torch.no_grad()
     def run_algo2_on_samples(self):
-        """Run Algo2 on fixed 100 val samples with official BEV metrics."""
+        """Run S2D2 correction sampling on fixed 100 val samples with official BEV metrics."""
         self.encoder.eval()
         self.unet.eval()
 
@@ -336,7 +336,10 @@ class BEVColdDiffusionTrainer:
             lidar_features = self._encode_lidar(voxels)
             refined = self.diffusion.sample_algo2(
                 self._model_fn, lidar_features, pred_bev,
-                n_steps=self.config.get('algo2_eval_steps', 100))
+                n_steps=self.config.get(
+                    'correction_eval_steps',
+                    self.config.get('algo2_eval_steps', 100),
+                ))
 
             # BEV eval: no invalid mask (standard 2D seg), mIoU over classes 1-19
             metrics.update(refined.cpu().numpy()[0], gt_bev)
@@ -357,7 +360,7 @@ class BEVColdDiffusionTrainer:
         }, path)
 
     def train(self):
-        self.logger.info("Starting BEV cold diffusion training...")
+        self.logger.info("Starting BEV S2D2 refinement training...")
         train_iter = iter(self.train_loader)
         pbar = tqdm(total=self.config['num_iterations'], initial=self.global_step, desc="Training")
 
@@ -377,7 +380,7 @@ class BEVColdDiffusionTrainer:
                 self.logger.info(f"Step {self.global_step}: loss={metrics['loss']:.4f}")
 
             if self.global_step % self.config.get('miou_interval', 5000) == 0:
-                self.logger.info(f"Running Algo2 BEV eval at step {self.global_step}...")
+                self.logger.info(f"Running S2D2 BEV eval at step {self.global_step}...")
 
                 # Training weights
                 result, scp_result = self.run_algo2_on_samples()
@@ -413,7 +416,7 @@ class BEVColdDiffusionTrainer:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='BEV Cold Diffusion Training')
+    parser = argparse.ArgumentParser(description='BEV S2D2 Refinement Training')
     parser.add_argument('--output_dir', type=str, required=True)
     parser.add_argument('--data_root', type=str, default='datasets')
     parser.add_argument('--pred_bev_dir', type=str, required=True,

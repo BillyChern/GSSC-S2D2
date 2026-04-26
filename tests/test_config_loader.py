@@ -28,6 +28,6 @@ def test_underscore_keys_skipped(tmp_path: Path) -> None:
 
 def test_list_values(tmp_path: Path) -> None:
     cfg = tmp_path / "c.yaml"
-    cfg.write_text("algo2_steps:\n  - 1\n  - 4\n  - 100\n")
+    cfg.write_text("correction_steps:\n  - 1\n  - 4\n  - 100\n")
     args = load_yaml_to_args(cfg)
-    assert args == ["--algo2_steps", "1,4,100"]
+    assert args == ["--correction_steps", "1,4,100"]

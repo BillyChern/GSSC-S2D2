@@ -2,5 +2,5 @@ _paper_table: tab:step_reduction (full sweep)
 _description: Full 1..100 step sweep on val seq 08.
 split: val
 sequences: "08"
-algo2_steps: [1, 2, 5, 10, 25, 50, 100]
+correction_steps: [1, 2, 5, 10, 25, 50, 100]
 tta: none

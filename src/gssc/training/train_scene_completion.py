@@ -3026,13 +3026,16 @@ class SceneCompletionTrainer:
                                 _scp = batch['scpnet_pred'].to(self.device)
                                 _scp_oh = F.one_hot(_scp.long(), self.config['num_classes']).float()
                                 sample_kwargs['x_scpnet'] = _scp_oh.permute(0, 4, 1, 2, 3)
-                                algo2_steps = self.config.get('algo2_eval_steps', 100)
+                                correction_steps = self.config.get(
+                                    'correction_eval_steps',
+                                    self.config.get('algo2_eval_steps', 100),
+                                )
                                 pred_scene = self.diffusion.sample_algo2(
                                     self.model, bev, lidar,
                                     scpnet_pred=_scp,
                                     shape=(B, H, W, D),
                                     device=self.device,
-                                    n_steps=algo2_steps,
+                                    n_steps=correction_steps,
                                     show_progress=False,
                                     **sample_kwargs,
                                 )

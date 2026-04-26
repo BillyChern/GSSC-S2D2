@@ -102,14 +102,14 @@ def test_resolve_config_loads_eval_val_1step() -> None:
     cfg = _resolve_config("eval/val_1step")
     assert cfg["split"] == "val"
     assert cfg["sequences"] == "08"
-    assert cfg["algo2_steps"] == 1
+    assert cfg["correction_steps"] == 1
     assert cfg["tta"] == "none"
 
 
 def test_resolve_config_loads_eval_d4tta() -> None:
     """D4 TTA config matches the paper Tab. I 39.2% leaderboard row."""
     cfg = _resolve_config("eval/val_d4tta")
-    assert cfg["algo2_steps"] == 4
+    assert cfg["correction_steps"] == 4
     assert cfg["tta"] == "d4"
 
 

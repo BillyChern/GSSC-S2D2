@@ -14,6 +14,6 @@ lr: 1.0e-4
 num_iterations: 100000
 ssc_lovasz_weight: 0.3
 auxiliary_loss_weight: 0.0005
-algo2_eval_steps: 100
+correction_eval_steps: 100
 save_interval: 5000
 diffusion_timesteps: 100100

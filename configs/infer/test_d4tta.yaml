@@ -2,5 +2,5 @@ _paper_table: tab:main_results (39.2 test row)
 _description: D4 TTA inference on test split for SemanticKITTI submission. Generates .label files.
 split: test
 sequences: "11,12,13,14,15,16,17,18,19,20,21"
-algo2_steps: 4
+correction_steps: 4
 tta: d4
