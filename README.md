@@ -1,8 +1,8 @@
 <div align="center">
 
-# GSSC-S2D2
+# Generative Semantic Scene Completion
 
-### Generative Semantic Scene Completion via Structured Source Discrete Diffusion
+### Proposing S²D²: Structured Source Discrete Diffusion
 
 📄 **[Paper (TPAMI 2026)](https://arxiv.org/abs/TBD)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility Guide](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab Quickstart](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
 
