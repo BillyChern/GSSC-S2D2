@@ -24,15 +24,16 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from pathlib import Path
+
 import numpy as np
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
-from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from gssc.models.s2d2_unet import SceneCompletionUNetSparse
 from gssc.diffusion.multinomial import MultinomialDiffusion3DV2
+from gssc.models.s2d2_unet import SceneCompletionUNetSparse
 
 LEARNING_MAP_INV = {
     0: 0, 1: 10, 2: 11, 3: 15, 4: 18, 5: 20, 6: 30, 7: 31, 8: 32,

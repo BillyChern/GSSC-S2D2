@@ -24,16 +24,17 @@ Usage:
 import argparse
 import os
 import sys
+from pathlib import Path
+
 import numpy as np
 import torch
 import torch.nn.functional as F
-from pathlib import Path
 from tqdm import tqdm
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from gssc.models.s2d2_unet import SceneCompletionUNetSparse
 from gssc.diffusion.multinomial import MultinomialDiffusion3DV2
+from gssc.models.s2d2_unet import SceneCompletionUNetSparse
 
 # Official SemanticKITTI learning_map_inv: training space (0-19) → original space (0-255)
 LEARNING_MAP_INV = np.array([
@@ -261,9 +262,9 @@ def main():
             total_frames += 1
 
     print(f'\nDone! Generated {total_frames} prediction files in {args.output_dir}')
-    print(f'\nTo evaluate on val set:')
-    print(f'  cd semantic-kitti-api')
-    print(f'  python evaluate_completion.py \\')
+    print('\nTo evaluate on val set:')
+    print('  cd semantic-kitti-api')
+    print('  python evaluate_completion.py \\')
     print(f'    --dataset {os.path.abspath(args.data_root)} \\')
     print(f'    --predictions {os.path.abspath(args.output_dir)} \\')
     print(f'    --split {args.split}')

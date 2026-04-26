@@ -23,7 +23,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Optional
 
 import yaml
 
@@ -37,28 +36,47 @@ def _parse_eval_completion_output(text: str) -> dict[str, float]:
 
     The official semantic_kitti_api script prints lines like::
 
-        IoU class motorcyclist                = 12.43%
-        Completion IoU = 55.45%
-        Mean IoU = 38.54%
+        IoU class 1 [car] = 0.514
+        IoU class 8 [motorcyclist] = 0.124
+        Precision =\t86.04
+        Recall   =\t57.59
+        IoU Cmpltn =\t52.66
+        mIoU SSC =\t38.54
+
+    Per-class IoU is printed as a fraction in [0, 1]; aggregate metrics
+    are already in percent. We normalise everything to percent.
 
     Args:
         text: Captured stdout/stderr of the scoring process.
 
     Returns:
-        Mapping from metric name to percentage value.
+        Mapping from metric name to percentage value (e.g. ``{"mIoU": 38.54,
+        "IoU_cmpl": 52.66, "IoU_car": 51.4, "IoU_motorcyclist": 12.4, ...}``).
     """
     metrics: dict[str, float] = {}
     for line in text.splitlines():
-        m = re.match(r"\s*Mean IoU\s*=\s*([\d.]+)%", line)
+        # Aggregate metrics: tab-separated, already in percent.
+        m = re.match(r"\s*mIoU\s+SSC\s*=\s*([\d.]+)", line)
         if m:
             metrics["mIoU"] = float(m.group(1))
-        m = re.match(r"\s*Completion IoU\s*=\s*([\d.]+)%", line)
+            continue
+        m = re.match(r"\s*IoU\s+Cmpltn\s*=\s*([\d.]+)", line)
         if m:
             metrics["IoU_cmpl"] = float(m.group(1))
-        m = re.match(r"\s*IoU class (\S+(?:\s+\S+)?)\s*=\s*([\d.]+)%", line)
+            continue
+        m = re.match(r"\s*Precision\s*=\s*([\d.]+)", line)
         if m:
-            cls_name = m.group(1).strip().replace(" ", "_")
-            metrics[f"IoU_{cls_name}"] = float(m.group(2))
+            metrics["Precision"] = float(m.group(1))
+            continue
+        m = re.match(r"\s*Recall\s*=\s*([\d.]+)", line)
+        if m:
+            metrics["Recall"] = float(m.group(1))
+            continue
+        # Per-class IoU: "IoU class 1 [car] = 0.514" — fraction → percent.
+        m = re.match(r"\s*IoU class \d+\s*\[([^\]]+)\]\s*=\s*([\d.]+)", line)
+        if m:
+            cls_name = m.group(1).strip().replace("-", "_").replace(" ", "_")
+            metrics[f"IoU_{cls_name}"] = float(m.group(2)) * 100.0
     return metrics
 
 
@@ -79,11 +97,11 @@ def run_evaluation(
     checkpoint: str,
     config: str,
     data_root: str,
-    output: Optional[str] = None,
+    output: str | None = None,
     gpu: str = "0",
-    steps: Optional[int] = None,
-    tta: Optional[str] = None,
-    metrics: Optional[List[str]] = None,
+    steps: int | None = None,
+    tta: str | None = None,
+    metrics: list[str] | None = None,
     keep_predictions: bool = False,
 ) -> dict:
     """Run a SemanticKITTI evaluation end-to-end.
@@ -127,7 +145,7 @@ def run_evaluation(
     logger.info("Checkpoint: %s", ckpt_path)
     logger.info("Sequences=%s steps=%d tta=%s", sequences, n_steps, tta_mode)
 
-    pred_dir_ctx: Optional[tempfile.TemporaryDirectory[str]] = None
+    pred_dir_ctx: tempfile.TemporaryDirectory[str] | None = None
     if keep_predictions:
         pred_dir = data_root_path / "predictions" / config.replace("/", "_")
         pred_dir.mkdir(parents=True, exist_ok=True)
@@ -171,6 +189,10 @@ def run_evaluation(
             "--algo2",
             "--bev_from_scpnet",
         ]
+    # When predictions are persisted, an interrupted/repeat run can resume by
+    # skipping frames that already have a .label written.
+    if keep_predictions:
+        cmd.append("--skip_existing")
 
     logger.info("Stage 1 (generate): %s", " ".join(cmd))
     proc = subprocess.run(cmd, env=env, capture_output=True, text=True)
