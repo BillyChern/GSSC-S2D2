@@ -49,3 +49,9 @@ synthetic_pool*/
 # Migration working files (keep in repo until v1.0.0 polish, then strip)
 MIGRATION_AUDIT.md
 .migration_audit*
+
+# Coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml

@@ -123,3 +123,33 @@ markers = [
     "slow: takes more than 60 seconds",
     "data: requires SemanticKITTI data",
 ]
+
+[tool.coverage.run]
+# Coverage targets the unit-testable subset: pure-Python helpers, parsers,
+# config loaders, and small math invariants that run on CPU. The heavy
+# GPU pipelines (full diffusion sampler, model forward, subprocess shells
+# for the two-stage eval) are exercised by the V4 / V5 integration runs
+# documented in docs/REPRODUCIBILITY.md rather than by pytest, since they
+# require a GPU + 200 GB of SemanticKITTI data.
+source = [
+    "src/gssc/utils",
+    "src/gssc/inference",
+]
+omit = [
+    "src/gssc/inference/run_scpnet.py",            # vendored SCPNet wrapper
+    "*/__main__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "def main\\(",                                  # CLI entry, integration-tested
+    "def run_evaluation\\(",                        # subprocess wrapper, V4-tested
+    "raise FileNotFoundError",                      # thin error-translation wrappers
+]
+show_missing = true
+skip_covered = false
+fail_under = 80
