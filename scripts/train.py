@@ -71,12 +71,9 @@ def main() -> None:
         default="0",
         help="CUDA device id (default: 0). Multi-GPU: comma-separated, e.g. 0,1.",
     )
-    parser.add_argument(
-        "remainder",
-        nargs=argparse.REMAINDER,
-        help="Extra args forwarded to the underlying trainer.",
-    )
-    args = parser.parse_args()
+    # Use parse_known_args so the named flags (--gpu, --seed, ...) are picked
+    # up wherever they appear and the leftovers are forwarded to the trainer.
+    args, remainder = parser.parse_known_args()
 
     # Translate config alias to the underlying trainer command.
     cfg_path = REPO_ROOT / "configs" / f"{args.config}.yaml"
@@ -97,9 +94,12 @@ def main() -> None:
     from gssc.utils.config_loader import load_yaml_to_args
 
     forwarded = load_yaml_to_args(cfg_path)
+    # Override the YAML's output_dir / data_root with the CLI flags. Done after
+    # load_yaml_to_args so user CLI flags take precedence.
     forwarded.extend(["--output_dir", str(out_dir)])
+    forwarded.extend(["--data_root", args.data_root])
     forwarded.extend(["--seed", str(args.seed)])
-    forwarded.extend(args.remainder)
+    forwarded.extend(remainder)
 
     cmd = [sys.executable, "-m", "gssc.training.train_scene_completion", *forwarded]
     print(f"$ {' '.join(cmd)}")

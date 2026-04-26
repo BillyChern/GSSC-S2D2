@@ -3730,7 +3730,20 @@ def main():
                         choices=['linear', 'cosine', 'exponential'],
                         help='VE diffusion: sigma schedule type (default: cosine)')
 
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed (default: 42, matching paper headline)')
+
     args = parser.parse_args()
+
+    # Seed everything for reproducibility (per experiment-reproducibility rule).
+    import os
+    import random as _random
+    _random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+    os.environ["PYTHONHASHSEED"] = str(args.seed)
 
     # Config for SemanticKITTI (256×256×32)
     config = {

@@ -85,11 +85,12 @@ target-version = "py310"
 # Vendored / legacy code is excluded from style enforcement; it is kept for
 # auditability of the original training runs but not part of the public API.
 extend-exclude = [
-    "src/gssc/_improved_diffusion",          # OpenAI improved-diffusion fork
-    "src/gssc/models/extras_*.py",            # legacy ablation-only modules
-    "src/gssc/training/train_pyramid_*.py",   # legacy pyramid training scripts
+    "src/gssc/_improved_diffusion",            # OpenAI improved-diffusion fork
+    "src/gssc/models/extras_*.py",              # legacy ablation-only modules
+    "src/gssc/models/scene_unet*.py",           # legacy scene-UNet variants used by trainer
+    "src/gssc/training/train_pyramid_*.py",     # legacy pyramid training scripts
     "src/gssc/training/pyramid_pipeline.py",
-    "external/",                              # third-party (semantic_kitti_api)
+    "external/",                                # third-party (semantic_kitti_api)
 ]
 
 [tool.ruff.lint]
