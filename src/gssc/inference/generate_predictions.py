@@ -90,10 +90,10 @@ def main():
     parser = argparse.ArgumentParser(description='Generate official SemanticKITTI SSC predictions')
     parser.add_argument('--checkpoint', type=str, required=True,
                         help='Path to B4b checkpoint (e.g., best_miou.pt)')
-    parser.add_argument('--scpnet_dir', type=str, default='datasets/scpnet_predictions',
-                        help='Directory with SCPNet 3D predictions')
-    parser.add_argument('--data_root', type=str, default='datasets/dataset_SemanticKITTI_SSC',
-                        help='SemanticKITTI SSC dataset root')
+    parser.add_argument('--scpnet_dir', type=str, default='data/scpnet_predictions',
+                        help='Directory with SCPNet 3D predictions (<SEQ>/<frame>_pred.npy)')
+    parser.add_argument('--data_root', type=str, default='data/SemanticKITTI',
+                        help='SemanticKITTI SSC root (contains sequences/<SEQ>/voxels/*.bin)')
     parser.add_argument('--output_dir', type=str, required=True,
                         help='Output directory for official predictions')
     parser.add_argument('--split', type=str, choices=['valid', 'test'], default='valid',

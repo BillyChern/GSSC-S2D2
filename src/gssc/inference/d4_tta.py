@@ -154,8 +154,10 @@ def main():
     p.add_argument('--checkpoint', required=True)
     p.add_argument('--cold_steps', type=int, default=4)
     p.add_argument('--output_dir', required=True)
-    p.add_argument('--data_root', default='datasets')
-    p.add_argument('--scpnet_dir', default='datasets/scpnet_predictions')
+    p.add_argument('--data_root', default='data/SemanticKITTI',
+                   help='Root containing sequences/<SEQ>/voxels/*.bin')
+    p.add_argument('--scpnet_dir', default='data/scpnet_predictions',
+                   help='Root containing <SEQ>/<frame>_pred.npy')
     p.add_argument('--split', default='valid', choices=['train', 'valid', 'test'])
     p.add_argument('--skip_existing', action='store_true')
     args = p.parse_args()
@@ -172,7 +174,7 @@ def main():
 
     total = 0
     for seq in seqs:
-        voxels_dir = os.path.join(args.data_root, 'dataset_SemanticKITTI_SSC', 'sequences', seq, 'voxels')
+        voxels_dir = os.path.join(args.data_root, 'sequences', seq, 'voxels')
         scpnet_seq_dir = os.path.join(args.scpnet_dir, seq)
         out_pred_dir = os.path.join(args.output_dir, 'sequences', seq, 'predictions')
         os.makedirs(out_pred_dir, exist_ok=True)
