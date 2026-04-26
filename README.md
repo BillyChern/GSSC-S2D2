@@ -362,7 +362,7 @@ This codebase builds on top of:
 
 ---
 
-## Star history
+## ⭐ Star history
 
 <a href="https://www.star-history.com/#BillyChern/GSSC-S2D2&Date">
   <picture>
@@ -375,8 +375,6 @@ This codebase builds on top of:
 ---
 
 <div align="center">
-
-### Made with ❤️ at the intersection of generative modelling and self-driving perception.
 
 If GSSC-S2D2 helped your research, please ⭐ the repo and cite the paper.
 
