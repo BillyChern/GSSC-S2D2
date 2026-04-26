@@ -320,7 +320,7 @@ A. Every paper artefact corresponds to a config file. `python scripts/train.py t
 A. Same convention as every method in the leaderboard table: a full SemanticKITTI SSC training run is expensive (~37 GPU-hours), and the official scoring server takes a single submission. We use a single seed (42) to match this convention. See §V.A of the paper for the variance-disclosure discussion.
 
 **Q. The repo has no figures — where are they?**
-A. Figures and paper-typesetting code live with the paper repo, not here. This repo focuses on **method reproduction**. The qualitative comparisons in Fig. 4 / Fig. 5 are reproducible via `examples/01_render_figures.ipynb`, which produces SSIM-matched outputs from the released checkpoint.
+A. Figures and paper-typesetting code live with the paper repo, not here. This repo focuses on **method reproduction**. A figure-rendering notebook (`examples/01_render_figures.ipynb`) that produces SSIM-matched outputs from the released checkpoint is planned alongside the paper release.
 
 ---
 
