@@ -131,9 +131,11 @@ def run_evaluation(
     if keep_predictions:
         pred_dir = data_root_path / "predictions" / config.replace("/", "_")
         pred_dir.mkdir(parents=True, exist_ok=True)
+        logger.info("Predictions kept at: %s", pred_dir)
     else:
         pred_dir_ctx = tempfile.TemporaryDirectory(prefix="gssc_eval_preds_")
         pred_dir = Path(pred_dir_ctx.name)
+        logger.info("Predictions in temp dir: %s (auto-cleaned on success)", pred_dir)
 
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = gpu
@@ -180,21 +182,33 @@ def run_evaluation(
             f"STDOUT: {proc.stdout[-2000:]}\n"
             f"STDERR: {proc.stderr[-2000:]}"
         )
+    logger.info("Stage 1 done. Predictions written under %s", pred_dir)
 
     eval_script = REPO_ROOT / "external" / "semantic_kitti_api" / "evaluate_completion.py"
+    eval_dir = eval_script.parent
+    eval_datacfg = eval_dir / "config" / "semantic-kitti.yaml"
 
     score_cmd = [
         sys.executable, str(eval_script),
         "--dataset", str(semantic_kitti_root),
         "--predictions", str(pred_dir),
         "--split", gen_split,
+        "--datacfg", str(eval_datacfg),
     ]
     logger.info("Stage 2 (score): %s", " ".join(score_cmd))
-    score_proc = subprocess.run(score_cmd, env=env, capture_output=True, text=True)
+    score_proc = subprocess.run(score_cmd, env=env, capture_output=True, text=True, cwd=str(eval_dir))
     combined = score_proc.stdout + "\n" + score_proc.stderr
     if score_proc.returncode != 0:
+        # Keep predictions on scoring failure so the user can rerun stage 2
+        # without spending another ~10 min on stage 1.
         if pred_dir_ctx is not None:
-            pred_dir_ctx.cleanup()
+            persist = data_root_path / "predictions" / f"{config.replace('/', '_')}_failed"
+            persist.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                Path(pred_dir).rename(persist)
+                logger.error("Stage 2 failed; predictions retained at: %s", persist)
+            except OSError:
+                logger.error("Stage 2 failed; predictions still under: %s", pred_dir)
         raise RuntimeError(
             f"evaluate_completion failed (exit {score_proc.returncode})\n"
             f"STDOUT: {score_proc.stdout[-2000:]}\n"
