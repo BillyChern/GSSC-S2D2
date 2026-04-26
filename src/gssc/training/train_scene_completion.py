@@ -46,7 +46,7 @@ try:
 except ImportError:
     pass
 
-# S3: DSKD for Scene Completion (SCPNet-style pairwise feature similarity)
+# S3: DSKD for Scene Completion (pairwise feature similarity, per SCPNet)
 # Reference: SCPNet CVPR 2023 - matches pairwise feature relationships, not KL divergence
 try:
     from dskd import DSKDLoss3D
@@ -252,7 +252,7 @@ class SemanticKITTI3DDataset(Dataset):
             data_root: Path to SemanticKITTI SSC dataset
             sequences: List of sequence IDs to load
             augment: Whether to apply data augmentation
-            use_rectified_labels: Use SCPNet-style rectified labels (removes ghost trails
+            use_rectified_labels: Use rectified labels (SCPNet protocol) (removes ghost trails
                                   from dynamic objects). Improves +10-25% on dynamic classes.
                                   Requires running tools/rectify_labels.py first.
             waffleiron_root: Path to precomputed WaffleIron BEV features (B6 experiment).
@@ -876,7 +876,7 @@ class SceneCompletionTrainer:
             self.logger.info("S48: Direct prediction mode enabled (no diffusion)")
             self.logger.info(f"    Loss: CE(class_0={dp_weights[0]:.3f}) + Lovász(weight={self.dp_lovasz_weight})")
 
-            # Lifted BEV initialization (S3CNet-style: BEV → 3D via height priors)
+            # Lifted BEV initialization (S3CNet-inspired: BEV → 3D via height priors)
             if self.dp_use_lifted_init:
                 from gssc.models.lifting import BEVTo3DLifter
                 self.dp_lifter = BEVTo3DLifter(num_classes=config['num_classes'], num_z=32).to(device)
@@ -1007,7 +1007,7 @@ class SceneCompletionTrainer:
             self.logger.info("S3 DSKD: INTERMEDIATE mode - training with GT BEV + single-frame LiDAR")
             self.logger.info("         Bridges multi-frame → single-frame gap for curriculum distillation")
 
-        # Initialize DSKD loss (SCPNet-style pairwise feature similarity)
+        # Initialize DSKD loss (pairwise feature similarity, per SCPNet)
         self.dskd_loss = None
 
         # IMPORTANT: Enable lifted_features BEFORE creating teacher copy (for DSKD)
@@ -1102,7 +1102,7 @@ class SceneCompletionTrainer:
                             max_samples=4096,
                         )
                         self.logger.info(f"S3 KD: {mode_name} mode - loaded teacher from {teacher_ckpt}")
-                        self.logger.info("       Type: DSKD (pairwise features) - SCPNet-style")
+                        self.logger.info("       Type: DSKD (pairwise features, occupancy-masked)")
                         self.logger.info(f"       Weight={kd_weight}, Temperature={kd_temp}")
                         if self.s3_mode == 'intermediate':
                             self.logger.info("       Teacher: multi-frame lidar, Student: single-frame lidar")
@@ -1124,7 +1124,7 @@ class SceneCompletionTrainer:
                 for p in self.teacher_model.parameters():
                     p.requires_grad = False
                 self.teacher_model.eval()
-                # Initialize SCPNet-style DSKD loss
+                # Initialize DSKD loss (SCPNet protocol)
                 if DSKDLoss3D is not None:
                     dskd_temp = config.get('dskd_temperature', 1.0)
                     self.dskd_loss = DSKDLoss3D(
@@ -2011,7 +2011,7 @@ class SceneCompletionTrainer:
                     loss = loss + kd_weight * kd_loss_value
 
                 elif kd_type == 'dskd' and self.dskd_loss is not None:
-                    # DSKD: Pairwise feature similarity (SCPNet-style)
+                    # DSKD: Pairwise feature similarity (per SCPNet)
                     if hasattr(self.model, 'forward_features'):
                         # Get student features (pass lifted_features + geom_bev to match main forward)
                         student_geom_bev = batch.get('tsdf_bev', None)
@@ -3021,7 +3021,7 @@ class SceneCompletionTrainer:
                                     nn_indices=sample_nn_indices,
                                     **repaint_kwargs,
                                 )
-                            # B4/B5: Cold Diffusion — always use Algorithm 2 sampling
+                            # B4/B5: structured-source forward — always use S2D2 correction sampling
                             elif self.config.get('cold_diffusion') and 'scpnet_pred' in batch:
                                 _scp = batch['scpnet_pred'].to(self.device)
                                 _scp_oh = F.one_hot(_scp.long(), self.config['num_classes']).float()
@@ -3618,7 +3618,7 @@ def main():
                              'Use this to train cold-diffusion models with single-frame input '
                              'matching the deployment-time lidar stream.')
     parser.add_argument('--algo2_eval_steps', type=int, default=100,
-                        help='B5: Number of Algorithm 2 sampling steps during eval (default: 100)')
+                        help='B5: Number of S2D2 correction-sampling steps during eval (default: 100)')
     parser.add_argument('--train_sequences', type=str, default=None,
                         help='B6: Comma-separated train sequences (e.g., 00,01,...,10,synthetic)')
     parser.add_argument('--hp_bev_aux', action='store_true',

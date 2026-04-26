@@ -126,11 +126,11 @@ class GaussianDiffusionVE(nn.Module):
         # In VE, we can fake these: α̅_t = 1, σ_t = sqrt(1 - α̅_t) doesn't apply
         # Instead, we directly use sigmas
 
-        # Precompute for DDPM-style sampling
-        # In VE, the posterior is different from VP
-        # x_{t-1} = x_0 + σ_{t-1} * ε_new, where ε_new ~ N(0, I)
-        # But we can also do DDPM-style with coefficients...
-        # For simplicity, we'll use the direct VE formulation
+        # Precompute for VP-style sampling (cumulative-product schedule).
+        # In VE, the posterior is different from VP:
+        # x_{t-1} = x_0 + σ_{t-1} * ε_new, where ε_new ~ N(0, I).
+        # The VP-style coefficient form is also possible but we use the
+        # direct VE formulation for simplicity.
 
     def encode_x0(self, gt_labels: torch.Tensor) -> torch.Tensor:
         """Encode GT class indices [B, H, W, D] → soft probs [B, 20, H, W, D].

@@ -1,5 +1,5 @@
 """
-SCPNet-Style Diffusion Denoiser for SSC Refinement
+Sparse 3D Diffusion Denoiser (architecture inspired by SCPNet) for SSC Refinement
 
 Replaces our generic 3D UNet with SCPNet's architecture as the diffusion denoiser:
 - Frozen Cylinder3D feature extraction (7D→32ch)
@@ -524,7 +524,7 @@ def extract_nonzero_features(x):
 
 class SCPNetDiffusionDenoiser(nn.Module):
     """
-    SCPNet-style denoiser for D3PM discrete diffusion.
+    Sparse 3D denoiser (architecture inspired by SCPNet) for D3PM discrete diffusion.
 
     Frozen: Cylinder3D features + Completion subnet
     Trainable: Time-conditioned segmentation subnet

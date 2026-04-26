@@ -26,7 +26,7 @@ class DSKDLoss3D(nn.Module):
     """
     Dense-to-Sparse Knowledge Distillation loss for 3D features.
 
-    SCPNet-style: Computes pairwise similarity only at occupied locations.
+    Pairwise occupancy-masked DSKD: computes pairwise similarity only at occupied locations.
     This focuses the learning signal on meaningful regions.
 
     Reference: SCPNet paper (CVPR 2023)
@@ -73,7 +73,7 @@ class DSKDLoss3D(nn.Module):
         """
         B, C, H, W, D = student_features.shape
 
-        # If occupancy masks provided, compute at shared occupied locations (SCPNet-style)
+        # If occupancy masks provided, compute at shared occupied locations (SCPNet~\cite{xia2023scpnet})
         if self.use_occupancy_mask and student_occupancy is not None and teacher_occupancy is not None:
             loss = self._forward_with_occupancy(
                 student_features, teacher_features,
@@ -124,7 +124,7 @@ class DSKDLoss3D(nn.Module):
         teacher_occupancy: torch.Tensor,
     ) -> torch.Tensor:
         """
-        SCPNet-style DSKD: compute similarity only at shared occupied locations.
+        Occupancy-masked pairwise DSKD: compute similarity only at shared occupied locations.
 
         This focuses the learning signal on semantically meaningful regions.
         """

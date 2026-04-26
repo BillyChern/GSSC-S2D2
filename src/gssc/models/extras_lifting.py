@@ -130,7 +130,7 @@ class BEVTo3DLifter(nn.Module):
 
     def forward_s3cnet(self, bev_pred: torch.Tensor, scene_3d_pred: torch.Tensor) -> torch.Tensor:
         """
-        S3CNet-style per-sample dynamic lifting + fusion.
+        S3CNet-inspired per-sample dynamic lifting + fusion.
 
         From S3CNet paper (CoRL 2020), page 6:
         "(1) split the 3D volume into layers along the z-dimension (32 layers);

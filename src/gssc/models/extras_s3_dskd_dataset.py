@@ -56,7 +56,7 @@ class S3DSKDDataset(Dataset):
         pred_bev_dir: str | None = None,  # Required for student mode
         multi_frame_dir: str = 'SemanticKITTI_3D/256_multi_frame',
         augment: bool = False,
-        use_rectified_labels: bool = False,  # SCPNet-style rectified labels
+        use_rectified_labels: bool = False,  # rectified-label cleanup (per SCPNet protocol)
         gt_bev_prob: float = 0.0,  # BEV mixing: probability of using GT BEV in student mode
         lsk3d_dir: str | None = None,  # LSK3DNet 3D features dir (for S5/S6)
         geom_dir: str | None = None,  # S43: Geometric features dir (height/normals/intensity/TSDF)
@@ -77,7 +77,7 @@ class S3DSKDDataset(Dataset):
             pred_bev_dir: Directory containing predicted BEV maps (required for student mode)
             multi_frame_dir: Directory containing preprocessed multi-frame voxels
             augment: Whether to apply data augmentation
-            use_rectified_labels: Use SCPNet-style rectified labels (removes ghost trails
+            use_rectified_labels: Use rectified labels (SCPNet protocol) (removes ghost trails
                                   from dynamic objects). Expected +10-25% on dynamic classes.
             gt_bev_prob: Probability of using GT BEV instead of Pred BEV in student mode.
                         This implements "BEV mixing" to bridge the GT→Pred gap gradually.
@@ -845,7 +845,7 @@ def create_s3_dataloader(
         shuffle: Whether to shuffle data
         augment: Whether to apply data augmentation
         gt_bev_prob: BEV mixing probability for student mode
-        use_rectified_labels: Use SCPNet-style rectified labels
+        use_rectified_labels: Use rectified labels (SCPNet protocol)
         lsk3d_dir: LSK3DNet 3D features directory
         geom_dir: S43 geometric features directory
         load_raw_lidar: Load raw .bin for Cylinder3D features

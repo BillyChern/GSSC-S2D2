@@ -428,7 +428,7 @@ class SceneCompletionUNetSparse(nn.Module):
         Forward pass that returns both predictions and decoder features (full resolution).
         Used for DSKD (Dense-to-Sparse Knowledge Distillation).
 
-        SCPNet-style: Returns full-resolution decoder features (completion features) for rich
+        Returns full-resolution decoder features (completion features) for rich
         spatial detail in pairwise similarity matching.
 
         Returns:

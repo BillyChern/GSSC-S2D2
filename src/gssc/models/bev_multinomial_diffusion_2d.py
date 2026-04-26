@@ -192,7 +192,7 @@ class MultinomialDiffusion2D(nn.Module):
         Args:
             x_0: One-hot encoded clean data [B, K, H, W]
             t: Timesteps [B]
-            x_scpnet: Optional SCPNet prediction one-hot [B, K, H, W] for cold diffusion
+            x_scpnet: Optional SCPNet prediction one-hot [B, K, H, W] for structured-source forward
 
         Returns:
             Probabilities for x_t [B, K, H, W]
@@ -211,7 +211,7 @@ class MultinomialDiffusion2D(nn.Module):
         Args:
             x_0: One-hot encoded clean data [B, K, H, W]
             t: Timesteps [B]
-            x_scpnet: Optional SCPNet prediction one-hot [B, K, H, W] for cold diffusion
+            x_scpnet: Optional SCPNet prediction one-hot [B, K, H, W] for structured-source forward
 
         Returns:
             Sampled x_t as one-hot [B, K, H, W]
@@ -246,13 +246,13 @@ class MultinomialDiffusion2D(nn.Module):
         Uses Bayes' rule:
         q(x_{t-1}=k | x_t, x_0) ∝ q(x_t | x_{t-1}=k) * q(x_{t-1}=k | x_0)
 
-        For cold diffusion, uses x_scpnet instead of 1/K for the noise distribution.
+        For structured-source mode, uses x_scpnet instead of 1/K for the noise distribution.
 
         Args:
             x_0: Clean data probabilities [B, K, H, W] - can be one-hot or soft
             x_t: Noisy data (one-hot) [B, K, H, W]
             t: Timesteps [B]
-            x_scpnet: Optional SCPNet prediction for cold diffusion [B, K, H, W]
+            x_scpnet: Optional SCPNet prediction for structured-source forward [B, K, H, W]
 
         Returns:
             Log posterior probabilities (unnormalized) [B, K, H, W]
@@ -294,7 +294,7 @@ class MultinomialDiffusion2D(nn.Module):
             x_0: Clean data probabilities [B, K, H, W]
             x_t: Noisy data (one-hot) [B, K, H, W]
             t: Timesteps [B]
-            x_scpnet: Optional SCPNet prediction for cold diffusion [B, K, H, W]
+            x_scpnet: Optional SCPNet prediction for structured-source forward [B, K, H, W]
 
         Returns:
             Posterior probabilities [B, K, H, W]
@@ -354,8 +354,8 @@ class MultinomialDiffusion2D(nn.Module):
             lidar_features: LiDAR conditioning features [B, C, H, W]
             lidar_obs: Optional LiDAR observation mask [B, H, W] for obs weighting
             addp_weighting: If True, weight noisy timesteps (high t) more heavily.
-            x_scpnet: Optional SCPNet BEV one-hot [B, K, H, W] for cold diffusion.
-                     When provided, uses cold diffusion forward process instead of uniform.
+            x_scpnet: Optional SCPNet BEV one-hot [B, K, H, W] for structured-source forward.
+                     When provided, uses structured-source forward process instead of uniform.
 
         Returns:
             Dictionary with 'loss' and metrics
@@ -367,7 +367,7 @@ class MultinomialDiffusion2D(nn.Module):
         x_0_onehot = F.one_hot(x_0.long(), num_classes=self.num_classes).float()
         x_0_onehot = x_0_onehot.permute(0, 3, 1, 2)  # [B, K, H, W]
 
-        # Sample x_t from q(x_t | x_0) — cold diffusion uses x_scpnet
+        # Sample x_t from q(x_t | x_0) — structured-source forward uses x_scpnet
         x_t = self.q_sample(x_0_onehot, t, x_scpnet=x_scpnet)  # [B, K, H, W]
 
         # Get model prediction
@@ -377,7 +377,7 @@ class MultinomialDiffusion2D(nn.Module):
         # === PROPER KL LOSS ===
         # L_{t-1} = KL(q(x_{t-1}|x_t, x_0) || p(x_{t-1}|x_t))
 
-        # True posterior: q(x_{t-1}|x_t, x_0) — cold diffusion uses x_scpnet
+        # True posterior: q(x_{t-1}|x_t, x_0) — structured-source forward uses x_scpnet
         q_posterior_true = self.q_posterior(x_0_onehot, x_t, t, x_scpnet=x_scpnet)
 
         # Predicted posterior: p(x_{t-1}|x_t) = q(x_{t-1}|x_t, x̂_0)
@@ -661,7 +661,7 @@ class MultinomialDiffusion2D(nn.Module):
         n_steps: int = 100,
         show_progress: bool = False,
     ) -> torch.Tensor:
-        """Algorithm 2 (Bansal et al.) correction-based sampling for BEV.
+        """S2D2 correction sampling for BEV (specialising the non-noise correction sampler of Cold Diffusion (Bansal et al., 2022) to our linear simplex interpolant).
 
         x_{t-1} = x_t + (α_{t-1} - α_t)·(x̂_0 - x_scpnet)
         Monotonically improves with more steps, no posterior bottleneck.
@@ -689,7 +689,7 @@ class MultinomialDiffusion2D(nn.Module):
                     list(np.linspace(99, 0, n_steps, dtype=int))
 
         if show_progress:
-            timesteps = tqdm(timesteps, desc="Algo2 BEV")
+            timesteps = tqdm(timesteps, desc="S2D2 BEV")
 
         for t in timesteps:
             B = x_t.shape[0]
@@ -839,7 +839,7 @@ class MultinomialDiffusion2D(nn.Module):
         t_start: int,
     ) -> torch.Tensor:
         """
-        Add noise to a coarse prediction (SegRefiner-style).
+        Add noise to a coarse prediction (SegRefiner-inspired).
 
         Instead of starting from pure noise, start from a coarse prediction
         with added multinomial noise. This is the key insight from SegRefiner:
@@ -878,7 +878,7 @@ class MultinomialDiffusion2D(nn.Module):
         show_progress: bool = False,
     ) -> torch.Tensor:
         """
-        SegRefiner-style sampling with optional Classifier-Free Guidance.
+        SegRefiner-inspired sampling with optional Classifier-Free Guidance.
 
         Instead of starting from pure noise, start from a noisy version of the
         coarse prediction and denoise to refine it.
@@ -958,7 +958,7 @@ def create_segrefiner_diffusion(
     **kwargs,
 ) -> 'SegRefinerDiffusion':
     """
-    Create a SegRefiner-style diffusion model.
+    Create a SegRefiner-inspired diffusion model.
 
     SegRefiner uses a different noise schedule:
     - Only 6 timesteps (not 100 or 1000)
@@ -985,7 +985,7 @@ def create_segrefiner_diffusion(
 
 class SegRefinerDiffusion(nn.Module):
     """
-    SegRefiner-style discrete diffusion for multi-class semantic refinement.
+    SegRefiner-inspired discrete diffusion for multi-class semantic refinement.
 
     Key differences from standard MultinomialDiffusion2D:
     1. Uses discrete transitions between GT and COARSE (not uniform noise!)
@@ -1023,7 +1023,7 @@ class SegRefinerDiffusion(nn.Module):
         self.lovasz_weight = lovasz_weight
         self.obs_weight_factor = obs_weight_factor
 
-        # SegRefiner-style schedule: betas_cumprod linearly from beta_start to beta_end
+        # SegRefiner-inspired schedule: betas_cumprod linearly from beta_start to beta_end
         # betas_cumprod[t] = probability of keeping GT at timestep t
         # At t=0: betas_cumprod[0] = beta_start (high, e.g., 0.8 = 80% GT)
         # At t=T-1: betas_cumprod[T-1] = beta_end (low, e.g., 0.0 = 0% GT)
@@ -1390,7 +1390,7 @@ class SegRefinerDiffusion(nn.Module):
             pred_x0 = F.one_hot(probs.argmax(dim=1), self.num_classes).float()
             pred_x0 = pred_x0.permute(0, 3, 1, 2)  # [B, K, H, W]
 
-            # SegRefiner-style transition (adapted for multi-class)
+            # SegRefiner-inspired transition (adapted for multi-class)
             # Original binary: x_start_fine_probs = 2 * |sigmoid(logits) - 0.5|
             # This maps uncertain (0.5) -> 0, certain (0 or 1) -> 1
             #
