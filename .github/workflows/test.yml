@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  pytest:
+  pytest-light:
+    name: pytest (light, no torch)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,4 +16,11 @@ jobs:
         with:
           python-version: "3.10"
       - run: pip install pytest pyyaml
-      - run: PYTHONPATH=src python -m pytest tests/test_smoke.py tests/test_config_loader.py -v
+      - name: Run light + parser tests
+        run: |
+          PYTHONPATH=src python -m pytest \
+            tests/test_smoke.py::test_light_module_imports \
+            tests/test_smoke.py::test_version \
+            tests/test_config_loader.py \
+            tests/test_evaluate_parser.py \
+            -v

@@ -9,6 +9,19 @@
 | Disk | ~1 TB SSD | ~300 GB SSD (eval-only: 135 GB) |
 | OS | Ubuntu 22.04 + CUDA 12.8 | Linux + CUDA 12.x |
 
+### Disk-layout warning (Docker / overlay-fs hosts)
+
+The D4 TTA eval (`val_d4tta`) writes ~40 GB of intermediate `.label`
+files for the 4 071-frame val split. If your container's root
+filesystem (`/`) is a 30 GB Docker overlay, eval will crash with
+`OSError: 0 written` around frame 1 000.
+
+**Mitigation:** point `--data-root` at a path on a large persistent
+volume (typical `/workspace`, `/mnt/data`, or `/home/<user>/data`),
+not on the overlay-fs root. The tooling persists predictions under
+`<data-root>/predictions/<config-name>/`, so this directory must have
+~50 GB free for D4 TTA and ~10 GB free for the 1-step path.
+
 ## Exact software environment
 
 ```
