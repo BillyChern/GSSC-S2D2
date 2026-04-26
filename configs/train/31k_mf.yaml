@@ -1,5 +1,5 @@
-_paper_table: tab:main_results, tab:perclass (headline)
-_description: 31K-MF: SCPNet base + 31K synthetic + multi-frame LiDAR. The headline configuration that yields 38.54% val mIoU and 39.2% test mIoU (D4 TTA).
+_paper_table: "tab:main_results, tab:perclass (headline)"
+_description: "31K-MF: SCPNet base + 31K synthetic + multi-frame LiDAR. The headline configuration that yields 38.54% val mIoU and 39.2% test mIoU (D4 TTA)."
 data_root: data
 model_type: sparse_full
 s3_mode: teacher
