@@ -69,7 +69,7 @@ SPLIT_SEQUENCES = {
 }
 
 
-def unpack(compressed):
+def unpack(compressed: np.ndarray) -> np.ndarray:
     """Unpack binary voxel grid from bit-encoded format."""
     uncompressed = np.zeros(compressed.shape[0] * 8, dtype=np.uint8)
     uncompressed[::8] = compressed[:] >> 7 & 1
@@ -83,14 +83,14 @@ def unpack(compressed):
     return uncompressed
 
 
-def load_lidar_voxels(voxel_path):
-    """Load binary LiDAR voxels from .bin file → [1, 256, 256, 32] tensor."""
+def load_lidar_voxels(voxel_path: str | os.PathLike) -> torch.Tensor:
+    """Load binary LiDAR voxels from .bin file → [1, 1, 256, 256, 32] tensor."""
     compressed = np.fromfile(voxel_path, dtype=np.uint8)
     binary = unpack(compressed).reshape(256, 256, 32).astype(np.float32)
-    return torch.from_numpy(binary).unsqueeze(0).unsqueeze(0)  # [1, 1, 256, 256, 32]
+    return torch.from_numpy(binary).unsqueeze(0).unsqueeze(0)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description='Generate official SemanticKITTI SSC predictions')
     parser.add_argument('--checkpoint', type=str, required=True,
                         help='Path to B4b checkpoint (e.g., best_miou.pt)')

@@ -26,7 +26,7 @@ _ALGO = spconv.ConvAlgo.Native
 class SparseResBlock3D(nn.Module):
     """Sparse 3D Residual Block using SubManifold Sparse Convolutions."""
 
-    def __init__(self, in_channels: int, out_channels: int, indice_key: str = None):
+    def __init__(self, in_channels: int, out_channels: int, indice_key: str | None = None) -> None:
         super().__init__()
         self.conv1 = spconv.SubMConv3d(
             in_channels, out_channels, 3, padding=1, bias=False, indice_key=indice_key, algo=_ALGO
@@ -138,7 +138,9 @@ class SparseLiDAREncoder(nn.Module):
             self.dist_gate3 = nn.Sequential(nn.Conv3d(1, out_channels, 1), nn.Sigmoid())
             self.dist_gate4 = nn.Sequential(nn.Conv3d(1, out_channels, 1), nn.Sigmoid())
 
-    def _nn_densify(self, dense: torch.Tensor, nn_indices=None):
+    def _nn_densify(
+        self, dense: torch.Tensor, nn_indices: torch.Tensor | None = None
+    ) -> torch.Tensor:
         """Fill zero voxels with features from nearest occupied voxel.
 
         Uses scipy.ndimage.distance_transform_edt for exact NN lookup.
@@ -189,7 +191,9 @@ class SparseLiDAREncoder(nn.Module):
             return dense, torch.stack(dist_maps, dim=0)  # [B, 1, H, W, D]
         return dense, None
 
-    def forward(self, lidar: torch.Tensor, nn_indices=None) -> dict[str, torch.Tensor]:
+    def forward(
+        self, lidar: torch.Tensor, nn_indices: torch.Tensor | None = None
+    ) -> dict[str, torch.Tensor]:
         """
         Extract multi-scale features from sparse LiDAR.
 

@@ -61,13 +61,15 @@ def unpack_voxels(compressed: np.ndarray) -> np.ndarray:
     return u
 
 
-def load_lidar_voxels(voxel_path):
+def load_lidar_voxels(voxel_path: str | os.PathLike) -> torch.Tensor:
+    """Decode a packed-binary `.bin` voxel grid into a [1, 1, 256, 256, 32] float tensor."""
     compressed = np.fromfile(voxel_path, dtype=np.uint8)
     binary = unpack_voxels(compressed).reshape(256, 256, 32).astype(np.float32)
     return torch.from_numpy(binary).unsqueeze(0).unsqueeze(0)
 
 
-def derive_bev(scp_tensor):
+def derive_bev(scp_tensor: torch.Tensor) -> torch.Tensor:
+    """Topmost-non-empty-class BEV projection of a [1, 256, 256, 32] SCPNet pred."""
     bev = torch.zeros(1, 256, 256, dtype=torch.long, device=scp_tensor.device)
     for z in range(scp_tensor.shape[3] - 1, -1, -1):
         layer = scp_tensor[0, :, :, z]
@@ -76,7 +78,11 @@ def derive_bev(scp_tensor):
     return bev
 
 
-def load_model(ckpt_path, device):
+def load_model(
+    ckpt_path: str | os.PathLike,
+    device: torch.device,
+) -> tuple[SceneCompletionUNetSparse, MultinomialDiffusion3DV2]:
+    """Load the headline checkpoint with EMA weights swapped in for inference."""
     ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
     model = SceneCompletionUNetSparse(
         num_classes=20, base_channels=32, time_emb_dim=128,
@@ -93,7 +99,14 @@ def load_model(ckpt_path, device):
     return model, diffusion
 
 
-def apply_d4(lidar, scp, bev, flip_x, flip_y, rot_k):
+def apply_d4(
+    lidar: torch.Tensor,
+    scp: torch.Tensor,
+    bev: torch.Tensor,
+    flip_x: bool,
+    flip_y: bool,
+    rot_k: int,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Apply D4 element to inputs. Returns transformed (lidar, scp, bev).
 
     Order matters: flip first, then rotate (mirrors training augment order).
@@ -113,7 +126,7 @@ def apply_d4(lidar, scp, bev, flip_x, flip_y, rot_k):
     return lidar, scp, bev
 
 
-def invert_d4(soft, flip_x, flip_y, rot_k):
+def invert_d4(soft: torch.Tensor, flip_x: bool, flip_y: bool, rot_k: int) -> torch.Tensor:
     """Invert D4 on [1, K, H, W, D] softmax. Inverse order: un-rotate first, then un-flip."""
     if rot_k > 0:
         soft = torch.rot90(soft, k=-rot_k, dims=[2, 3])
@@ -124,7 +137,16 @@ def invert_d4(soft, flip_x, flip_y, rot_k):
     return soft
 
 
-def run_algo2_softmax(model, diffusion, lidar, scp_tensor, bev, n_steps, device):
+def run_algo2_softmax(
+    model: SceneCompletionUNetSparse,
+    diffusion: MultinomialDiffusion3DV2,
+    lidar: torch.Tensor,
+    scp_tensor: torch.Tensor,
+    bev: torch.Tensor,
+    n_steps: int,
+    device: torch.device,
+) -> torch.Tensor:
+    """Run a single Algo2 forward pass and return the soft-max distribution [1,K,H,W,D]."""
     scp_oh = F.one_hot(scp_tensor.long(), 20).float().permute(0, 4, 1, 2, 3)
     with torch.no_grad():
         soft = diffusion.sample_algo2(
@@ -153,7 +175,7 @@ D4_ELEMENTS = [
 ]
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument('--checkpoint', required=True)
     p.add_argument('--cold_steps', type=int, default=4)

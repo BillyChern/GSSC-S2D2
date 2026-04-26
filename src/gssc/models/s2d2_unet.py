@@ -254,7 +254,7 @@ class SceneCompletionUNetSparse(nn.Module):
         self.use_dense3d_bottleneck = False
         self.dense3d_bottleneck = None
 
-    def enable_dense3d_bottleneck(self, dropout: float = 0.1):
+    def enable_dense3d_bottleneck(self, dropout: float = 0.1) -> None:
         """
         Enable PaSCo's SPCDense3Dv2 at the bottleneck for dense hallucination.
 
@@ -283,7 +283,7 @@ class SceneCompletionUNetSparse(nn.Module):
             "(channels=%d, dropout=%g)", bottleneck_channels, dropout,
         )
 
-    def enable_lifted_features(self, feature_dim: int = 64):
+    def enable_lifted_features(self, feature_dim: int = 64) -> None:
         """Enable lifted features conditioning for CFG."""
         self.use_lifted_features = True
         self.lifted_embed = nn.Conv3d(feature_dim, self.base_channels, kernel_size=3, padding=1)
@@ -631,7 +631,7 @@ class SceneCompletionUNetSparseLite(nn.Module):
         self.use_dense3d_bottleneck = False
         self.dense3d_bottleneck = None
 
-    def enable_dense3d_bottleneck(self, dropout: float = 0.1):
+    def enable_dense3d_bottleneck(self, dropout: float = 0.1) -> None:
         """Enable PaSCo's SPCDense3Dv2 at the bottleneck."""
         from gssc.models.dense_3d_cnn import SPCDense3Dv2
 
@@ -650,7 +650,7 @@ class SceneCompletionUNetSparseLite(nn.Module):
             "(channels=%d, dropout=%g)", bottleneck_channels, dropout,
         )
 
-    def enable_lifted_features(self, feature_dim: int = 64):
+    def enable_lifted_features(self, feature_dim: int = 64) -> None:
         """Enable lifted features conditioning for CFG."""
         self.use_lifted_features = True
         self.lifted_embed = nn.Conv3d(feature_dim, self.base_channels, kernel_size=3, padding=1)
@@ -659,7 +659,14 @@ class SceneCompletionUNetSparseLite(nn.Module):
             device = next(self.voxel_embed.parameters()).device
             self.lifted_embed = self.lifted_embed.to(device)
 
-    def forward(self, x_t, t, bev, lidar, lifted_features: torch.Tensor | None = None):
+    def forward(
+        self,
+        x_t: torch.Tensor,
+        t: torch.Tensor,
+        bev: torch.Tensor,
+        lidar: torch.Tensor,
+        lifted_features: torch.Tensor | None = None,
+    ) -> torch.Tensor:
         """Same interface as SceneCompletionUNetSparse."""
         B, C, H, W, D = x_t.shape
 
