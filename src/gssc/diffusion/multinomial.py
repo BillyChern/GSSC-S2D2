@@ -13,12 +13,15 @@ Key formulas:
 Training with 100 timesteps (as per paper).
 """
 
+import logging
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 
 def log_1_min_a(a: torch.Tensor) -> torch.Tensor:
@@ -1178,13 +1181,16 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
         alphas_cumprod = torch.cumprod(alphas, dim=0)
         alphas_cumprod_prev = F.pad(alphas_cumprod[:-1], (1, 0), value=1.0)
 
-        # Log for debugging
-        print("[MultinomialDiffusion3DV2] Noise schedule:")
-        print(f"  beta: {beta_min} → {beta_max}")
-        print(f"  alpha_cumprod[0] = {alphas_cumprod[0]:.4f}")
-        print(f"  alpha_cumprod[50] = {alphas_cumprod[50]:.4f}")
-        print(f"  alpha_cumprod[99] = {alphas_cumprod[99]:.6f}")
-        print(f"  At t=99: P(correct) = {alphas_cumprod[99] + (1-alphas_cumprod[99])/num_classes:.4f}")
+        logger.debug(
+            "MultinomialDiffusion3DV2 noise schedule: "
+            "beta=[%g, %g] alpha_cumprod=[%.4f, %.4f, %.6f] "
+            "P(correct@t=99)=%.4f",
+            beta_min, beta_max,
+            alphas_cumprod[0].item(),
+            alphas_cumprod[50].item(),
+            alphas_cumprod[99].item(),
+            alphas_cumprod[99].item() + (1 - alphas_cumprod[99]).item() / num_classes,
+        )
 
         # Convert to log space for numerical stability
         log_alpha = torch.log(alphas)

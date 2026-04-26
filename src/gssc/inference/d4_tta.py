@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 from pathlib import Path
@@ -34,6 +35,8 @@ from tqdm import tqdm
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gssc.diffusion.multinomial import MultinomialDiffusion3DV2
 from gssc.models.s2d2_unet import SceneCompletionUNetSparse
+
+logger = logging.getLogger(__name__)
 
 LEARNING_MAP_INV = {
     0: 0, 1: 10, 2: 11, 3: 15, 4: 18, 5: 20, 6: 30, 7: 31, 8: 32,
@@ -163,6 +166,8 @@ def main():
     p.add_argument('--skip_existing', action='store_true')
     args = p.parse_args()
 
+    logging.basicConfig(level=logging.INFO, format="[%(name)s] %(message)s")
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model, diffusion = load_model(args.checkpoint, device)
 
@@ -180,7 +185,10 @@ def main():
         out_pred_dir = os.path.join(args.output_dir, 'sequences', seq, 'predictions')
         os.makedirs(out_pred_dir, exist_ok=True)
         frame_ids = [f.stem for f in sorted(Path(voxels_dir).glob('*.bin'))]
-        print(f'Seq {seq}: {len(frame_ids)} frames × 8 D4 passes → {out_pred_dir}')
+        logger.info(
+            "Seq %s: %d frames x 8 D4 passes -> %s",
+            seq, len(frame_ids), out_pred_dir,
+        )
 
         for frame_id in tqdm(frame_ids, desc=f'Seq {seq} D4'):
             out_path = os.path.join(out_pred_dir, f'{frame_id}.label')
@@ -189,7 +197,7 @@ def main():
 
             scpnet_path = os.path.join(scpnet_seq_dir, f'{frame_id}_pred.npy')
             if not os.path.exists(scpnet_path):
-                print(f'  WARNING: missing SCPNet pred for {seq}/{frame_id}')
+                logger.warning("Missing SCPNet pred for %s/%s", seq, frame_id)
                 continue
             scpnet_pred = np.load(scpnet_path)
             voxel_path = os.path.join(voxels_dir, f'{frame_id}.bin')
@@ -214,7 +222,7 @@ def main():
             pred_orig.astype(np.uint16).tofile(out_path)
             total += 1
 
-    print(f'Done, wrote {total} D4-TTA .label files')
+    logger.info("Done, wrote %d D4-TTA .label files", total)
 
 
 if __name__ == '__main__':

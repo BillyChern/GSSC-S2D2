@@ -22,6 +22,7 @@ Usage:
 """
 
 import argparse
+import logging
 import os
 import sys
 from pathlib import Path
@@ -35,6 +36,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from gssc.diffusion.multinomial import MultinomialDiffusion3DV2
 from gssc.models.s2d2_unet import SceneCompletionUNetSparse
+
+logger = logging.getLogger(__name__)
 
 # Official SemanticKITTI learning_map_inv: training space (0-19) → original space (0-255)
 LEARNING_MAP_INV = np.array([
@@ -120,21 +123,29 @@ def main():
                         help='Skip frames whose .label already exists (safe resume)')
     args = parser.parse_args()
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(name)s] %(message)s",
+    )
+
     # Use --pred_dir if specified, otherwise fall back to --scpnet_dir
     pred_source_dir = args.pred_dir if args.pred_dir else args.scpnet_dir
     if args.pred_dir:
-        print(f'Using prediction source: {pred_source_dir} (TALoS/custom)')
+        logger.info("Using prediction source: %s (TALoS/custom)", pred_source_dir)
     else:
-        print(f'Using prediction source: {pred_source_dir} (SCPNet default)')
+        logger.info("Using prediction source: %s (SCPNet default)", pred_source_dir)
 
     device = torch.device(f'cuda:{args.gpu}')
     sequences = SPLIT_SEQUENCES[args.split]
 
     if not args.scpnet_only:
-        # Load model
-        print(f'Loading checkpoint: {args.checkpoint}')
+        logger.info("Loading checkpoint: %s", args.checkpoint)
         ckpt = torch.load(args.checkpoint, map_location='cpu', weights_only=False)
-        print(f'  Step: {ckpt["global_step"]}, Best mIoU: {ckpt.get("best_miou", "?"):.4f}')
+        logger.info(
+            "  step=%s best_miou=%s",
+            ckpt.get("global_step", "?"),
+            f"{ckpt['best_miou']:.4f}" if "best_miou" in ckpt else "?",
+        )
 
         model = SceneCompletionUNetSparse(
             num_classes=20, base_channels=32, time_emb_dim=128,
@@ -145,15 +156,14 @@ def main():
         model.load_state_dict(ckpt['model_state_dict'], strict=False)
 
         if not args.use_train_weights:
-            # Load EMA weights
             ema_count = 0
             for name, param in model.named_parameters():
                 if name in ckpt['ema_shadow']:
                     param.data.copy_(ckpt['ema_shadow'][name])
                     ema_count += 1
-            print(f'  Loaded EMA weights ({ema_count} parameters)')
+            logger.info("  Loaded EMA weights (%d parameters)", ema_count)
         else:
-            print('  Using training weights (not EMA)')
+            logger.info("  Using training weights (not EMA)")
 
         model.eval()
 
@@ -173,7 +183,7 @@ def main():
         voxel_files = sorted(Path(voxels_dir).glob('*.bin'))
         frame_ids = [f.stem for f in voxel_files]
 
-        print(f'\nSequence {seq}: {len(frame_ids)} frames → {out_pred_dir}')
+        logger.info("Sequence %s: %d frames -> %s", seq, len(frame_ids), out_pred_dir)
 
         for frame_id in tqdm(frame_ids, desc=f'Seq {seq}'):
             out_path = os.path.join(out_pred_dir, f'{frame_id}.label')
@@ -184,7 +194,7 @@ def main():
             # Load SCPNet prediction (training space 0-19)
             scpnet_path = os.path.join(scpnet_seq_dir, f'{frame_id}_pred.npy')
             if not os.path.exists(scpnet_path):
-                print(f'  WARNING: Missing SCPNet pred for {seq}/{frame_id}, skipping')
+                logger.warning("Missing SCPNet pred for %s/%s, skipping", seq, frame_id)
                 continue
 
             scpnet_pred = np.load(scpnet_path)  # [256, 256, 32] uint8, values 0-19
@@ -261,13 +271,14 @@ def main():
 
             total_frames += 1
 
-    print(f'\nDone! Generated {total_frames} prediction files in {args.output_dir}')
-    print('\nTo evaluate on val set:')
-    print('  cd semantic-kitti-api')
-    print('  python evaluate_completion.py \\')
-    print(f'    --dataset {os.path.abspath(args.data_root)} \\')
-    print(f'    --predictions {os.path.abspath(args.output_dir)} \\')
-    print(f'    --split {args.split}')
+    logger.info("Done. Generated %d prediction files in %s", total_frames, args.output_dir)
+    logger.info(
+        "To score: python external/semantic_kitti_api/evaluate_completion.py "
+        "--dataset %s --predictions %s --split %s",
+        os.path.abspath(args.data_root),
+        os.path.abspath(args.output_dir),
+        args.split,
+    )
 
 
 if __name__ == '__main__':

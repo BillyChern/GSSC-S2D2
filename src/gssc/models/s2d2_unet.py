@@ -14,6 +14,7 @@ Architecture:
 - 3D U-Net: denoises voxels conditioned on BEV + multi-scale LiDAR features
 """
 
+import logging
 import math
 
 import torch
@@ -21,6 +22,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .sparse_lidar_encoder import SparseLiDAREncoder, SparseLiDAREncoderLite
+
+logger = logging.getLogger(__name__)
 
 
 def timestep_embedding(timesteps: torch.Tensor, dim: int, max_period: int = 10000) -> torch.Tensor:
@@ -275,7 +278,10 @@ class SceneCompletionUNetSparse(nn.Module):
         device = next(self.parameters()).device
         self.dense3d_bottleneck = self.dense3d_bottleneck.to(device)
 
-        print(f"[SceneCompletionUNetSparse] Enabled SPCDense3Dv2 bottleneck (channels={bottleneck_channels}, dropout={dropout})")
+        logger.debug(
+            "SceneCompletionUNetSparse: SPCDense3Dv2 bottleneck enabled "
+            "(channels=%d, dropout=%g)", bottleneck_channels, dropout,
+        )
 
     def enable_lifted_features(self, feature_dim: int = 64):
         """Enable lifted features conditioning for CFG."""
@@ -639,7 +645,10 @@ class SceneCompletionUNetSparseLite(nn.Module):
 
         device = next(self.parameters()).device
         self.dense3d_bottleneck = self.dense3d_bottleneck.to(device)
-        print(f"[SceneCompletionUNetSparseLite] Enabled SPCDense3Dv2 bottleneck (channels={bottleneck_channels}, dropout={dropout})")
+        logger.debug(
+            "SceneCompletionUNetSparseLite: SPCDense3Dv2 bottleneck enabled "
+            "(channels=%d, dropout=%g)", bottleneck_channels, dropout,
+        )
 
     def enable_lifted_features(self, feature_dim: int = 64):
         """Enable lifted features conditioning for CFG."""

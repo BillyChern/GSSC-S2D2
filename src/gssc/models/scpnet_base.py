@@ -14,6 +14,7 @@ Three-signal conditioning at completed voxel coordinates:
 Reference: SCPNet (Xia et al., CVPR 2023)
 """
 
+import logging
 import math
 
 import numpy as np
@@ -21,6 +22,8 @@ import spconv.pytorch as spconv
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Sparse conv helper functions (matching SCPNet's kernel conventions)
@@ -835,8 +838,10 @@ class SCPNetDiffusionDenoiser(nn.Module):
 
         self.load_state_dict(my_state, strict=False)
         modules = "frozen only" if not load_segmentation else "all"
-        print(f"Loaded {loaded}/{loaded + skipped} SCPNet weights ({modules})"
-              f" (skipped {skipped}, reshaped {reshaped_count})")
+        logger.info(
+            "Loaded %d/%d SCPNet weights (%s, skipped %d, reshaped %d)",
+            loaded, loaded + skipped, modules, skipped, reshaped_count,
+        )
 
         if load_segmentation:
             # Reset BN running stats in segmentation subnet.
@@ -855,7 +860,10 @@ class SCPNetDiffusionDenoiser(nn.Module):
                         m.running_var.fill_(1.0)
                         m.num_batches_tracked.zero_()
                         bn_reset_count += 1
-            print(f"Reset running stats for {bn_reset_count} BN layers in segmentation subnet")
+            logger.info(
+                "Reset running stats for %d BN layers in segmentation subnet",
+                bn_reset_count,
+            )
 
     def _map_scpnet_key(self, key: str) -> str | None:
         """Map SCPNet state_dict key to our model's key.
