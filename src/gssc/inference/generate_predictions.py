@@ -104,11 +104,11 @@ def main() -> None:
                         help='Which split to generate predictions for')
     parser.add_argument('--gpu', type=int, default=0)
     parser.add_argument('--use_train_weights', action='store_true',
-                        help='Use training weights instead of EMA. WARNING: for Algo2, EMA is strongly preferred')
+                        help='Use training weights instead of EMA. WARNING: for correction sampling, EMA is strongly preferred')
     parser.add_argument('--cold_steps', type=int, default=100,
                         help='Number of cold diffusion steps (100=full, 1=one-step)')
     parser.add_argument('--algo2', action='store_true',
-                        help='Use Algorithm 2 (Bansal) correction sampling instead of D3PM posterior')
+                        help='Use S2D2 correction sampling (Cold Diffusion non-noise specialisation) instead of D3PM posterior')
     parser.add_argument('--pred_dir', type=str, default=None,
                         help='Override prediction source dir (e.g., datasets/talos_predictions for TALoS inference)')
     parser.add_argument('--no_bev', action='store_true',
@@ -225,7 +225,7 @@ def main() -> None:
                 # Run cold diffusion
                 with torch.no_grad():
                     if args.algo2:
-                        # Algorithm 2 (Bansal et al.) correction-based sampling
+                        # S2D2 correction sampling (Cold Diffusion non-noise specialisation)
                         pred = diffusion.sample_algo2(
                             model, bev, lidar,
                             scpnet_pred=scp_tensor,

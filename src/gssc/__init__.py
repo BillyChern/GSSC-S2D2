@@ -8,7 +8,7 @@ The recommended way to use this codebase is through the driver scripts in
 also supported for advanced users:
 
 * ``gssc.models`` — neural-network architectures
-* ``gssc.diffusion`` — forward / posterior / Algo2 sampler
+* ``gssc.diffusion`` — forward process, Dirac posterior, S²D² correction sampler
 * ``gssc.data`` — dataset loaders + augmentation
 * ``gssc.losses`` — KL + Lovász + auxiliary
 * ``gssc.training`` — trainer

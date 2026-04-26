@@ -146,7 +146,7 @@ def run_algo2_softmax(
     n_steps: int,
     device: torch.device,
 ) -> torch.Tensor:
-    """Run a single Algo2 forward pass and return the soft-max distribution [1,K,H,W,D]."""
+    """Run a single S2D2 correction forward pass and return the soft-max distribution [1,K,H,W,D]."""
     scp_oh = F.one_hot(scp_tensor.long(), 20).float().permute(0, 4, 1, 2, 3)
     with torch.no_grad():
         soft = diffusion.sample_algo2(

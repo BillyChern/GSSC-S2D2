@@ -13,7 +13,7 @@ python scripts/train.py train/31k_mf --gpu 0,1
 * Batch size 4 (effective ~8 with 2× H100)
 * AdamW, lr 1e-4, no warmup
 * Loss: KL posterior + Lovász (0.3) + auxiliary (5e-4)
-* Eval every 5K steps with Algo2 100 steps
+* Eval every 5K steps with N=100 S²D² correction sampling
 
 Wall-clock: ~37 hours on 2× H100 80 GB.
 Output: `outputs/train_31k_mf/step_{5000,10000,...,100000}.pt` + `best.pt`.

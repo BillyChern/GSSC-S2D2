@@ -1,6 +1,6 @@
 # Inference recipes
 
-## Real-time deployment (1-step Algo2, 9.33 FPS marginal on H100)
+## Real-time deployment (single S²D² correction step, 9.33 FPS marginal on H100)
 
 ```bash
 python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31k_mf_step40000.safetensors
@@ -8,7 +8,7 @@ python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31k_mf_
 
 Returns 38.54% val mIoU on SemanticKITTI seq 08.
 
-## Full multi-step Algo2 (peak quality)
+## Multi-step S²D² correction sampling (peak quality)
 
 ```bash
 python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_31k_mf_step40000.safetensors

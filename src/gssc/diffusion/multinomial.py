@@ -1352,7 +1352,7 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
         probs_flat = x_0_pred_probs.reshape(B, self.num_classes, -1)  # [B, K, N]
 
         if getattr(self, 'loss_type', 'kl') == 'ce_direct':
-            # === DIRECT CE LOSS (bypasses posterior — matches Algorithm 2 sampling) ===
+            # === DIRECT CE LOSS (bypasses posterior — matches S2D2 correction sampling) ===
             # CE(x_0_logits, x_0) per voxel, with class weights
             x_0_logits_flat = x_0_logits.reshape(B, self.num_classes, -1)  # [B, K, N]
             ce_per_voxel = F.cross_entropy(
@@ -1494,7 +1494,7 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
         return_softmax: bool = False,
         **model_kwargs,
     ) -> torch.Tensor:
-        """Algorithm 2 (Bansal et al.) correction-based sampling.
+        """S2D2 correction sampling (specialising the non-noise correction sampler of Cold Diffusion (Bansal et al., 2022) to our linear simplex interpolant).
 
         x_{t-1} = x_t + (α_{t-1} - α_t)·(x̂_0 - x_scpnet)
         Monotonically improves with more steps, no posterior bottleneck.

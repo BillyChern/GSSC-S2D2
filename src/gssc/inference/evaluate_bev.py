@@ -1,6 +1,6 @@
 """BEV second-task evaluator (S2D2 applied to LiDAR-only BEV refinement).
 
-Runs the Algo2 cold-diffusion sampler on a 2D BEV diffusion checkpoint and
+Runs the S2D2 correction sampler (a specialisation of Cold Diffusion's non-noise correction-sampling procedure to our linear simplex interpolant) on a 2D BEV diffusion checkpoint and
 reports BEV mIoU on SemanticKITTI val seq 08. This is the LiDAR-only BEV
 refinement pipeline that produces the 36.09 % number in paper Sec. 4
 "Secondary application: BEV semantic segmentation".
@@ -21,7 +21,7 @@ Compared to the 3D headline path:
   - 2D denoising UNet (gssc.models.bev_unet_v2.create_modular_bev_unet)
   - 2D forward / posterior (gssc.models.bev_multinomial_diffusion_2d)
   - Same SCPNet base, same Sparse3DEncoder backbone
-  - Same Algo2 (Bansal) correction sampling step
+  - Same correction-sampling step (specialised from Cold Diffusion to our linear interpolant)
 """
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ def evaluate_bev(
             ``train_bev_secondary.py``).
         data_root: Visitor data root containing ``SemanticKITTI/`` and
             ``scpnet_predictions/``.
-        n_steps: Algo2 correction steps (1 = single forward pass).
+        n_steps: S2D2 correction-sampling steps (1 = single forward pass).
         sequence: SemanticKITTI sequence id (default ``"08"`` = val).
         output: Optional path to dump per-class IoUs as JSON.
         gpu: CUDA device id.
@@ -203,7 +203,7 @@ def evaluate_bev(
         gt_voxel = label_to_train[gt_voxel_raw.clip(0, 255).astype(np.int64)]
         gt_bev = _voxel_to_bev_topmost(gt_voxel)
 
-        # S2D2 Algo2 sampling on BEV
+        # S2D2 correction sampling on BEV
         with torch.no_grad():
             cond = lidar_encoder(lidar)  # [1, C, H, W]
             x_t = x_src.clone()

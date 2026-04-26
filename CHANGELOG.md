@@ -107,7 +107,7 @@ always a **MAJOR** bump, even if the API is identical.
 ### Added
 - Initial public release.
 - Headline checkpoint `gssc_31k_mf_step40000.pt` (140 MB) reproducing
-  38.54 % val mIoU on SemanticKITTI seq 08, 1-step Algo2.
+  38.54 % val mIoU on SemanticKITTI seq 08, single S²D² correction step (N=1).
 - 3D SSC inference pipeline: `scripts/eval.py eval/val_1step`
   (verified end-to-end on a fresh visitor clone, matches paper Tab. I
   exactly).

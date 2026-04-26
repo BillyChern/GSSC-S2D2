@@ -17,7 +17,7 @@ def main():
     p.add_argument("--output", required=True, help="Where .label predictions land")
     p.add_argument("--data-root", default=str(REPO_ROOT / "data"))
     p.add_argument("--gpu", default="0")
-    p.add_argument("--steps", type=int, default=4, help="Algo2 correction steps (1, 4, 100)")
+    p.add_argument("--steps", type=int, default=4, help="Correction-step count (1, 4, 100)")
     p.add_argument("--tta", choices=["none", "flip_y", "d4"], default="d4")
     a = p.parse_args()
 

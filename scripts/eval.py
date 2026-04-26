@@ -1,11 +1,11 @@
 """GSSC-S2D2 evaluation entry point.
 
-Loads a checkpoint, runs Algo2 correction sampling on SemanticKITTI val, and
+Loads a checkpoint, runs S2D2 correction sampling on SemanticKITTI val, and
 reports per-class IoU + mIoU + completion IoU.
 
 Examples
 --------
-Reproduce the headline 38.54% val mIoU (1-step Algo2)::
+Reproduce the headline 38.54% val mIoU (single correction step, N=1)::
 
     python scripts/eval.py eval/val_1step \
         --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt
@@ -39,7 +39,7 @@ def main() -> None:
     parser.add_argument("--data-root", default=str(REPO_ROOT / "data"))
     parser.add_argument("--output", default=None, help="Where to dump per-class JSON")
     parser.add_argument("--gpu", default="0")
-    parser.add_argument("--steps", type=int, default=None, help="Algo2 step count override (1, 4, 100)")
+    parser.add_argument("--steps", type=int, default=None, help="Correction-step count override (1, 4, 100)")
     parser.add_argument("--tta", choices=["none", "flip_y", "d4"], default=None)
     parser.add_argument(
         "--metrics",
