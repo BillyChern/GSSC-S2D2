@@ -76,7 +76,7 @@ On full SemanticKITTI val seq 08:
   <img src="assets/qualitative.png" width="92%" alt="Qualitative comparison on SemanticKITTI val seq 08 vs SOTA baselines" />
 </p>
 
-<sub>Two seq-08 frames where S²D² recovers a rare class the base SOTA misses entirely. Left → right: GT, SCPNet, TALoS, S²D² (ours, $N{=}4$), Ground Truth. Source: paper Fig. 4.</sub>
+<sub>Two seq-08 frames where S²D² recovers a rare class the base SOTA misses entirely. Left → right: JS3C-Net, SCPNet, TALoS, S²D² (ours, <i>N</i>=4), Ground Truth. Source: paper Fig. 4.</sub>
 
 ### Per-class IoU on val seq 08 (single correction step, verified)
 
