@@ -42,7 +42,7 @@
   <img src="assets/teaser.png" width="92%" alt="GSSC-S2D2 two-stage pipeline: offline data augmentation + S²D² one-step deployment" />
 </p>
 
-<sub><b>Stage A</b> (top) — offline data augmentation: pyramid multinomial diffusion (𝒮₁ → 𝒮₂ → 𝒮₃ at 32²×4 → 64²×8 → 256²×32) synthesises complete scenes; an HDL-64E Bresenham3D ray-tracer (64×2048 rays) converts each into a matching sparse input; a balanced 5,000-instance / 10-rare-class object bank pastes rare classes on ground-level voxels. The synthetic pairs are pooled with the real SemanticKITTI training split. <b>Stage B</b> (bottom) — at deployment, a real sparse LiDAR scan is voxelized through a frozen base SSC model <i>g</i><sub>φ</sub> (e.g. SCPNet, LMSCNet) to produce <b>x</b><sub>src</sub>, then refined by <i>f</i><sub>θ</sub> — a sparse 3D U-Net with FiLM(<i>t</i>, <b>L</b>, <b>B</b>) at every level — into <b>x̂</b><sub>0</sub> in one forward pass with EMA weights. No distillation. Source: paper Fig. 2.</sub>
+<sub><b>Stage A</b> (top) — offline data augmentation: pyramid multinomial diffusion (𝒮₁ → 𝒮₂ → 𝒮₃ at 32²×4 → 64²×8 → 256²×32) synthesises complete scenes; an HDL-64E Bresenham3D ray-tracer (64×2048 rays) converts each into a matching sparse input; a 57,789-instance / 8-rare-class object bank (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk) pastes rare classes on ground-level voxels. The synthetic pairs are pooled with the real SemanticKITTI training split. <b>Stage B</b> (bottom) — at deployment, a real sparse LiDAR scan is voxelized through a frozen base SSC model <i>g</i><sub>φ</sub> (e.g. SCPNet, LMSCNet) to produce <b>x</b><sub>src</sub>, then refined by <i>f</i><sub>θ</sub> — a sparse 3D U-Net with FiLM(<i>t</i>, <b>L</b>, <b>B</b>) at every level — into <b>x̂</b><sub>0</sub> in one forward pass with EMA weights. No distillation. Source: paper Fig. 2.</sub>
 
 **Why it works.** Pure-noise diffusion wastes capacity learning to invert random corruption. By starting from the base model's *structured* prediction **x**<sub>src</sub> rather than *x*<sub>T</sub> ∼ π, the network only has to learn the **residual** between **x**<sub>src</sub> and ground truth — a much smaller chunk of probability mass to transport. One correction step suffices for the headline 38.54 % val mIoU; four steps + *D*<sub>4</sub> TTA push to **39.2 % test**.
 
@@ -266,7 +266,7 @@ Pinned versions in `uv.lock`. See [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY
 
 1. **Structured source.** Replace the noise endpoint with a learned base model's prediction $x_{\text{src}}$. The forward process becomes the Dirac mixture $x_t = \bar\alpha_t \cdot x_0 + (1 - \bar\alpha_t) \cdot x_{\text{src}}$, a deterministic interpolant between ground truth and $x_{\text{src}}$.
 2. **S²D² correction sampling.** A non-noise deterministic reverse process (we specialise the non-noise correction sampler of Cold Diffusion, Bansal et al. 2022, to our linear simplex interpolant) that routes the full residual $\hat{\mathbf{x}}_0 - \mathbf{x}_{\text{src}}$ directly per step. At $N = 1$, the iterate at $t = T$ coincides with $\mathbf{x}_{\text{src}}$, giving a Lipschitz-free single-step bound (App. A.5 in the paper).
-3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid ($32^2{\times}4$ → $64^2{\times}8$ → $256^2{\times}32$) generates synthetic $(\text{sparse}, \text{complete})$ pairs. Combined with HDL-64E Bresenham3D ray-tracing and a balanced 5,000-instance / 10-rare-class object bank (500 per class), this yields the 31 K-scene synthetic pool used by the headline configuration.
+3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid ($32^2{\times}4$ → $64^2{\times}8$ → $256^2{\times}32$) generates synthetic $(\text{sparse}, \text{complete})$ pairs. Combined with HDL-64E Bresenham3D ray-tracing and a 57,789-instance / 8-rare-class object bank (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk), this yields the 31 K-scene synthetic pool used by the headline configuration.
 
 The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:posterior`, `prop:elbo`, `prop:fm`, `prop:meanflow`, `thm:error`, `cor:onestep`, `cor:lipprop`, `prop:proj`).
 
@@ -278,7 +278,7 @@ The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:p
 |---|---|---|
 | Pretrained checkpoints (~14 files) | [HF: gssc-s2d2/checkpoints](`[CHECKPOINTS_URL]`) | 3 GB |
 | SCPNet val + test predictions | [HF: gssc-s2d2/scpnet_predictions](`[SCPNET_PREDICTIONS_URL]`) | 50 GB |
-| Object bank (5,000 instances, 10 rare classes, 500 per class) | [HF: gssc-s2d2/object_bank](`[OBJECT_BANK_URL]`) | 448 MB |
+| Object bank (57,789 instances, 8 rare classes) | [HF: gssc-s2d2/object_bank](`[OBJECT_BANK_URL]`) | 448 MB |
 | Synthetic pool (0K / 10K / 20K / 31K / 57K) | [IEEE DataPort](`[SYNTHETIC_POOL_URL]`) | 120 – 220 GB per variant |
 
 All weights and synthetic data are released under Apache-2.0; SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)).
