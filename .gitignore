@@ -55,3 +55,19 @@ MIGRATION_AUDIT.md
 .coverage.*
 htmlcov/
 coverage.xml
+
+# Local-only retrain / debug scratch (never publish)
+run_*.sh
+last_*lines.txt
+log_*.txt
+NOISE_ANALYSIS_*.txt
+QUICK_REFERENCE.txt
+
+# Dated backups of figure assets (kept locally for rollback only)
+assets/*_backup_*.png
+assets/*_backup_*.pdf
+assets/*_20[0-9][0-9][0-9][0-9][0-9][0-9]_*.png
+assets/*_20[0-9][0-9][0-9][0-9][0-9][0-9]_*.pdf
+
+# External submodule scratch outputs
+external/**/scores.txt

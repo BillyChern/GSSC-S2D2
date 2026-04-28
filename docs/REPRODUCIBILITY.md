@@ -92,19 +92,35 @@ Single-seed retrains of SemanticKITTI SSC at 256×256×32 carry typical
 worker timing, and initialization differences. A from-scratch retrain of the
 headline configuration on the published codebase (`python scripts/train.py
 train/31k_mf`) lands at **38.05% val 1-step mIoU**, within this variance band
-of the released checkpoint's 38.54%. If your retrain reaches 38.05% ± 0.3%,
-you have successfully reproduced the paper.
+of the released checkpoint's 38.54%.
 
 ```bash
 python scripts/train.py train/31k_mf
 # step_40000.pt → 38.05% val 1-step mIoU (verified, full SemanticKITTI val seq 08).
 ```
 
+**Read this number as a delta, not an absolute.** Both the released checkpoint
+and the retrain sit on top of the spconv v2 port of the SCPNet base described
+above. The port reproduces SCPNet's published 36.7% test mIoU exactly but
+reads 36.17% on val seq 08 (the v1 → v2 offset is confined to val). The
+quantity that should reproduce cleanly across retrains is therefore the
+**per-class delta of S²D² over the SCPNet base under the same spconv build**,
+not the absolute mIoU.
+
 Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step):
 car +1.6, motorcycle +4.7, truck +5.9, other-veh +6.4, person +1.6,
 bicyclist +4.2, motorcyclist +4.4, road +1.3, parking +1.1, traffic-sign −0.2;
-overall +2.37%. Per-class behavior is preserved; the small absolute mIoU
-gap is run-to-run noise, not a recipe difference.
+**overall +2.37%**. Per-class behavior is preserved against SCPNet base, and
+this delta-style improvement is what carries to the SemanticKITTI test
+server: the released checkpoint reaches 39.2% test mIoU under D4 TTA against
+SCPNet's 36.7%, a similar +2.5% absolute lift on the held-out leaderboard.
+The small val-mIoU gap between the retrain (38.05%) and the released
+checkpoint (38.54%) is run-to-run noise on top of a fixed v1 → v2 port
+offset, not a recipe difference.
+
+If your retrain reaches 38.05% ± 0.3% **and** preserves the per-class delta
+structure above against SCPNet base, you have successfully reproduced the
+paper.
 
 ### Recipe summary
 
