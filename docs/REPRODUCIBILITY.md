@@ -111,20 +111,28 @@ Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step):
 car +1.6, motorcycle +4.7, truck +5.9, other-veh +6.4, person +1.6,
 bicyclist +4.2, motorcyclist +4.4, road +1.3, parking +1.1, traffic-sign −0.2;
 **overall +2.37%**. Per-class behavior is preserved against SCPNet base, and
-this delta-style improvement is what carries to the SemanticKITTI test
-server. The cross-split lift is summarised below:
+this delta-style improvement carries to the SemanticKITTI test server under
+matched samplers. SCPNet base is sampler-free, so the row-wise comparison
+holds the base fixed (val: 36.17 under our v2 port; test: 36.7 published)
+and varies S²D²'s sampler:
 
-| Eval split (released ckpt vs. SCPNet base) | Sampler | S²D² mIoU | SCPNet base | **Δ** |
+| S²D² sampler | Val seq 08 mIoU | Test mIoU | Δ vs. base (val) | Δ vs. base (test) |
 |---|---|---|---|---|
-| Val seq 08, 1-step | N=1 | 38.54 | 36.17 (v2 port) | **+2.37** |
-| Test (held-out leaderboard) | N=4 + D4 TTA | 39.2 | 36.7 (published) | **+2.5** |
+| N=1 (real-time)         | 38.54 | 38.8 | **+2.37** | **+2.1** |
+| N=4 (plain)             | 38.65 | 39.0 | **+2.48** | **+2.3** |
+| N=4 + D4 TTA (headline) | 38.73 | 39.2 | **+2.56** | **+2.5** |
 
-The val delta and the test delta agree to within 0.13 mIoU despite different
-samplers and a different SCPNet val/test offset, which is the actual
-reproduction signal: S²D² lifts the same SCPNet base by roughly the same
-amount on both splits. The small val-mIoU gap between the retrain (38.05%)
-and the released checkpoint (38.54%) is run-to-run noise on top of a fixed
-v1 → v2 port offset, not a recipe difference.
+Two facts hold across the three rows. First, the val and test deltas track
+each other to within ~0.3 mIoU at every sampler setting, so the lift is not
+a val-only artifact. Second, both deltas grow monotonically with sampler
+strength (N=1 → N=4 → N=4 + D4 TTA), so the qualitative ordering of
+samplers is preserved across splits. Either fact, on its own, is a stronger
+reproduction signal than any single absolute mIoU number, because the
+absolute number carries the fixed v1 → v2 SCPNet port offset on val.
+
+The small val-mIoU gap between the retrain (38.05% at N=1) and the released
+checkpoint (38.54% at N=1) is run-to-run noise on top of that offset, not a
+recipe difference.
 
 If your retrain reaches 38.05% ± 0.3% **and** preserves the per-class delta
 structure above against SCPNet base, you have successfully reproduced the
