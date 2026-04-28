@@ -28,7 +28,7 @@ python scripts/infer.py infer/test_d4tta \
 cd predictions/test_d4tta && zip -r submission.zip sequences/
 ```
 
-Submit `submission.zip` to the [SemanticKITTI Codabench leaderboard](https://codalab.lisn.upsaclay.fr/competitions/7170).
+Submit `submission.zip` to the [SemanticKITTI Codabench leaderboard](https://www.codabench.org/competitions/13814/#/results-tab).
 
 ## Custom data
 

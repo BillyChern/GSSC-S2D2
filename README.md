@@ -222,7 +222,7 @@ The repo ships the exact recipe + checkpoint for every reported number.
 
 | Paper artefact | Command | Expected |
 |---|---|---|
-| **Tab. I** (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt --output preds/` then submit to [Codabench](https://codalab.lisn.upsaclay.fr/competitions/7170) | **39.2 %** test mIoU |
+| **Tab. I** (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt --output preds/` then submit to [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) | **39.2 %** test mIoU |
 | **Tab. II** (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline>` | **38.54 %** val mIoU |
 | **Tab. V** (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
 | **Tab. VII** (data scaling) | `python scripts/reproduce_table.py tab:data_scaling` | 0K/10K/20K/31K/57K SF retrains |
