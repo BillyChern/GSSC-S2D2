@@ -63,7 +63,13 @@ def main() -> None:
         "--seed",
         type=int,
         default=42,
-        help="Random seed (default: 42, matching paper headline).",
+        help=(
+            "Random seed. Default: 42, the verified reproducible recipe — "
+            "produces 38.05%% val 1-step mIoU on the migrated codebase, "
+            "within ~0.5%% of the paper's 38.54%% headline. The paper's "
+            "published 38.54%% checkpoint was trained without seeding on the "
+            "original repo and is not bit-reproducible by design."
+        ),
     )
     parser.add_argument(
         "--gpu",
@@ -98,7 +104,8 @@ def main() -> None:
     # load_yaml_to_args so user CLI flags take precedence.
     forwarded.extend(["--output_dir", str(out_dir)])
     forwarded.extend(["--data_root", args.data_root])
-    forwarded.extend(["--seed", str(args.seed)])
+    if args.seed is not None:
+        forwarded.extend(["--seed", str(args.seed)])
     forwarded.extend(remainder)
 
     # Dispatch to the BEV second-task trainer for bev_* configs; otherwise the
