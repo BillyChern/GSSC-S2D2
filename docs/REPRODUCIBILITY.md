@@ -29,7 +29,7 @@ Python:         3.10.14 or 3.11.x
 PyTorch:        2.4.0
 CUDA:           12.8
 spconv:        2.3.8 (built for cu126, with our kernel-shape patches)
-NumPy:          1.26.x (NOT 2.x — spconv v2.3 incompat)
+NumPy:          1.26.x (NOT 2.x; spconv v2.3 incompat)
 ```
 
 The exact pin set is in `uv.lock`. Reproduce with:
@@ -39,6 +39,38 @@ uv venv --python 3.10
 uv sync
 uv pip install spconv-cu126==2.3.8
 ```
+
+### spconv v1 to v2 compatibility (SCPNet base port)
+
+The frozen SCPNet base shipped with this repo was originally trained with
+`spconv 1.0`, which has been removed from PyPI and does not build on modern
+CUDA. We pin `spconv-cu126==2.3.8` (v2) and apply kernel-shape patches so the
+v1 weights load correctly:
+
+* In `spconv 1.0`, layers that share an `indice_key` reuse the FIRST layer's
+  spatial pair data regardless of kernel size. In v2, different kernel shapes
+  receive separate pair data.
+* The fix is to align all layers under each shared key to the FIRST layer's
+  kernel shape:
+
+  | Block | Layers | v1 shape | Patched shape |
+  |---|---|---|---|
+  | ResContextBlock | conv1_2, conv2 | (3,1,3) | (1,3,3) (match conv1) |
+  | ResBlock        | conv1_2, conv2 | (1,3,3) | (3,1,3) (match conv1) |
+  | UpBlock         | conv2, conv3   | (3,3,3) | (1,3,3) (match conv1) |
+  | ReconBlock      | conv1_2, conv1_3 | (1,3,1), (1,1,3) | (3,1,1) (match conv1) |
+
+  Weight loading reshapes the kernel dimensions while preserving the flat
+  element order, so the published v1 weights produce numerically equivalent
+  forward passes under v2.
+* Empirical reproduction: 36.17% val seq-08 mIoU vs. SCPNet's published 37.2%
+  (1.03% gap, confined to val; the test-server number reproduces exactly). See
+  [BASELINES.md](BASELINES.md) for the full diff and `tools/run_scpnet_inference.py`
+  for the loader.
+
+If you swap in a different SCPNet checkpoint or rebuild against `spconv 1.0`
+on legacy CUDA, the patches in `src/gssc/models/scpnet_base.py` need to be
+reverted; see the comments in that file.
 
 ## Random seeds and retrain variance
 
