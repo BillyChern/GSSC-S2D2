@@ -4,7 +4,7 @@
 
 ### Proposing S²D²: Structured Source Discrete Diffusion
 
-📄 **[Paper (TPAMI 2026)](https://arxiv.org/abs/TBD)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility Guide](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab Quickstart](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
+📄 **[Paper (TPAMI 2026)](https://arxiv.org/abs/TBD)** &nbsp;·&nbsp; 🏆 **[Leaderboard](https://www.codabench.org/competitions/13814/#/results-tab)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility Guide](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab Quickstart](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BillyChern/GSSC-S2D2/blob/main/examples/quickstart.ipynb)
 
@@ -16,7 +16,7 @@
 [![Code style: ruff](https://img.shields.io/badge/lint-ruff-46a2f1.svg)](https://github.com/astral-sh/ruff)
 [![Type checks: mypy](https://img.shields.io/badge/types-mypy-2A6DB2.svg)](https://mypy.readthedocs.io/)
 [![Tested coverage](https://img.shields.io/badge/coverage-89%25-success.svg)](#code-quality--testing)
-[![SemanticKITTI SOTA](https://img.shields.io/badge/SemanticKITTI-39.2%20mIoU%20%F0%9F%8F%86-orange.svg)](#headline-numbers--semantickitti-hidden-test-single-frame-single-sample-lidar)
+[![SemanticKITTI SOTA](https://img.shields.io/badge/SemanticKITTI-39.2%20mIoU%20%F0%9F%8F%86-orange.svg)](https://www.codabench.org/competitions/13814/#/results-tab)
 
 **🏆 SemanticKITTI hidden-test SOTA — 39.2 % mIoU**, the first leaderboard advance among single-frame single-sample LiDAR SSC submissions since TALoS (NeurIPS 2024).
 
