@@ -112,11 +112,19 @@ car +1.6, motorcycle +4.7, truck +5.9, other-veh +6.4, person +1.6,
 bicyclist +4.2, motorcyclist +4.4, road +1.3, parking +1.1, traffic-sign −0.2;
 **overall +2.37%**. Per-class behavior is preserved against SCPNet base, and
 this delta-style improvement is what carries to the SemanticKITTI test
-server: the released checkpoint reaches 39.2% test mIoU under D4 TTA against
-SCPNet's 36.7%, a similar +2.5% absolute lift on the held-out leaderboard.
-The small val-mIoU gap between the retrain (38.05%) and the released
-checkpoint (38.54%) is run-to-run noise on top of a fixed v1 → v2 port
-offset, not a recipe difference.
+server. The cross-split lift is summarised below:
+
+| Eval split (released ckpt vs. SCPNet base) | Sampler | S²D² mIoU | SCPNet base | **Δ** |
+|---|---|---|---|---|
+| Val seq 08, 1-step | N=1 | 38.54 | 36.17 (v2 port) | **+2.37** |
+| Test (held-out leaderboard) | N=4 + D4 TTA | 39.2 | 36.7 (published) | **+2.5** |
+
+The val delta and the test delta agree to within 0.13 mIoU despite different
+samplers and a different SCPNet val/test offset, which is the actual
+reproduction signal: S²D² lifts the same SCPNet base by roughly the same
+amount on both splits. The small val-mIoU gap between the retrain (38.05%)
+and the released checkpoint (38.54%) is run-to-run noise on top of a fixed
+v1 → v2 port offset, not a recipe difference.
 
 If your retrain reaches 38.05% ± 0.3% **and** preserves the per-class delta
 structure above against SCPNet base, you have successfully reproduced the
