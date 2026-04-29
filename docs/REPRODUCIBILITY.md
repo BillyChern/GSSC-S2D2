@@ -72,6 +72,27 @@ If you swap in a different SCPNet checkpoint or rebuild against `spconv 1.0`
 on legacy CUDA, the patches in `src/gssc/models/scpnet_base.py` need to be
 reverted; see the comments in that file.
 
+#### A note on community-wide SCPNet reproduction difficulty
+
+Our 1.03% val-side offset is small relative to the reproduction gap other
+groups have reported on SCPNet's official codebase. PaSCo (CVPR 2024,
+Cao et al.) document this directly: in their Implementation Details
+(arXiv:2312.02158, §6, "Baselines"), they report that despite extended
+correspondence with the SCPNet authors they could not reproduce SCPNet's
+published numbers from the official code, and ultimately reimplemented the
+method following the authors' guidance to obtain a working baseline they
+denote `SCPNet*`. In their Semantic KITTI val Table 1, official-code SCPNet
++ MaskPLS reads **22.44% mIoU**, and their reimplementation `SCPNet*` reads
+**27.89% mIoU** — a **5.45% gap from the same nominal method depending on
+who runs it**. Their footnote also points to a long-standing GitHub issue
+on SCPNet's repo where other users report the same problem.
+
+This is independent confirmation that the SCPNet codebase has reproduction
+issues that go beyond our spconv v1 → v2 port, and that our 1.03% val
+deviation is small in comparison. The test-server side, where the official
+scoring environment removes any local-toolchain confound, is where our port
+matches SCPNet's published 36.7% test mIoU exactly.
+
 ## Random seeds and retrain variance
 
 The headline run uses **seed 42** for both data shuffling and parameter
