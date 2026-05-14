@@ -1,0 +1,22 @@
+_paper_table: "tab:main_results row 91 (realistic deployment variant)"
+_description: |
+  JS3C-Net cross-base eval under realistic deployment conditions: N=1 Algo2
+  sampling with BEV derived from the JS3C-Net 3D prediction (no GT leakage).
+
+  This is the honest deploy-time number. JS3C-Net's predictions are less
+  accurate than SCPNet's (~22% vs ~36% mIoU base), so the derived BEV is
+  noisier than the GT BEV the paper uses, and the model — trained with GT BEV
+  in teacher mode — gives a lower mIoU here than in the paper protocol.
+
+  Expected mIoU: ~24.3 % via official semantic-kitti-api (4071 frames, seq 08).
+  For the paper protocol that reproduces the 26.72% claim, use
+  `eval/js3c_val_paper.yaml` instead.
+split: val
+sequences: "08"
+base_kind: js3c
+base_pred_dir: data/js3cnet_predictions
+bev_source: derived
+bev_from_scpnet: true
+cold_diffusion: true
+correction_steps: 1
+tta: none

@@ -182,6 +182,8 @@ def run_evaluation(
 
     cfg_split = str(cfg.get("split", "valid"))
     gen_split = "valid" if cfg_split == "val" else cfg_split
+    bev_source = str(cfg.get("bev_source", "derived"))
+    bev_root_cfg = cfg.get("bev_root")
 
     if tta_mode == "d4":
         cmd = [
@@ -192,6 +194,7 @@ def run_evaluation(
             "--data_root", str(semantic_kitti_root),
             "--scpnet_dir", str(scpnet_dir),
             "--split", gen_split,
+            "--bev_source", bev_source,
         ]
     else:
         cmd = [
@@ -204,7 +207,13 @@ def run_evaluation(
             "--split", gen_split,
             "--algo2",
             "--bev_from_scpnet",
+            "--bev_source", bev_source,
         ]
+    if bev_root_cfg:
+        bev_root_path = Path(str(bev_root_cfg))
+        if not bev_root_path.is_absolute():
+            bev_root_path = data_root_path / bev_root_path
+        cmd.extend(["--bev_root", str(bev_root_path)])
     # When predictions are persisted, an interrupted/repeat run can resume by
     # skipping frames that already have a .label written.
     if keep_predictions:

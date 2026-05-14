@@ -216,7 +216,24 @@ def main() -> None:
                         'is kept for v1.0.0 callers and will be removed in v2.0.0.')
     p.add_argument('--split', default='valid', choices=['train', 'valid', 'test'])
     p.add_argument('--skip_existing', action='store_true')
+    p.add_argument('--bev_source', default='derived', choices=['derived', 'gt'],
+                   help=("'derived' uses topmost-non-empty BEV from the (D4-transformed) "
+                         "base prediction (standard D4 TTA). 'gt' uses preprocessed GT "
+                         "BEV — only valid for D4 elements that preserve BEV (identity)."))
+    p.add_argument('--bev_root', default=None,
+                   help='Root for GT BEV files when --bev_source gt.')
     args = p.parse_args()
+    if args.bev_source == 'gt':
+        # D4 TTA applies the same D4 transform to base_pred and BEV; with derived BEV
+        # this works out of the box because `derive_bev` is applied AFTER the
+        # transform. With GT BEV, the BEV is loaded from disk in canonical
+        # orientation, so non-identity D4 elements would inject inconsistent
+        # conditioning. Fall back to derived for D4 TTA.
+        logger.warning(
+            "D4 TTA + --bev_source gt is not supported (canonical-frame BEV "
+            "cannot be D4-transformed); falling back to derived BEV."
+        )
+        args.bev_source = 'derived'
 
     logging.basicConfig(level=logging.INFO, format="[%(name)s] %(message)s")
 

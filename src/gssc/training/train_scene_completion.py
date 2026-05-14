@@ -3591,8 +3591,16 @@ def main():
                         help='S46: Route TSDF via BEV projection (4ch column stats) instead of sparse encoder')
     parser.add_argument('--ssc_lovasz_weight', type=float, default=0.0,
                         help='S43: Weight for 3D Lovász loss on x_0 predictions (default: 0, set to 0.1)')
-    parser.add_argument('--scpnet_pred_dir', type=str, default=None,
-                        help='SCPNet 3D predictions directory for refinement conditioning (Phase 2)')
+    parser.add_argument('--scpnet_pred_dir', '--base_pred_dir', dest='scpnet_pred_dir',
+                        type=str, default=None,
+                        help='Base-model 3D predictions directory for refinement conditioning. '
+                             '`--scpnet_pred_dir` is the historical name; `--base_pred_dir` is '
+                             'the v1.1.0+ alias for cross-base support (SCPNet / JS3C-Net / ...).')
+    parser.add_argument('--base_kind', type=str, default='scpnet',
+                        choices=['scpnet', 'js3c'],
+                        help='Base model kind for cross-base evaluation. Pure label — does not '
+                             'affect inference logic; the model treats predictions identically. '
+                             'Default scpnet maintains backwards compatibility with v1.0.0 CLIs.')
     parser.add_argument('--talos_pred_dir', type=str, default=None,
                         help='TALoS TTA predictions dir (overrides SCPNet for real seqs, falls back for synthetic)')
     parser.add_argument('--bev_cold_dir', type=str, default=None,

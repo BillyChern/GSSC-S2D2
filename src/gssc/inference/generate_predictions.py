@@ -115,6 +115,19 @@ def main() -> None:
                         help='Disable BEV conditioning (for B4b-style no-BEV models)')
     parser.add_argument('--bev_from_scpnet', action='store_true',
                         help='Use SCPNet-derived BEV (for Exp1-style models with BEV)')
+    parser.add_argument('--bev_source', type=str, default='derived',
+                        choices=['derived', 'gt'],
+                        help=('How to source the BEV conditioning. '
+                              "'derived' (default): topmost-non-empty class from the base "
+                              '3D prediction (matches `--bev_from_scpnet` training-time '
+                              'override). '
+                              "'gt': load preprocessed GT BEV from `<voxel_root>/<seq>/<frame>_bev.npy`. "
+                              'Used to reproduce the paper supp tab:supp_b6_val protocol '
+                              '(JS3C-Net + S²D² val mIoU 26.72%, GT-BEV-conditioned upper bound).'))
+    parser.add_argument('--bev_root', type=str, default=None,
+                        help=('Root for GT BEV files when `--bev_source gt`. Defaults to '
+                              '`<data_root>/../SemanticKITTI_3D/256` (mirrors the internal '
+                              'preprocessing layout from `tools/prepare_256_data.py`).'))
     parser.add_argument('--scpnet_only', action='store_true',
                         help='Skip cold diffusion, just convert SCPNet predictions to .label format')
     parser.add_argument('--ssc_multiscale', action='store_true',
@@ -181,6 +194,18 @@ def main() -> None:
             num_classes=20, num_timesteps=100, beta_max=0.1
         ).to(device)
 
+    # Resolve GT-BEV root once (only used when --bev_source gt).
+    if args.bev_source == 'gt':
+        if args.bev_root is not None:
+            bev_root = args.bev_root
+        else:
+            # Default: <data_root>/../SemanticKITTI_3D/256 (mirrors prepare_256_data.py).
+            bev_root = os.path.join(os.path.dirname(args.data_root.rstrip('/')),
+                                    'SemanticKITTI_3D', '256')
+        logger.info("Using GT BEV from %s (paper supp tab:supp_b6_val protocol)", bev_root)
+    else:
+        bev_root = None
+
     # Process each sequence
     total_frames = 0
     for seq in sequences:
@@ -222,8 +247,18 @@ def main() -> None:
                 scp_oh = F.one_hot(scp_tensor, 20).float().permute(0, 4, 1, 2, 3)
 
                 # BEV conditioning
-                if args.bev_from_scpnet:
-                    # Derive BEV from SCPNet 3D pred (topmost non-empty class)
+                if args.bev_source == 'gt':
+                    bev_path = os.path.join(bev_root, seq, f'{frame_id}_bev.npy')
+                    if not os.path.isfile(bev_path):
+                        raise FileNotFoundError(
+                            f"GT BEV missing for --bev_source gt: {bev_path}. "
+                            "Run `python tools/prepare_256_data.py` to materialise "
+                            "preprocessed BEV files, or switch to `--bev_source derived`."
+                        )
+                    bev_np = np.load(bev_path).astype(np.int64)
+                    bev = torch.from_numpy(bev_np).unsqueeze(0).to(device)
+                elif args.bev_from_scpnet:
+                    # Derive BEV from base-pred 3D voxels (topmost non-empty class)
                     bev = torch.zeros(1, 256, 256, dtype=torch.long, device=device)
                     for z in range(scp_tensor.shape[3] - 1, -1, -1):
                         layer = scp_tensor[0, :, :, z]

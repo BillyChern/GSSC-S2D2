@@ -1,0 +1,22 @@
+_paper_table: "tab:main_results row 91 + supplementary tab:supp_b6_val (paper protocol)"
+_description: |
+  JS3C-Net cross-base eval reproducing the paper's supplementary tab:supp_b6_val
+  protocol exactly: N=1 Algo2 sampling with GT-BEV conditioning (loaded from
+  preprocessed `<voxel_root>/<seq>/<frame>_bev.npy`). This is the
+  GT-BEV-conditioned upper bound; the realistic deployment number (BEV derived
+  from JS3C-Net's 3D prediction) is reported in `js3c_val_realistic.yaml`.
+
+  Expected mIoU under this protocol: ~26.7 % (paper claims 26.72% via the
+  internal SSCMetrics evaluator; official semantic-kitti-api on the GT-BEV
+  predictions reads slightly higher — the +0.31 pp internal/official gap is
+  documented in supplementary tab:supp_b6_val).
+split: val
+sequences: "08"
+base_kind: js3c
+base_pred_dir: data/js3cnet_predictions
+bev_source: gt
+bev_root: SemanticKITTI_3D/256
+bev_from_scpnet: true
+cold_diffusion: true
+correction_steps: 1
+tta: none

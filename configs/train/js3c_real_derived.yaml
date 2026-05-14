@@ -1,0 +1,53 @@
+_paper_table: "v1.1.0 codebase-validation: JS3C cross-base trained with derived BEV"
+_description: |
+  JS3C-Net + S²D² cross-base validation: trains with derived BEV (topmost-
+  non-empty class from the JS3C-Net 3D prediction, via the `bev_from_scpnet`
+  override). Matches the released `gssc_js3c_s2d2_real` checkpoint's training
+  recipe. Pairs with `eval/js3c_val_realistic.yaml` for a train/eval-
+  consistent realistic-deployment evaluation.
+
+  This is the train/eval-matched realistic-deployment number the paper does
+  not report: JS3C-Net + S²D² when both training and eval see the
+  noisy derived BEV. Expected mIoU: ~24-26 % under official
+  semantic-kitti-api (no GT-BEV oracle leakage).
+
+  Run-time note: launched on the shared GPU0 alongside the GT-BEV sibling
+  config (`js3c_real_gtbev.yaml`) with `batch_size: 2` so both fit on one
+  H100 80GB. Expect ~75-100 % wall-clock slowdown vs the headline 2-GPU
+  recipe.
+
+# Cross-base configuration
+data_root: data
+base_kind: js3c
+base_pred_dir: data/js3cnet_predictions
+bev_from_scpnet: true   # derived BEV — override GT with topmost-non-empty(base_pred)
+cold_diffusion: true
+force_single_frame_lidar: true
+s3_mode: teacher
+
+# Real-only training
+train_sequences: "00,01,02,03,04,05,06,07,09,10"
+
+# Diffusion + model (matches js3c_real exactly, modulo batch size)
+model_type: sparse_full
+diffusion_version: v2
+num_classes: 20
+num_timesteps: 100
+beta_max: 0.1
+loss_type: kl
+
+# Optimization — bs=2 for shared-GPU run; original headline uses bs=4 on 2 GPUs.
+batch_size: 2
+lr: 1.0e-4
+weight_decay: 0.01
+num_iterations: 100000
+ema_decay: 0.9999
+ssc_lovasz_weight: 0.3
+auxiliary_loss_weight: 0.0005
+
+# Eval cadence + checkpointing
+algo2_eval_steps: 100
+save_interval: 5000
+val_interval: 1000
+miou_interval: 5000
+num_workers: 4

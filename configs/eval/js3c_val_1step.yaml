@@ -1,12 +1,22 @@
-_paper_table: "tab:main_results row 91 (JS3C+S2D2, N=1, no TTA)"
+_paper_table: "tab:main_results row 91 + supplementary tab:supp_b6_val (paper protocol)"
 _description: |
-  JS3C-Net cross-base eval at N=1 (paper Tab. III row 91). Expected val mIoU:
-  26.72% (+3.99 pp over the JS3C-Net base 22.73%, official
-  semantic-kitti-api evaluator).
+  JS3C-Net cross-base eval reproducing the paper Tab. III row 91 protocol:
+  N=1 Algo2 sampling with GT-BEV conditioning. See `js3c_val_paper.yaml` for
+  the explicit protocol description and `js3c_val_realistic.yaml` for the
+  realistic-deployment variant (derived BEV).
+
+  Expected mIoU: ~26.7 % (paper claim 26.72 % under internal SSCMetrics;
+  GSSC-S2D2 reports via official semantic-kitti-api which differs by the
+  +0.31 pp internal/official gap documented in supplementary tab:supp_b6_val).
+
+  This config is aliased to `js3c_val_paper.yaml` for backwards compatibility
+  with v1.1.0-pre callers.
 split: val
 sequences: "08"
 base_kind: js3c
 base_pred_dir: data/js3cnet_predictions
+bev_source: gt
+bev_root: SemanticKITTI_3D/256
 bev_from_scpnet: true
 cold_diffusion: true
 correction_steps: 1
