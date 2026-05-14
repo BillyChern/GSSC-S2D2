@@ -31,9 +31,22 @@ convention, kept as-is).
 
 ## Cross-base headline (NEW in v1.1.0, paper Tab. III rows 90-91)
 
-| Subdir | Paper section | Val mIoU | Config | Size |
-|---|---|---|---|---|
-| `gssc_js3c/gssc_js3c_s2d2_real/` | Tab. III row 91 (JS3C-Net + S²D²) | **26.72** (+3.99 pp over JS3C-Net base 22.73) | `configs/train/js3c_real.yaml` | ~265 MB |
+| Subdir | Paper section | Val mIoU (paper) | Val mIoU (realistic) | Config | Size |
+|---|---|---|---|---|---|
+| `gssc_js3c/gssc_js3c_s2d2_real/` | Tab. III row 91 + supp tab:supp_b6_val | **26.72** (paper protocol, GT BEV + internal SSCMetrics) | **24.32** (deploy protocol, derived BEV + official semantic-kitti-api) | `configs/train/js3c_real.yaml` | ~265 MB |
+
+The two numbers come from different eval protocols (both documented in
+supp tab:supp_b6_val):
+- `eval/js3c_val_paper.yaml` reproduces the **26.72%** number by loading
+  preprocessed GT BEV via `--bev_source gt`. The paper used the internal
+  SSCMetrics evaluator; GSSC-S2D2 reports the same protocol via the official
+  semantic-kitti-api, which differs by the +0.31 pp internal/official gap
+  documented in supp tab:supp_b6_val (so the released number lands near the
+  paper claim once that delta is applied).
+- `eval/js3c_val_realistic.yaml` uses derived BEV (topmost-non-empty class
+  from JS3C-Net's 3D prediction) — the honest deploy-time number. The
+  released JS3C+S²D² model was trained with derived BEV, so this protocol
+  matches its training distribution.
 
 Reproduction requires `data/js3cnet_predictions/` (54 GB; download via
 `scripts/download_assets.py --js3c-predictions` or dump locally via
@@ -73,7 +86,7 @@ Pyramid checkpoints do not use EMA; each subdir ships
 | Subdir | Task | Pipeline mIoU | Config |
 |---|---|---|---|
 | `bev/bev_perception_net/` | LiDAR-only BEV refinement (S²D² applied to BEV) | **36.09** (34.27 base + 1.82 refinement) | `configs/train/bev_secondary.yaml` |
-| `bev/bev_direct_l3_deeper/` | Supp BEV ablation (deeper 3D-direct baseline) | n/a (ablation only) | `configs/train/bev_direct_l3_deeper.yaml` |
+| `bev/bev_direct_l3_deeper/` | Supp BEV ablation (deeper 3D-direct baseline) | n/a (ablation only) | recipe in `docs/REPRODUCIBILITY.md` (no shipped config — was a one-off ablation run) |
 
 ## SCPNet base (frozen)
 

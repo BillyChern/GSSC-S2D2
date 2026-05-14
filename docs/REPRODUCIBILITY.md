@@ -173,7 +173,8 @@ paper.
 |---|---|---|
 | Tab. I (test mIoU) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl |
 | Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --metrics miou per_class` | 38.54 mIoU |
-| Tab. III rows 90-91 (cross-base JS3C) | `python scripts/eval.py eval/js3c_val_1step --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.72 mIoU (+3.99 pp over base 22.73) |
+| Tab. III rows 90-91 (cross-base JS3C, paper protocol)   | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | ~26.7 mIoU (GT BEV, +0.31 pp internal/official delta documented in supp tab:supp_b6_val) |
+| Tab. III rows 90-91 (cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api) |
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` | See MODEL_ZOO.md |
@@ -220,15 +221,23 @@ sequences 00-08, 09, 10; the hidden test 11-21 is optional.)
 # Real-only training (~37 GPU-hours on 2× H100; cold_diffusion=true is required)
 python scripts/train.py train/js3c_real
 
-# Eval at N=1 (paper Tab. III row 91)
-python scripts/eval.py eval/js3c_val_1step \
+# Paper-protocol eval — GT BEV + N=1 Algo2 (paper Tab. III row 91)
+python scripts/eval.py eval/js3c_val_paper \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
-# → expect 26.72 % val mIoU (±0.1 pp, single-seed convention)
+# → expect ~26.7 % val mIoU. The paper reports 26.72 % via internal SSCMetrics;
+#   GSSC-S2D2 ships the official semantic-kitti-api scorer, which differs by
+#   the +0.31 pp evaluator delta documented in supp tab:supp_b6_val (so the
+#   reported number lands near the paper claim once that delta is applied).
 
-# Optional: D4 TTA at N=4
+# Realistic-deployment eval — derived BEV + N=1 Algo2 (honest deploy number)
+python scripts/eval.py eval/js3c_val_realistic \
+    --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
+# → expect 24.32 % val mIoU under official semantic-kitti-api.
+
+# Optional: D4 TTA at N=4 (derived BEV — GT BEV is incompatible with D4)
 python scripts/eval.py eval/js3c_val_d4tta \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
-# → expect ≥ 26.72 % (TTA monotone gain)
+# → expect ≥ 24.32 % (TTA monotone gain on the realistic-deploy variant).
 ```
 
 Or use the all-in-one driver:
