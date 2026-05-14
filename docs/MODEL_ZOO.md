@@ -15,6 +15,10 @@ data/checkpoints/<group>/<name>/
 └── config.json              # train cfg + best_miou + global_step + source SHA256
 ```
 
+Each safetensors file is a complete model state_dict — EMA-tracked parameters
+overlaid onto trained BatchNorm running statistics (running_mean / running_var /
+num_batches_tracked) — so `load_state_dict(strict=True)` works out of the box.
+
 The legacy SCPNet base ships as a flat `scpnet_v2_port.pth` (third-party
 convention, kept as-is).
 

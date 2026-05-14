@@ -82,6 +82,13 @@ always a **MAJOR** bump, even if the API is identical.
   `scpnet_v2_port.pth` because they are a third-party export. Optimizer
   / scheduler / RNG state are stripped from the release tree (a
   training-time `.pt` is preserved locally as a safety net).
+  `model_ema.safetensors` is a *deployment-ready* state_dict: EMA-tracked
+  parameters overlaid onto the trained BatchNorm running statistics
+  (running_mean / running_var / num_batches_tracked), so
+  `load_state_dict(strict=True)` succeeds on its own. This reproduces the
+  v1.0.0 inference loader (which first loaded `model_state_dict` for
+  buffers, then overlaid `ema_shadow` via `named_parameters()`) and
+  matches the paper-reported 38.54 % val mIoU exactly.
 - `S3DSKDDataset` (semantickitti.py) accepts `base_pred_dir` and
   `base_kind` in addition to the legacy `scpnet_pred_dir`; the
   deprecated kwarg still works for one release and emits a
