@@ -131,7 +131,7 @@ def load_js3c_model(log_dir: Path, repo: Path):
 
     seg_module = importlib.import_module("models." + config["Segmentation"]["model_name"])
     complet_module = importlib.import_module("models." + config["Completion"]["model_name"])
-    from models import model_utils  # type: ignore[import-not-found]
+    model_utils = importlib.import_module("models.model_utils")
 
     class JS3CNet(nn.Module):
         """Mirrors test_kitti_ssc.py's J3SC_Net class."""
@@ -205,7 +205,7 @@ def load_js3c_model(log_dir: Path, repo: Path):
 
 def get_dataset_for_split(config: dict, split: str):
     """Build JS3C-Net's ``kitti_dataset`` for a single split."""
-    import kitti_dataset  # type: ignore[import-not-found]
+    kitti_dataset = importlib.import_module("kitti_dataset")
 
     config = dict(config)
     config["DATA"]["split"] = split
@@ -228,7 +228,7 @@ def main() -> int:
     with js3c_workdir(args.js3c_repo):
         import numpy as np
         import torch
-        from models import SubSparseConv  # type: ignore[import-not-found]
+        SubSparseConv = importlib.import_module("models").SubSparseConv
         from torch.utils.data import DataLoader, Subset
         from tqdm import tqdm
 
