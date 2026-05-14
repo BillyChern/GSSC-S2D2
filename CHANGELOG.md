@@ -37,11 +37,15 @@ always a **MAJOR** bump, even if the API is identical.
 
 - **Cross-base headline** (paper Tab. III rows 90–91): stacking S²D² on
   the older point-voxel hybrid base JS3C-Net (Yan et al. 2021) lifts val
-  mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official
-  `semantic-kitti-api` evaluator. Reproducible end-to-end:
+  mIoU **22.73 % → 26.72 % (+3.99 pp)** under the paper protocol (GT BEV
+  + internal SSCMetrics, see supp tab:supp_b6_val), or **22.73 % →
+  24.32 % (+1.59 pp)** under the realistic-deployment protocol (derived
+  BEV + official `semantic-kitti-api`). Both paths reproduce end-to-end
+  from the released checkpoint:
   ```
   python scripts/dump_js3c_predictions.py --js3c-repo external/JS3C-Net …
-  python scripts/eval.py eval/js3c_val_1step --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
+  python scripts/eval.py eval/js3c_val_paper     …  # paper protocol  → ~26.7 %
+  python scripts/eval.py eval/js3c_val_realistic …  # realistic deploy → 24.32 %
   ```
 - `src/gssc/models/js3c_base.py` — predictions reader (no model code,
   predictions are shipped as a separate dataset mirroring
@@ -51,8 +55,15 @@ always a **MAJOR** bump, even if the API is identical.
   alias with a `DeprecationWarning`.
 - `configs/train/js3c_real.yaml` — cross-base training config (real
   frames only, `cold_diffusion=true`, 100 K steps).
-- `configs/eval/js3c_val_1step.yaml`, `configs/eval/js3c_val_d4tta.yaml`
-  — cross-base eval configs.
+- `configs/eval/js3c_val_paper.yaml`, `configs/eval/js3c_val_realistic.yaml`,
+  `configs/eval/js3c_val_1step.yaml` (alias for paper protocol),
+  `configs/eval/js3c_val_d4tta.yaml` — cross-base eval configs spanning
+  both the paper-protocol (GT BEV) and realistic-deployment (derived BEV)
+  paths.
+- `configs/train/js3c_real_gtbev.yaml`, `configs/train/js3c_real_derived.yaml`
+  — sibling training configs at `batch_size: 2` so both BEV-source
+  protocols can be retrained simultaneously on a shared GPU0 for
+  end-to-end codebase validation.
 - `scripts/dump_js3c_predictions.py` — ported from internal
   `tools/dump_alt_base/dump_js3c_xsrc.py`; `--js3c-repo PATH` is now a
   CLI argument (no hardcoded path).
