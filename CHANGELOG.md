@@ -31,6 +31,99 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-05-14
+
+### Added — JS3C-Net cross-base support
+
+- **Cross-base headline** (paper Tab. III rows 90–91): stacking S²D² on
+  the older point-voxel hybrid base JS3C-Net (Yan et al. 2021) lifts val
+  mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official
+  `semantic-kitti-api` evaluator. Reproducible end-to-end:
+  ```
+  python scripts/dump_js3c_predictions.py --js3c-repo external/JS3C-Net …
+  python scripts/eval.py eval/js3c_val_1step --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
+  ```
+- `src/gssc/models/js3c_base.py` — predictions reader (no model code,
+  predictions are shipped as a separate dataset mirroring
+  `scpnet_predictions/`).
+- `src/gssc/utils/compat.py` — `resolve_base_pred_dir()` shim that
+  resolves the new `base_pred_dir` plus the deprecated `scpnet_pred_dir`
+  alias with a `DeprecationWarning`.
+- `configs/train/js3c_real.yaml` — cross-base training config (real
+  frames only, `cold_diffusion=true`, 100 K steps).
+- `configs/eval/js3c_val_1step.yaml`, `configs/eval/js3c_val_d4tta.yaml`
+  — cross-base eval configs.
+- `scripts/dump_js3c_predictions.py` — ported from internal
+  `tools/dump_alt_base/dump_js3c_xsrc.py`; `--js3c-repo PATH` is now a
+  CLI argument (no hardcoded path).
+- `tests/test_js3c_base.py` — four tests covering predictions reader,
+  D4 TTA symmetry on JS3C inputs, cold-diffusion forward determinism,
+  and the `scpnet_pred_dir` deprecation alias.
+- `scripts/reproduce_table.py tab:cross_base_js3c` — single-command
+  reproduction of the cross-base headline (with pre-flight check that
+  prints the exact dumper command if `js3cnet_predictions/` is empty).
+- New release checkpoint `gssc_js3c/gssc_js3c_s2d2_real/` (paper Tab.
+  III row 91; ~265 MB safetensors subdir).
+- New release checkpoint `gssc_mf/gssc_57k_mf_step40000/` (paper Tab. V
+  negative-result row; 37.76 % val mIoU under N=1 eval).
+- `data/js3cnet_predictions/` dataset entry, mirroring the existing
+  `scpnet_predictions/` layout (`{00..21}/` + `synthetic_31k/` +
+  `synthetic_filtered/`). 597-frame JS3C-synth gap documented; SCPNet
+  synth predictions are the recommended pseudo-label source for
+  synth-augmented experiments.
+
+### Changed
+
+- **Release asset format**: every release checkpoint now ships as a
+  per-checkpoint subdir
+  `gssc_mf/<name>/{model.safetensors,model_ema.safetensors,config.json}`,
+  matching the modern Hugging Face Hub convention (Llama, Qwen, SDXL,
+  Flux, …). Legacy SCPNet weights still ship as a flat
+  `scpnet_v2_port.pth` because they are a third-party export. Optimizer
+  / scheduler / RNG state are stripped from the release tree (a
+  training-time `.pt` is preserved locally as a safety net).
+- `S3DSKDDataset` (semantickitti.py) accepts `base_pred_dir` and
+  `base_kind` in addition to the legacy `scpnet_pred_dir`; the
+  deprecated kwarg still works for one release and emits a
+  `DeprecationWarning` (slated for removal in v2.0.0).
+- `src/gssc/inference/d4_tta.py`: local var/param names renamed from
+  `scp_*` to `base_*` for clarity; **public symbols unchanged**
+  (`apply_d4`, `invert_d4`, `derive_bev`, `run_algo2_softmax`,
+  `D4_ELEMENTS`). The diffusion-side kwarg
+  `sample_algo2(..., scpnet_pred=...)` keeps its historical name.
+- `scripts/eval.py`, `scripts/infer.py`, `scripts/reproduce_table.py`,
+  `scripts/download_assets.py` accept `--base_pred_dir` /
+  `--base_kind`; the legacy `--scpnet_pred_dir` flag is kept as a
+  deprecated alias.
+- `scripts/reproduce_table.py` resolves checkpoint paths to the new
+  per-subdir `model_ema.safetensors` layout.
+- `scripts/download_assets.py` learns `--js3c-predictions` flag.
+
+### Documentation
+
+- `docs/REPRODUCIBILITY.md` — added JS3C-Net cross-base reproduction
+  protocol (clone external/JS3C-Net, dump predictions, eval).
+- `docs/MODEL_ZOO.md` — added JS3C row + reworked layout to the new
+  per-subdir paths.
+- `docs/DATASET.md` — added `js3cnet_predictions/` section, including
+  the 597-frame synth gap and the recommendation to use SCPNet's synth
+  predictions instead.
+- `docs/BASELINES.md` — added JS3C-Net section (no spconv kernel-shape
+  patches needed; predictions-only release).
+- `docs/INFERENCE.md`, `docs/TRAIN.md` — added JS3C examples.
+- `README.md` — release-news entry, updated quick-start.
+
+### Migration notes
+
+- **No code change required** for existing v1.0.0 users. YAML configs
+  that still set `scpnet_pred_dir` continue to work and emit a single
+  `DeprecationWarning` at startup. Slated for removal in **v2.0.0**.
+- The headline 38.54 % val mIoU and 39.2 % hidden test mIoU are
+  unchanged; the SCPNet path is exercised by `D.1`/`D.2` regression
+  tests on every release.
+
+## [Pre-1.1.0 unreleased — folded into 1.1.0]
+
 ### Added
 - BEV second-task driver (`scripts/eval.py eval/bev_secondary`,
   `scripts/train.py train/bev_secondary`) reproducing 36.09 % val
@@ -119,5 +212,6 @@ always a **MAJOR** bump, even if the API is identical.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/BillyChern/GSSC-S2D2/releases/tag/v1.1.0
 [1.0.0]: https://github.com/BillyChern/GSSC-S2D2/releases/tag/v1.0.0

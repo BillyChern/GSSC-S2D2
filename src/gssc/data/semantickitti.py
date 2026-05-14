@@ -22,10 +22,13 @@ Reference: SCPNet CVPR 2023 - uses pairwise feature similarity for DSKD
 import multiprocessing
 import random
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset
+
+from gssc.utils.compat import resolve_base_pred_dir
 
 
 class S3DSKDDataset(Dataset):
@@ -61,8 +64,10 @@ class S3DSKDDataset(Dataset):
         lsk3d_dir: str | None = None,  # LSK3DNet 3D features dir (for S5/S6)
         geom_dir: str | None = None,  # S43: Geometric features dir (height/normals/intensity/TSDF)
         no_tsdf_sparse: bool = False,  # S46: Don't put TSDF in sparse tensor, compute TSDF BEV instead
-        scpnet_pred_dir: str | None = None,  # SCPNet 3D predictions for refinement conditioning
-        talos_pred_dir: str | None = None,  # TALoS TTA predictions (overrides SCPNet for real seqs)
+        scpnet_pred_dir: str | None = None,  # DEPRECATED v1.1.0: use base_pred_dir
+        base_pred_dir: str | None = None,  # Base-model predictions dir (SCPNet, JS3C-Net, ...)
+        base_kind: Literal['scpnet', 'js3c'] = 'scpnet',  # Which base model produced the preds
+        talos_pred_dir: str | None = None,  # TALoS TTA predictions (overrides base for real seqs)
         bev_cold_dir: str | None = None,  # S2D2 refined BEV predictions dir
         load_raw_lidar: bool = False,  # Load raw .bin pointcloud for Cylinder3D features
         force_single_frame_lidar: bool = False,  # Force single-frame lidar even in teacher mode
@@ -95,7 +100,16 @@ class S3DSKDDataset(Dataset):
         self.lsk3d_dir = Path(lsk3d_dir) if lsk3d_dir else None
         self.geom_dir = Path(geom_dir) if geom_dir else None
         self.no_tsdf_sparse = no_tsdf_sparse
-        self.scpnet_pred_dir = Path(scpnet_pred_dir) if scpnet_pred_dir else None
+        # base_pred_dir is the canonical name as of v1.1.0; scpnet_pred_dir is a
+        # deprecated alias kept for v1.0.0 callers (DeprecationWarning).
+        resolved_base = resolve_base_pred_dir(
+            base_pred_dir=base_pred_dir, scpnet_pred_dir=scpnet_pred_dir
+        )
+        self.base_pred_dir = Path(resolved_base) if resolved_base else None
+        self.base_kind: Literal['scpnet', 'js3c'] = base_kind
+        # Back-compat alias: internal code paths still read self.scpnet_pred_dir.
+        # Slated for removal alongside the kwarg in v2.0.0.
+        self.scpnet_pred_dir = self.base_pred_dir
         self.talos_pred_dir = Path(talos_pred_dir) if talos_pred_dir else None
         self.bev_cold_dir = Path(bev_cold_dir) if bev_cold_dir else None
         self.load_raw_lidar = load_raw_lidar
@@ -833,6 +847,8 @@ def create_s3_dataloader(
     geom_dir: str | None = None,
     no_tsdf_sparse: bool = False,
     scpnet_pred_dir: str | None = None,
+    base_pred_dir: str | None = None,
+    base_kind: Literal['scpnet', 'js3c'] = 'scpnet',
     talos_pred_dir: str | None = None,
     bev_cold_dir: str | None = None,
     load_raw_lidar: bool = False,
@@ -867,6 +883,8 @@ def create_s3_dataloader(
         geom_dir=geom_dir,
         no_tsdf_sparse=no_tsdf_sparse,
         scpnet_pred_dir=scpnet_pred_dir,
+        base_pred_dir=base_pred_dir,
+        base_kind=base_kind,
         talos_pred_dir=talos_pred_dir,
         bev_cold_dir=bev_cold_dir,
         load_raw_lidar=load_raw_lidar,

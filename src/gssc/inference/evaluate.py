@@ -161,7 +161,21 @@ def run_evaluation(
     env["CUDA_VISIBLE_DEVICES"] = gpu
     env["PYTHONPATH"] = f"{REPO_ROOT / 'src'}:{env.get('PYTHONPATH', '')}"
 
-    scpnet_dir = data_root_path / "scpnet_predictions"
+    # Resolve the base-prediction directory. Modern configs (since v1.1.0)
+    # specify ``base_pred_dir`` to support cross-base reproduction (JS3C-Net,
+    # PaSCo, ...). Legacy configs fall back to ``scpnet_pred_dir``; both feed
+    # the same downstream subprocess.
+    base_pred_dir_cfg = cfg.get("base_pred_dir") or cfg.get("scpnet_pred_dir")
+    if base_pred_dir_cfg is None:
+        scpnet_dir = data_root_path / "scpnet_predictions"
+    else:
+        base_pred_dir_path = Path(base_pred_dir_cfg)
+        if base_pred_dir_path.is_absolute():
+            scpnet_dir = base_pred_dir_path
+        else:
+            scpnet_dir = data_root_path.parent / base_pred_dir_path
+            if not scpnet_dir.exists():
+                scpnet_dir = data_root_path / base_pred_dir_path.name
     semantic_kitti_root = data_root_path / "SemanticKITTI"
     if not semantic_kitti_root.exists():
         semantic_kitti_root = data_root_path

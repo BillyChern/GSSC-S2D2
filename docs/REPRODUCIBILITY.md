@@ -171,19 +171,87 @@ paper.
 
 | Table / Figure | Command | Expected |
 |---|---|---|
-| Tab. I (test mIoU) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_31k_mf_step40000.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl |
-| Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31k_mf_step40000.safetensors --metrics miou per_class` | 38.54 mIoU |
-<!-- Tab. III (safety metrics) intentionally omitted from this matrix until
-     the dedicated safety-metric driver is implemented; see issue tracker. -->
-
-| Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint ...` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
-| Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31K_sf_step100000.safetensors` | See MODEL_ZOO.md |
+| Tab. I (test mIoU) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl |
+| Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --metrics miou per_class` | 38.54 mIoU |
+| Tab. III rows 90-91 (cross-base JS3C) | `python scripts/eval.py eval/js3c_val_1step --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.72 mIoU (+3.99 pp over base 22.73) |
+| Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
+| Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
+| Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` | See MODEL_ZOO.md |
 | Tab. VIII (DW-IoU) | `python scripts/eval.py eval/val_1step --checkpoint ... --metrics dwiou` | per-T_w table |
-| Tab. XII (training timesteps) | Per-row checkpoint | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
-| Tab. XV (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev_perception_net.pt` | 36.09 BEV mIoU |
+| Tab. XII (training timesteps) | Per-row checkpoint under `gssc_timesteps/` | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
+| Tab. XV (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` | 36.09 BEV mIoU |
 | Fig. 4 / Fig. 5 (qualitative) | See `examples/` notebooks | — |
 
-All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`).
+All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`). Cross-base reproduction additionally requires `data/js3cnet_predictions/`; see the dedicated section below.
+
+## JS3C-Net cross-base reproduction (paper Tab. III rows 90-91)
+
+Stacking S²D² on the older point-voxel hybrid base JS3C-Net (Yan et al.,
+ICCV 2021) lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the
+official `semantic-kitti-api` evaluator. This row is independent of the
+SCPNet base port; the only spconv-version concern is matching JS3C-Net's
+own published recipe, which the dump script handles for you.
+
+### One-time setup (clone JS3C-Net externally)
+
+```bash
+# Tested at commit 7df4d0c66 on the public master branch.
+git clone --depth 1 https://github.com/yangyangyang127/JS3C-Net external/JS3C-Net
+# Follow JS3C-Net's README to download log/JS3C-Net-kitti/model_*.pth + args.txt
+bash external/JS3C-Net/download_pretrained.sh
+```
+
+### Dump the base predictions
+
+```bash
+python scripts/dump_js3c_predictions.py \
+    --js3c-repo external/JS3C-Net \
+    --semantickitti_root data/SemanticKITTI/dataset \
+    --output_dir data/js3cnet_predictions \
+    --sequences 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21
+```
+
+(One full sweep ≈ 2-4 GPU-hours on H100. Real-only reproduction needs
+sequences 00-08, 09, 10; the hidden test 11-21 is optional.)
+
+### Train and eval
+
+```bash
+# Real-only training (~37 GPU-hours on 2× H100; cold_diffusion=true is required)
+python scripts/train.py train/js3c_real
+
+# Eval at N=1 (paper Tab. III row 91)
+python scripts/eval.py eval/js3c_val_1step \
+    --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
+# → expect 26.72 % val mIoU (±0.1 pp, single-seed convention)
+
+# Optional: D4 TTA at N=4
+python scripts/eval.py eval/js3c_val_d4tta \
+    --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
+# → expect ≥ 26.72 % (TTA monotone gain)
+```
+
+Or use the all-in-one driver:
+
+```bash
+python scripts/reproduce_table.py tab:cross_base_js3c
+```
+
+### Known gap on the synthetic pool
+
+Of the 32 039 frames in the 31K synthetic pool, **597 (1.9 %) are missing**
+from `js3cnet_predictions/synthetic_31k/` because JS3C-Net's seg head
+misclassifies the voxel-derived fake point cloud as out-of-distribution
+and crashes the dumper on those frames (paper supp § H discusses the
+underlying segmentation-head OOD issue). The full blacklist ships with
+the dataset as `js3cnet_predictions/synthetic_31k_bad_frames.txt`.
+
+The headline cross-base row (26.72 % mIoU) is trained on **real frames
+only**, so the synth gap does not affect it. The synth-augmentation row
+(supp tab:supp_b6_val) filters at dataloader time using the blacklist;
+SCPNet's synth predictions (`scpnet_predictions/synthetic/`) cover all
+57 650 synth frames without any gap and are the recommended pseudo-label
+source for new synth-augmented experiments.
 
 ## Determinism caveats
 

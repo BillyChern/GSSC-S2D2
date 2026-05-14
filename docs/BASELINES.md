@@ -33,6 +33,30 @@ seq 08 the port reads 36.17%, **−1.03% below** the paper's published 37.2%
 val number; this val-side gap is confined to seq 08 and does not transfer
 to test.
 
+## JS3C-Net cross-base (added v1.1.0)
+
+The v1.1.0 cross-base reproduction (paper Tab. III rows 90-91, +3.99 pp val
+mIoU) uses JS3C-Net (Yan et al. 2021, ICCV) as a *prediction-only*
+alternative base.
+
+* Original: [JS3C-Net](https://github.com/yangyangyang127/JS3C-Net) (ICCV 2021)
+* Our reader: `src/gssc/models/js3c_base.py` — a thin per-frame `.npy` loader.
+  No JS3C model code is shipped because we release the predictions
+  themselves as a separate dataset (`data/js3cnet_predictions/`, mirrors
+  `data/scpnet_predictions/` exactly).
+* Dumper: `scripts/dump_js3c_predictions.py` — depends on a local clone of
+  the upstream JS3C-Net repo (CLI argument `--js3c-repo`, no hardcoded path).
+* Released base reproduction: paper Tab. III row 90 = **22.73 %** val mIoU
+  under the official `semantic-kitti-api` evaluator, exactly matching
+  JS3C-Net's published recipe (no spconv kernel-shape patches required —
+  unlike SCPNet, JS3C-Net's official codebase loads cleanly under the
+  bundled TorchSparse + spconv 1.x pin).
+* S²D² lift on top: **26.72 %** val mIoU (+3.99 pp), real-frames-only
+  training, `cold_diffusion=true` (paper supp § H).
+
+Reproduction protocol: `docs/REPRODUCIBILITY.md`, section "JS3C-Net
+cross-base reproduction".
+
 ## DiffSSC reimplementation (qualitative comparison only)
 
 DiffSSC's open-source release contains only the geometric-completion pipeline

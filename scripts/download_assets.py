@@ -49,7 +49,8 @@ def _ensure_url_configured(url: str, label: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoints", action="store_true", help="Download model checkpoints (~3 GB)")
-    parser.add_argument("--predictions", action="store_true", help="Download SCPNet predictions (~50 GB)")
+    parser.add_argument("--predictions", action="store_true", help="Download SCPNet predictions (~178 GB, real + synth)")
+    parser.add_argument("--js3c-predictions", action="store_true", help="Download JS3C-Net predictions (~54 GB, cross-base eval)")
     parser.add_argument("--object-bank", action="store_true", help="Download rare-class object bank (~448 MB)")
     parser.add_argument("--synthetic-pool", choices=["0K", "10K", "20K", "31K", "57K"],
                         default=None, help="Download a synthetic pool variant")
@@ -57,7 +58,7 @@ def main() -> None:
     parser.add_argument("--root", default=str(REPO_ROOT / "data"), help="Where to store downloads")
     args = parser.parse_args()
 
-    if not any([args.checkpoints, args.predictions, args.object_bank, args.synthetic_pool, args.all]):
+    if not any([args.checkpoints, args.predictions, args.js3c_predictions, args.object_bank, args.synthetic_pool, args.all]):
         parser.print_help()
         sys.exit(0)
 
@@ -81,6 +82,12 @@ def main() -> None:
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["scpnet_predictions/*"],
                           local_dir=root / "scpnet_predictions", local_dir_use_symlinks=False)
+    if args.js3c_predictions or args.all:
+        _ensure_url_configured(HF_REPO_DATA, "Datasets (JS3C-Net predictions)")
+        logger.info("Downloading JS3C-Net predictions from %s ...", HF_REPO_DATA)
+        snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
+                          allow_patterns=["js3cnet_predictions/*"],
+                          local_dir=root / "js3cnet_predictions", local_dir_use_symlinks=False)
     if args.object_bank or args.all:
         _ensure_url_configured(HF_REPO_DATA, "Datasets (object bank)")
         logger.info("Downloading object bank from %s ...", HF_REPO_DATA)

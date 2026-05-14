@@ -9,9 +9,12 @@ and writes argmaxed .label files.
 
 Transform inversion conventions (voxel grid axes):
   LiDAR [1,1,H=256,W=256,D=32]:  flip_x -> dim=2, flip_y -> dim=3, rot90(k) on dims (2,3)
-  scp   [1,H=256,W=256,D=32]:    flip_x -> dim=1, flip_y -> dim=2, rot90(k) on dims (1,2)
+  base  [1,H=256,W=256,D=32]:    flip_x -> dim=1, flip_y -> dim=2, rot90(k) on dims (1,2)
   bev   [1,H=256,W=256]:         flip_x -> dim=1, flip_y -> dim=2, rot90(k) on dims (1,2)
   soft  [1,K=20,H=256,W=256,D=32]: invert — flip_x dim=2, flip_y dim=3, rot90(-k) on (2,3)
+
+The base prediction can come from any frozen SSC backbone (SCPNet for the
+headline; JS3C-Net for the v1.1.0 cross-base reproduction).
 
 Usage:
   python tools/generate_tta_predictions_d4.py \
@@ -68,11 +71,17 @@ def load_lidar_voxels(voxel_path: str | os.PathLike) -> torch.Tensor:
     return torch.from_numpy(binary).unsqueeze(0).unsqueeze(0)
 
 
-def derive_bev(scp_tensor: torch.Tensor) -> torch.Tensor:
-    """Topmost-non-empty-class BEV projection of a [1, 256, 256, 32] SCPNet pred."""
-    bev = torch.zeros(1, 256, 256, dtype=torch.long, device=scp_tensor.device)
-    for z in range(scp_tensor.shape[3] - 1, -1, -1):
-        layer = scp_tensor[0, :, :, z]
+def derive_bev(base_tensor: torch.Tensor) -> torch.Tensor:
+    """Topmost-non-empty-class BEV projection of a [1, 256, 256, 32] base-model prediction.
+
+    Base-agnostic since v1.1.0: works on any per-voxel categorical prediction
+    (SCPNet, JS3C-Net, ...). The diffusion-side kwarg
+    ``sample_algo2(..., scpnet_pred=...)`` keeps its historical name (model-side
+    conditioning), but this BEV projection has no SCPNet-specific assumptions.
+    """
+    bev = torch.zeros(1, 256, 256, dtype=torch.long, device=base_tensor.device)
+    for z in range(base_tensor.shape[3] - 1, -1, -1):
+        layer = base_tensor[0, :, :, z]
         mask = (layer > 0) & (bev[0] == 0)
         bev[0][mask] = layer[mask]
     return bev
@@ -82,18 +91,30 @@ def load_model(
     ckpt_path: str | os.PathLike,
     device: torch.device,
 ) -> tuple[SceneCompletionUNetSparse, MultinomialDiffusion3DV2]:
-    """Load the headline checkpoint with EMA weights swapped in for inference."""
-    ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
+    """Load the headline checkpoint with EMA weights swapped in for inference.
+
+    Supports both the v1.0.0 ``.pt`` layout (model_state_dict + ema_shadow)
+    and the v1.1.0 ``.safetensors`` per-subdir layout (model_ema.safetensors
+    holds the deployment weights directly).
+    """
+    ckpt_str = str(ckpt_path)
     model = SceneCompletionUNetSparse(
         num_classes=20, base_channels=32, time_emb_dim=128,
         lidar_base_channels=16, lidar_out_channels=32, lidar_in_channels=1,
         no_bev=False, ssc_cond_channels=20, ssc_multiscale=False,
     ).to(device)
-    model.load_state_dict(ckpt['model_state_dict'], strict=False)
-    if 'ema_shadow' in ckpt:
-        for name, p in model.named_parameters():
-            if name in ckpt['ema_shadow']:
-                p.data.copy_(ckpt['ema_shadow'][name])
+
+    if ckpt_str.endswith(".safetensors"):
+        from safetensors.torch import load_file
+        state_dict = load_file(ckpt_str)
+        model.load_state_dict(state_dict, strict=False)
+    else:
+        ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
+        model.load_state_dict(ckpt['model_state_dict'], strict=False)
+        if 'ema_shadow' in ckpt:
+            for name, p in model.named_parameters():
+                if name in ckpt['ema_shadow']:
+                    p.data.copy_(ckpt['ema_shadow'][name])
     model.train(False)
     diffusion = MultinomialDiffusion3DV2(num_classes=20, num_timesteps=100, beta_max=0.1).to(device)
     return model, diffusion
@@ -101,29 +122,30 @@ def load_model(
 
 def apply_d4(
     lidar: torch.Tensor,
-    scp: torch.Tensor,
+    base: torch.Tensor,
     bev: torch.Tensor,
     flip_x: bool,
     flip_y: bool,
     rot_k: int,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Apply D4 element to inputs. Returns transformed (lidar, scp, bev).
+    """Apply D4 element to inputs. Returns transformed (lidar, base, bev).
 
     Order matters: flip first, then rotate (mirrors training augment order).
+    Base-agnostic since v1.1.0; works on any per-voxel categorical prediction.
     """
     if flip_x:
         lidar = torch.flip(lidar, dims=[2])
-        scp   = torch.flip(scp,   dims=[1])
+        base  = torch.flip(base,  dims=[1])
         bev   = torch.flip(bev,   dims=[1])
     if flip_y:
         lidar = torch.flip(lidar, dims=[3])
-        scp   = torch.flip(scp,   dims=[2])
+        base  = torch.flip(base,  dims=[2])
         bev   = torch.flip(bev,   dims=[2])
     if rot_k > 0:
         lidar = torch.rot90(lidar, k=rot_k, dims=[2, 3])
-        scp   = torch.rot90(scp,   k=rot_k, dims=[1, 2])
+        base  = torch.rot90(base,  k=rot_k, dims=[1, 2])
         bev   = torch.rot90(bev,   k=rot_k, dims=[1, 2])
-    return lidar, scp, bev
+    return lidar, base, bev
 
 
 def invert_d4(soft: torch.Tensor, flip_x: bool, flip_y: bool, rot_k: int) -> torch.Tensor:
@@ -141,22 +163,28 @@ def run_algo2_softmax(
     model: SceneCompletionUNetSparse,
     diffusion: MultinomialDiffusion3DV2,
     lidar: torch.Tensor,
-    scp_tensor: torch.Tensor,
+    base_tensor: torch.Tensor,
     bev: torch.Tensor,
     n_steps: int,
     device: torch.device,
 ) -> torch.Tensor:
-    """Run a single S2D2 correction forward pass and return the soft-max distribution [1,K,H,W,D]."""
-    scp_oh = F.one_hot(scp_tensor.long(), 20).float().permute(0, 4, 1, 2, 3)
+    """Run a single S2D2 correction forward pass and return the soft-max distribution [1,K,H,W,D].
+
+    Base-agnostic since v1.1.0; ``base_tensor`` may be any per-voxel categorical
+    prediction (SCPNet, JS3C-Net). The diffusion kwarg ``scpnet_pred=`` keeps its
+    historical model-side name; the kwarg is the conditioning channel for the
+    denoiser, not a base-model assumption.
+    """
+    base_oh = F.one_hot(base_tensor.long(), 20).float().permute(0, 4, 1, 2, 3)
     with torch.no_grad():
         soft = diffusion.sample_algo2(
             model, bev, lidar,
-            scpnet_pred=scp_tensor,
+            scpnet_pred=base_tensor,
             shape=(1, 256, 256, 32),
             device=device,
             n_steps=n_steps,
             show_progress=False,
-            ssc_pred=scp_oh,
+            ssc_pred=base_oh,
             return_softmax=True,
         )
     return soft
@@ -182,8 +210,10 @@ def main() -> None:
     p.add_argument('--output_dir', required=True)
     p.add_argument('--data_root', default='data/SemanticKITTI',
                    help='Root containing sequences/<SEQ>/voxels/*.bin')
-    p.add_argument('--scpnet_dir', default='data/scpnet_predictions',
-                   help='Root containing <SEQ>/<frame>_pred.npy')
+    p.add_argument('--base_pred_dir', '--scpnet_dir', dest='base_pred_dir',
+                   default='data/scpnet_predictions',
+                   help='Root containing <SEQ>/<frame>_pred.npy. The --scpnet_dir alias '
+                        'is kept for v1.0.0 callers and will be removed in v2.0.0.')
     p.add_argument('--split', default='valid', choices=['train', 'valid', 'test'])
     p.add_argument('--skip_existing', action='store_true')
     args = p.parse_args()
@@ -203,7 +233,7 @@ def main() -> None:
     total = 0
     for seq in seqs:
         voxels_dir = os.path.join(args.data_root, 'sequences', seq, 'voxels')
-        scpnet_seq_dir = os.path.join(args.scpnet_dir, seq)
+        base_seq_dir = os.path.join(args.base_pred_dir, seq)
         out_pred_dir = os.path.join(args.output_dir, 'sequences', seq, 'predictions')
         os.makedirs(out_pred_dir, exist_ok=True)
         frame_ids = [f.stem for f in sorted(Path(voxels_dir).glob('*.bin'))]
@@ -217,21 +247,21 @@ def main() -> None:
             if args.skip_existing and os.path.exists(out_path):
                 continue
 
-            scpnet_path = os.path.join(scpnet_seq_dir, f'{frame_id}_pred.npy')
-            if not os.path.exists(scpnet_path):
-                logger.warning("Missing SCPNet pred for %s/%s", seq, frame_id)
+            base_path = os.path.join(base_seq_dir, f'{frame_id}_pred.npy')
+            if not os.path.exists(base_path):
+                logger.warning("Missing base prediction for %s/%s", seq, frame_id)
                 continue
-            scpnet_pred = np.load(scpnet_path)
+            base_pred = np.load(base_path)
             voxel_path = os.path.join(voxels_dir, f'{frame_id}.bin')
             lidar_base = load_lidar_voxels(voxel_path).to(device)
-            scp_base = torch.from_numpy(scpnet_pred.astype(np.int64)).unsqueeze(0).to(device)
+            base_pred_t = torch.from_numpy(base_pred.astype(np.int64)).unsqueeze(0).to(device)
 
             assert D4_ELEMENTS, "D4 group must have >= 1 element"
             soft_sum: torch.Tensor | None = None
             for (fx, fy, rk) in D4_ELEMENTS:
-                lidar_t, scp_t, _ = apply_d4(lidar_base, scp_base, torch.zeros(1, 256, 256, dtype=torch.long, device=device), fx, fy, rk)
-                bev_t = derive_bev(scp_t)
-                soft = run_algo2_softmax(model, diffusion, lidar_t, scp_t, bev_t, args.cold_steps, device)
+                lidar_t, base_t, _ = apply_d4(lidar_base, base_pred_t, torch.zeros(1, 256, 256, dtype=torch.long, device=device), fx, fy, rk)
+                bev_t = derive_bev(base_t)
+                soft = run_algo2_softmax(model, diffusion, lidar_t, base_t, bev_t, args.cold_steps, device)
                 soft_back = invert_d4(soft, fx, fy, rk)
                 soft_sum = soft_back if soft_sum is None else (soft_sum + soft_back)
 

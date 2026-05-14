@@ -1,0 +1,12 @@
+_paper_table: "tab:main_results row 91 (JS3C+S2D2, +D4 TTA)"
+_description: |
+  JS3C-Net cross-base eval at N=4 with D4 dihedral TTA. Expected val mIoU:
+  >= 26.72% (TTA monotone gain over the N=1 row).
+split: val
+sequences: "08"
+base_kind: js3c
+base_pred_dir: data/js3cnet_predictions
+bev_from_scpnet: true
+cold_diffusion: true
+correction_steps: 4
+tta: d4

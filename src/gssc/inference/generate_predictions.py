@@ -140,12 +140,19 @@ def main() -> None:
 
     if not args.scpnet_only:
         logger.info("Loading checkpoint: %s", args.checkpoint)
-        ckpt = torch.load(args.checkpoint, map_location='cpu', weights_only=False)
-        logger.info(
-            "  step=%s best_miou=%s",
-            ckpt.get("global_step", "?"),
-            f"{ckpt['best_miou']:.4f}" if "best_miou" in ckpt else "?",
-        )
+        ckpt_path_str = args.checkpoint
+        is_safetensors = ckpt_path_str.endswith(".safetensors")
+        if is_safetensors:
+            from safetensors.torch import load_file
+            state_dict = load_file(ckpt_path_str)
+            logger.info("  safetensors layout (v1.1.0): %d tensors", len(state_dict))
+        else:
+            ckpt = torch.load(ckpt_path_str, map_location='cpu', weights_only=False)
+            logger.info(
+                "  step=%s best_miou=%s",
+                ckpt.get("global_step", "?"),
+                f"{ckpt['best_miou']:.4f}" if "best_miou" in ckpt else "?",
+            )
 
         model = SceneCompletionUNetSparse(
             num_classes=20, base_channels=32, time_emb_dim=128,
@@ -153,19 +160,22 @@ def main() -> None:
             no_bev=args.no_bev, ssc_cond_channels=20, ssc_multiscale=args.ssc_multiscale,
         ).to(device)
 
-        model.load_state_dict(ckpt['model_state_dict'], strict=False)
-
-        if not args.use_train_weights:
-            ema_count = 0
-            for name, param in model.named_parameters():
-                if name in ckpt['ema_shadow']:
-                    param.data.copy_(ckpt['ema_shadow'][name])
-                    ema_count += 1
-            logger.info("  Loaded EMA weights (%d parameters)", ema_count)
+        if is_safetensors:
+            model.load_state_dict(state_dict, strict=False)
+            logger.info("  Loaded deployment weights from safetensors")
         else:
-            logger.info("  Using training weights (not EMA)")
+            model.load_state_dict(ckpt['model_state_dict'], strict=False)
+            if not args.use_train_weights:
+                ema_count = 0
+                for name, param in model.named_parameters():
+                    if name in ckpt['ema_shadow']:
+                        param.data.copy_(ckpt['ema_shadow'][name])
+                        ema_count += 1
+                logger.info("  Loaded EMA weights (%d parameters)", ema_count)
+            else:
+                logger.info("  Using training weights (not EMA)")
 
-        model.eval()
+        model.train(False)
 
         diffusion = MultinomialDiffusion3DV2(
             num_classes=20, num_timesteps=100, beta_max=0.1

@@ -30,6 +30,7 @@
 
 ### What's new
 
+* **2026-05** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the older point-voxel hybrid base JS3C-Net (Yan et al., ICCV 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official `semantic-kitti-api` evaluator (paper Tab. III rows 90-91). Direct evidence the refinement is base-agnostic. Reproduce: `python scripts/reproduce_table.py tab:cross_base_js3c`. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
 * **2026-04** — Public release v1.0.0. Headline checkpoint (gssc_31k_mf_step40000) released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU (matches paper Tab. I exactly).
 * **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.09 % mIoU.
 * **2026-03** — 39.2 % mIoU on SemanticKITTI hidden test leaderboard — paper under review at TPAMI.
@@ -80,7 +81,7 @@ On full SemanticKITTI val seq 08:
 
 ### Per-class IoU on val seq 08 (single correction step, verified)
 
-<sub>From `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt`. Numbers below match paper Tab. I exactly.</sub>
+<sub>From `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors`. Numbers below match paper Tab. I exactly.</sub>
 
 | | car | bicycle | motorcycle | truck | other-veh. | person | bicyclist | motorcyclist | road | parking |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -118,12 +119,12 @@ uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
 #    URLs come online on paper acceptance; until then the script prints
 #    a pointer to docs/DATASET.md for manual download instructions.
 python scripts/download_assets.py --checkpoints --predictions
-# → data/checkpoints/gssc_31k_mf_step40000.pt           (~140 MB)
+# → data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors           (~140 MB)
 # → data/scpnet_predictions/                            (~50 GB, val + test)
 
 # 3. Reproduce the headline 38.54 % val mIoU
 python scripts/eval.py eval/val_1step \
-    --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt
+    --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 ```
 
 That's it. Expected output (truncated):
@@ -222,7 +223,7 @@ The repo ships the exact recipe + checkpoint for every reported number.
 
 | Paper artefact | Command | Expected |
 |---|---|---|
-| **Tab. I** (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt --output preds/` then submit to [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) | **39.2 %** test mIoU |
+| **Tab. I** (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/` then submit to [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) | **39.2 %** test mIoU |
 | **Tab. II** (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline>` | **38.54 %** val mIoU |
 | **Tab. V** (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
 | **Tab. VII** (data scaling) | `python scripts/reproduce_table.py tab:data_scaling` | 0K/10K/20K/31K/57K SF retrains |

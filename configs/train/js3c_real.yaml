@@ -1,0 +1,45 @@
+_paper_table: "tab:main_results rows 90-91, supp tab:supp_b6_val (cross-base headline)"
+_description: |
+  JS3C-Net cross-base headline (paper Tab. III row 91). Trains S2D2 on
+  pre-dumped JS3C-Net predictions using ONLY real sequences (00-07, 09, 10).
+  No synthetic pool: JS3C-Net's segmentation head treats the voxel-derived
+  fake point cloud as out-of-distribution (paper supp § H), so the synth-31K
+  variant lags real-only by -2.41 pp (see supp tab:supp_b6_val). Expected val
+  mIoU at N=1 no-TTA: 26.72% (+3.99 pp over the JS3C-Net base, official
+  semantic-kitti-api evaluator).
+
+# Cross-base configuration
+data_root: data
+base_kind: js3c
+base_pred_dir: data/js3cnet_predictions
+bev_from_scpnet: true  # historical flag name -- means "BEV derived from base_pred"
+cold_diffusion: true   # REQUIRED for cross-base; deterministic source forward
+force_single_frame_lidar: true
+s3_mode: teacher
+
+# Real-only training
+train_sequences: "00,01,02,03,04,05,06,07,09,10"
+
+# Diffusion + model (matches headline 31k_mf config, modulo base + train_seqs)
+model_type: sparse_full
+diffusion_version: v2
+num_classes: 20
+num_timesteps: 100
+beta_max: 0.1
+loss_type: kl
+
+# Optimization
+batch_size: 4
+lr: 1.0e-4
+weight_decay: 0.01
+num_iterations: 100000
+ema_decay: 0.9999
+ssc_lovasz_weight: 0.3
+auxiliary_loss_weight: 0.0005
+
+# Eval cadence + checkpointing
+algo2_eval_steps: 100
+save_interval: 5000
+val_interval: 1000
+miou_interval: 5000
+num_workers: 4

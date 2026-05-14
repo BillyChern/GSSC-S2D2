@@ -1,0 +1,13 @@
+_paper_table: "tab:main_results row 91 (JS3C+S2D2, N=1, no TTA)"
+_description: |
+  JS3C-Net cross-base eval at N=1 (paper Tab. III row 91). Expected val mIoU:
+  26.72% (+3.99 pp over the JS3C-Net base 22.73%, official
+  semantic-kitti-api evaluator).
+split: val
+sequences: "08"
+base_kind: js3c
+base_pred_dir: data/js3cnet_predictions
+bev_from_scpnet: true
+cold_diffusion: true
+correction_steps: 1
+tta: none
