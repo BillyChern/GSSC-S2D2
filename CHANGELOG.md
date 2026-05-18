@@ -31,6 +31,10 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+### Removed (BREAKING — targets v2.0.0)
+- **Drop deprecated `--bev_from_scpnet` flag and `gssc.utils.compat.resolve_bev_from_base` shim.** Callers must use `--bev_from_base` (added v1.1.1). YAML key `bev_from_scpnet:` no longer works; use `bev_from_base:`. Deprecation was introduced in v1.1.1 with a `DeprecationWarning`-emitting shim; this removal is the v2.0.0 BREAKING follow-through. The older `--scpnet_pred_dir` / `scpnet_pred_dir:` v1.0.0 alias is unaffected (separate shim, separate removal path).
+- **Drop `tests/test_config_loader.py::test_bool_flags_legacy_alias`** — covered the now-removed `bev_from_scpnet` YAML alias.
+
 ## [1.1.1] — 2026-05-18
 
 ### Changed

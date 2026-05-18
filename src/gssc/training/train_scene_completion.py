@@ -223,7 +223,6 @@ from gssc.models.scene_unet import SceneCompletionUNet, SceneCompletionUNetLite,
 # V2: FiLM conditioning + multi-scale auxiliary BEV (no cascade)
 from gssc.models.scene_unet_v2 import SceneCompletionUNetV2, V2ModelWrapper
 from gssc.models.scene_unet_v3 import SceneCompletionUNetV3, V3ModelWrapper
-from gssc.utils.compat import resolve_bev_from_base
 
 
 class SemanticKITTI3DDataset(Dataset):
@@ -3612,9 +3611,6 @@ def main():
                         help='Derive BEV from base-model 3D prediction (height-pool) instead of GT/pred BEV. '
                              'The base is whichever `--base_kind` (and `--base_pred_dir`) is wired in '
                              '(SCPNet, JS3C-Net, ...).')
-    parser.add_argument('--bev_from_scpnet', action='store_true',
-                        help='DEPRECATED v1.1.1 — alias for --bev_from_base, kept for back-compat. '
-                             'Removed in v2.0.0.')
     parser.add_argument('--sdedit_from_scpnet', action='store_true',
                         help='SDEdit eval: start sampling from SCPNet prediction + noise')
     parser.add_argument('--sdedit_scpnet_t_start', type=int, default=50,
@@ -3855,10 +3851,7 @@ def main():
         'talos_pred_dir': args.talos_pred_dir,
         'bev_cold_dir': args.bev_cold_dir,
         'no_bev': args.no_bev,
-        'bev_from_base': resolve_bev_from_base(
-            bev_from_base=args.bev_from_base,
-            bev_from_scpnet=args.bev_from_scpnet,
-        ),
+        'bev_from_base': args.bev_from_base,
         'sdedit_from_scpnet': args.sdedit_from_scpnet,
         'sdedit_scpnet_t_start': args.sdedit_scpnet_t_start,
         'ssc_multiscale': args.ssc_multiscale,

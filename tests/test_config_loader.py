@@ -18,18 +18,6 @@ def test_bool_flags(tmp_path: Path) -> None:
     assert load_yaml_to_args(cfg) == ["--bev_from_base"]
 
 
-def test_bool_flags_legacy_alias(tmp_path: Path) -> None:
-    """v1.0.0 / v1.1.0 configs using bev_from_scpnet still flatten correctly.
-
-    The YAML key is passed through verbatim; the runtime shim
-    (gssc.utils.compat.resolve_bev_from_base) emits the DeprecationWarning
-    on the argparse-side merge, not here.
-    """
-    cfg = tmp_path / "c.yaml"
-    cfg.write_text("bev_from_scpnet: true\n")
-    assert load_yaml_to_args(cfg) == ["--bev_from_scpnet"]
-
-
 def test_underscore_keys_skipped(tmp_path: Path) -> None:
     cfg = tmp_path / "c.yaml"
     cfg.write_text("_paper_table: tab:foo\nlr: 1.0e-4\n")
