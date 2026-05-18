@@ -31,9 +31,15 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
-### Removed (BREAKING — targets v2.0.0)
+## [2.0.0] — 2026-05-18
+
+### Removed (BREAKING)
 - **Drop deprecated `--bev_from_scpnet` flag and `gssc.utils.compat.resolve_bev_from_base` shim.** Callers must use `--bev_from_base` (added v1.1.1). YAML key `bev_from_scpnet:` no longer works; use `bev_from_base:`. Deprecation was introduced in v1.1.1 with a `DeprecationWarning`-emitting shim; this removal is the v2.0.0 BREAKING follow-through. The older `--scpnet_pred_dir` / `scpnet_pred_dir:` v1.0.0 alias is unaffected (separate shim, separate removal path).
 - **Drop `tests/test_config_loader.py::test_bool_flags_legacy_alias`** — covered the now-removed `bev_from_scpnet` YAML alias.
+
+### Migration guide (v1.x → v2.0.0)
+- Replace every occurrence of `--bev_from_scpnet` (CLI) and `bev_from_scpnet:` (YAML) with `--bev_from_base` / `bev_from_base:`. The semantic is identical; only the name changed (see v1.1.1 entry below for the rename rationale).
+- The headline numerical artefacts are unaffected: this is a CLI/API surface cleanup, not a model or recipe change. `38.54 % val mIoU` (SCPNet headline) and `26.72 % val mIoU` (JS3C-Net cross-base) reproduce byte-identically from the same checkpoints.
 
 ## [1.1.1] — 2026-05-18
 
