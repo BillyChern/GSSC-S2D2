@@ -31,6 +31,8 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-05-18
+
 ### Changed
 - **Flag rename**: `--bev_from_scpnet` → `--bev_from_base` (training, eval, and inference CLIs; identical YAML key `bev_from_base:`). The semantic was always "derive BEV by height-pooling the base 3D prediction (whichever base is wired in via `--base_pred_dir` / `--base_kind`)"; the SCPNet-specific name predates the JS3C-Net cross-base support. The old flag still works via a `DeprecationWarning`-emitting shim (`gssc.utils.compat.resolve_bev_from_base`) and is slated for removal in v2.0.0. Mirrors the v1.1.0 `scpnet_pred_dir` → `base_pred_dir` migration.
 
