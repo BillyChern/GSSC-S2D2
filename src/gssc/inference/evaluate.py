@@ -206,7 +206,7 @@ def run_evaluation(
             "--scpnet_dir", str(scpnet_dir),
             "--split", gen_split,
             "--algo2",
-            "--bev_from_scpnet",
+            "--bev_from_base",
             "--bev_source", bev_source,
         ]
     if bev_root_cfg:

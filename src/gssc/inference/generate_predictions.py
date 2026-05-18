@@ -113,13 +113,16 @@ def main() -> None:
                         help='Override prediction source dir (e.g., datasets/talos_predictions for TALoS inference)')
     parser.add_argument('--no_bev', action='store_true',
                         help='Disable BEV conditioning (for B4b-style no-BEV models)')
+    parser.add_argument('--bev_from_base', action='store_true',
+                        help='Use base-pred-derived BEV (height-pool of `--base_pred_dir` 3D)')
     parser.add_argument('--bev_from_scpnet', action='store_true',
-                        help='Use SCPNet-derived BEV (for Exp1-style models with BEV)')
+                        help='DEPRECATED v1.1.1 — alias for --bev_from_base, kept for back-compat. '
+                             'Removed in v2.0.0.')
     parser.add_argument('--bev_source', type=str, default='derived',
                         choices=['derived', 'gt'],
                         help=('How to source the BEV conditioning. '
                               "'derived' (default): topmost-non-empty class from the base "
-                              '3D prediction (matches `--bev_from_scpnet` training-time '
+                              '3D prediction (matches `--bev_from_base` training-time '
                               'override). '
                               "'gt': load preprocessed GT BEV from `<voxel_root>/<seq>/<frame>_bev.npy`. "
                               'Used to reproduce the paper supp tab:supp_b6_val protocol '
@@ -257,8 +260,11 @@ def main() -> None:
                         )
                     bev_np = np.load(bev_path).astype(np.int64)
                     bev = torch.from_numpy(bev_np).unsqueeze(0).to(device)
-                elif args.bev_from_scpnet:
-                    # Derive BEV from base-pred 3D voxels (topmost non-empty class)
+                elif args.bev_from_base or args.bev_from_scpnet:
+                    # Derive BEV from base-pred 3D voxels (topmost non-empty class).
+                    # `bev_from_scpnet` is a v1.0.0/v1.1.0 alias; deprecation warning
+                    # would fire here once-per-run if we wired it through the shim, but
+                    # this is an OR-merge so we keep the inference path branch-free.
                     bev = torch.zeros(1, 256, 256, dtype=torch.long, device=device)
                     for z in range(scp_tensor.shape[3] - 1, -1, -1):
                         layer = scp_tensor[0, :, :, z]

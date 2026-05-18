@@ -10,9 +10,10 @@ from __future__ import annotations
 import warnings
 from typing import Final
 
-__all__ = ["resolve_base_pred_dir"]
+__all__ = ["resolve_base_pred_dir", "resolve_bev_from_base"]
 
 _BASE_PRED_DIR_REMOVAL: Final[str] = "v2.0.0"
+_BEV_FROM_BASE_REMOVAL: Final[str] = "v2.0.0"
 
 
 def resolve_base_pred_dir(
@@ -55,3 +56,51 @@ def resolve_base_pred_dir(
         )
         return scpnet_pred_dir
     return None
+
+
+def resolve_bev_from_base(
+    bev_from_base: bool = False,
+    bev_from_scpnet: bool = False,
+) -> bool:
+    """Resolve the "derive BEV from base 3D prediction" flag, accepting both names.
+
+    Introduced in v1.1.1 alongside the JS3C-Net cross-base support. The previous
+    ``bev_from_scpnet`` flag still works but emits a :class:`DeprecationWarning`
+    once per call site, slated for removal in :data:`_BEV_FROM_BASE_REMOVAL`.
+    Semantically the flag has always meant "derive BEV by height-pooling the
+    base-model 3D prediction" (whichever base is wired in via ``base_pred_dir``
+    / ``base_kind``); the v1.0.0 name predates the multi-base abstraction.
+
+    Resolution order:
+        1. ``bev_from_base`` if explicitly true (preferred).
+        2. ``bev_from_scpnet`` (deprecated alias).
+        3. ``False`` if neither is set.
+
+    Args:
+        bev_from_base: New canonical flag (added v1.1.1).
+        bev_from_scpnet: Deprecated alias kept for v1.0.0 / v1.1.0 callers.
+
+    Returns:
+        The OR of the two flags (with deprecation warning on the alias).
+
+    Examples:
+        >>> resolve_bev_from_base(bev_from_base=True)
+        True
+        >>> resolve_bev_from_base(bev_from_scpnet=True)  # emits warning
+        True
+        >>> resolve_bev_from_base()
+        False
+    """
+    if bev_from_base:
+        return True
+    if bev_from_scpnet:
+        warnings.warn(
+            "`bev_from_scpnet` is deprecated since gssc v1.1.1 and will be "
+            f"removed in {_BEV_FROM_BASE_REMOVAL}. Use `bev_from_base` "
+            "(the flag has always meant 'derive BEV from base 3D pred' — "
+            "the SCPNet-specific name predates JS3C-Net cross-base support).",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return True
+    return False

@@ -16,7 +16,7 @@ _description: |
 data_root: data
 base_kind: js3c
 base_pred_dir: data/js3cnet_predictions
-bev_from_scpnet: false  # GT BEV — load preprocessed *_bev.npy from dataset
+bev_from_base: false  # GT BEV — load preprocessed *_bev.npy from dataset
 cold_diffusion: true
 force_single_frame_lidar: true
 s3_mode: teacher

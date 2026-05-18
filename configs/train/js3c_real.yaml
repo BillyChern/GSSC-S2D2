@@ -12,7 +12,7 @@ _description: |
 data_root: data
 base_kind: js3c
 base_pred_dir: data/js3cnet_predictions
-bev_from_scpnet: true  # historical flag name -- means "BEV derived from base_pred"
+bev_from_base: true  # height-pool the base 3D prediction to seed BEV (canonical name as of v1.1.1)
 cold_diffusion: true   # REQUIRED for cross-base; deterministic source forward
 force_single_frame_lidar: true
 s3_mode: teacher

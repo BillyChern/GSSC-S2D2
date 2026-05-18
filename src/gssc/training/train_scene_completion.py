@@ -223,6 +223,7 @@ from gssc.models.scene_unet import SceneCompletionUNet, SceneCompletionUNetLite,
 # V2: FiLM conditioning + multi-scale auxiliary BEV (no cascade)
 from gssc.models.scene_unet_v2 import SceneCompletionUNetV2, V2ModelWrapper
 from gssc.models.scene_unet_v3 import SceneCompletionUNetV3, V3ModelWrapper
+from gssc.utils.compat import resolve_bev_from_base
 
 
 class SemanticKITTI3DDataset(Dataset):
@@ -1753,7 +1754,7 @@ class SceneCompletionTrainer:
         bev = batch['bev'].to(self.device)  # [B, H, W]
 
         # B1: Derive BEV from SCPNet 3D prediction (height-pool)
-        if self.config.get('bev_from_scpnet') and 'scpnet_pred' in batch:
+        if self.config.get('bev_from_base') and 'scpnet_pred' in batch:
             # Topmost non-empty class along Z (matches GT BEV computation)
             scp = batch['scpnet_pred'].to(self.device)
             bev = torch.zeros(scp.shape[0], scp.shape[1], scp.shape[2],
@@ -2276,7 +2277,7 @@ class SceneCompletionTrainer:
         bev = batch['bev'].to(self.device)
         gt_scene = batch['gt_scene'].to(self.device)
 
-        if self.config.get('bev_from_scpnet') and 'scpnet_pred' in batch:
+        if self.config.get('bev_from_base') and 'scpnet_pred' in batch:
             # Topmost non-empty class along Z (matches GT BEV computation)
             scp = batch['scpnet_pred'].to(self.device)
             bev = torch.zeros(scp.shape[0], scp.shape[1], scp.shape[2],
@@ -2435,7 +2436,7 @@ class SceneCompletionTrainer:
             gt_scene = batch['gt_scene'].to(self.device)
             bev = batch['bev'].to(self.device)
 
-            if self.config.get('bev_from_scpnet') and 'scpnet_pred' in batch:
+            if self.config.get('bev_from_base') and 'scpnet_pred' in batch:
                 # Topmost non-empty class along Z (consistent with training)
                 scp = batch['scpnet_pred'].to(self.device)
                 bev = torch.zeros(scp.shape[0], scp.shape[1], scp.shape[2],
@@ -3607,8 +3608,13 @@ def main():
                         help='S2D2 refined BEV predictions dir (replaces SCPNet-derived BEV)')
     parser.add_argument('--no_bev', action='store_true',
                         help='S6: Disable BEV conditioning entirely (use only LSK3DNet 3D)')
+    parser.add_argument('--bev_from_base', action='store_true',
+                        help='Derive BEV from base-model 3D prediction (height-pool) instead of GT/pred BEV. '
+                             'The base is whichever `--base_kind` (and `--base_pred_dir`) is wired in '
+                             '(SCPNet, JS3C-Net, ...).')
     parser.add_argument('--bev_from_scpnet', action='store_true',
-                        help='Derive BEV from SCPNet 3D prediction (height-pool) instead of GT/pred BEV')
+                        help='DEPRECATED v1.1.1 — alias for --bev_from_base, kept for back-compat. '
+                             'Removed in v2.0.0.')
     parser.add_argument('--sdedit_from_scpnet', action='store_true',
                         help='SDEdit eval: start sampling from SCPNet prediction + noise')
     parser.add_argument('--sdedit_scpnet_t_start', type=int, default=50,
@@ -3849,7 +3855,10 @@ def main():
         'talos_pred_dir': args.talos_pred_dir,
         'bev_cold_dir': args.bev_cold_dir,
         'no_bev': args.no_bev,
-        'bev_from_scpnet': args.bev_from_scpnet,
+        'bev_from_base': resolve_bev_from_base(
+            bev_from_base=args.bev_from_base,
+            bev_from_scpnet=args.bev_from_scpnet,
+        ),
         'sdedit_from_scpnet': args.sdedit_from_scpnet,
         'sdedit_scpnet_t_start': args.sdedit_scpnet_t_start,
         'ssc_multiscale': args.ssc_multiscale,

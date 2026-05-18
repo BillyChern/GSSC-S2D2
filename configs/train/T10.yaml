@@ -4,7 +4,7 @@ data_root: data
 model_type: sparse_full
 s3_mode: teacher
 scpnet_pred_dir: data/scpnet_predictions
-bev_from_scpnet: true
+bev_from_base: true
 cold_diffusion: true
 train_sequences: "00,01,02,03,04,05,06,07,09,10,synthetic"
 diffusion_version: v2

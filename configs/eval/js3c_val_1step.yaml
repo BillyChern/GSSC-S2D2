@@ -17,7 +17,7 @@ base_kind: js3c
 base_pred_dir: data/js3cnet_predictions
 bev_source: gt
 bev_root: SemanticKITTI_3D/256
-bev_from_scpnet: true
+bev_from_base: true
 cold_diffusion: true
 correction_steps: 1
 tta: none
