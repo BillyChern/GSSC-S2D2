@@ -1,0 +1,45 @@
+_paper_table: "tab:main_results LMSCNet cross-base row (third base after SCPNet and JS3C-Net)"
+_description: |
+  LMSCNet cross-base headline. Trains S2D2 on pre-dumped LMSCNet
+  predictions using ONLY real sequences (00-07, 09, 10). No synthetic
+  pool. LMSCNet is the third structurally different base (after SCPNet
+  knowledge-distilled sparse 3D + JS3C-Net point-voxel hybrid); LMSCNet is
+  the publicly released multiscale variant from Roldao et al. (2020) at
+  ~0.4M params, treating Z=32 as input channels for 2D U-Net convs.
+  Mirrors js3c_real.yaml exactly except base_kind + base_pred_dir.
+
+# Cross-base configuration
+data_root: data
+base_kind: lmscnet
+base_pred_dir: data/lmscnet_predictions
+bev_from_base: true  # height-pool LMSCNet's 3D prediction to seed BEV (NEVER GT-BEV)
+cold_diffusion: true
+force_single_frame_lidar: true  # single-frame LiDAR at training AND deployment
+s3_mode: teacher
+
+# Real-only training (matches JS3C real-only protocol)
+train_sequences: "00,01,02,03,04,05,06,07,09,10"
+
+# Diffusion + model (matches headline 31k_mf config, modulo base + train_seqs)
+model_type: sparse_full
+diffusion_version: v2
+num_classes: 20
+num_timesteps: 100
+beta_max: 0.1
+loss_type: kl
+
+# Optimization
+batch_size: 4
+lr: 1.0e-4
+weight_decay: 0.01
+num_iterations: 100000
+ema_decay: 0.9999
+ssc_lovasz_weight: 0.3
+auxiliary_loss_weight: 0.0005
+
+# Eval cadence + checkpointing
+algo2_eval_steps: 100
+save_interval: 5000
+val_interval: 1000
+miou_interval: 5000
+num_workers: 4

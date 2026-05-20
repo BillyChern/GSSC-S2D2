@@ -66,7 +66,7 @@ class S3DSKDDataset(Dataset):
         no_tsdf_sparse: bool = False,  # S46: Don't put TSDF in sparse tensor, compute TSDF BEV instead
         scpnet_pred_dir: str | None = None,  # DEPRECATED v1.1.0: use base_pred_dir
         base_pred_dir: str | None = None,  # Base-model predictions dir (SCPNet, JS3C-Net, ...)
-        base_kind: Literal['scpnet', 'js3c'] = 'scpnet',  # Which base model produced the preds
+        base_kind: Literal['scpnet', 'js3c', 'lmscnet'] = 'scpnet',  # Which base model produced the preds
         talos_pred_dir: str | None = None,  # TALoS TTA predictions (overrides base for real seqs)
         bev_cold_dir: str | None = None,  # S2D2 refined BEV predictions dir
         load_raw_lidar: bool = False,  # Load raw .bin pointcloud for Cylinder3D features
@@ -106,7 +106,7 @@ class S3DSKDDataset(Dataset):
             base_pred_dir=base_pred_dir, scpnet_pred_dir=scpnet_pred_dir
         )
         self.base_pred_dir = Path(resolved_base) if resolved_base else None
-        self.base_kind: Literal['scpnet', 'js3c'] = base_kind
+        self.base_kind: Literal['scpnet', 'js3c', 'lmscnet'] = base_kind
         # Back-compat alias: internal code paths still read self.scpnet_pred_dir.
         # Slated for removal alongside the kwarg in v2.0.0.
         self.scpnet_pred_dir = self.base_pred_dir
@@ -848,7 +848,7 @@ def create_s3_dataloader(
     no_tsdf_sparse: bool = False,
     scpnet_pred_dir: str | None = None,
     base_pred_dir: str | None = None,
-    base_kind: Literal['scpnet', 'js3c'] = 'scpnet',
+    base_kind: Literal['scpnet', 'js3c', 'lmscnet'] = 'scpnet',
     talos_pred_dir: str | None = None,
     bev_cold_dir: str | None = None,
     load_raw_lidar: bool = False,

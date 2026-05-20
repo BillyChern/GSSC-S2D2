@@ -1,0 +1,27 @@
+_paper_table: "tab:main_results LMSCNet+S2D2 val mIoU at N=1 no-TTA"
+_description: |
+  Eval LMSCNet+S2D2 at N=1, no TTA, official semantic-kitti-api evaluator.
+  Mirrors js3c_val_1step.yaml; identical to that pipeline except
+  base_kind + base_pred_dir point at LMSCNet predictions.
+
+# Cross-base eval configuration
+data_root: data
+base_kind: lmscnet
+base_pred_dir: data/lmscnet_predictions
+bev_from_base: true
+cold_diffusion: true
+force_single_frame_lidar: true
+s3_mode: teacher
+
+# Val (sequence 08, 4071 frames, standard SSC evaluator)
+val_sequences: "08"
+batch_size: 1
+num_workers: 4
+
+# Sampler: N=1 (single Euler step), no TTA, EMA weights
+num_classes: 20
+num_timesteps: 100
+beta_max: 0.1
+num_steps: 1
+d4_tta: false
+use_ema: true

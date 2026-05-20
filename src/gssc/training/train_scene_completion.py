@@ -3597,7 +3597,7 @@ def main():
                              '`--scpnet_pred_dir` is the historical name; `--base_pred_dir` is '
                              'the v1.1.0+ alias for cross-base support (SCPNet / JS3C-Net / ...).')
     parser.add_argument('--base_kind', type=str, default='scpnet',
-                        choices=['scpnet', 'js3c'],
+                        choices=['scpnet', 'js3c', 'lmscnet'],
                         help='Base model kind for cross-base evaluation. Pure label — does not '
                              'affect inference logic; the model treats predictions identically. '
                              'Default scpnet maintains backwards compatibility with v1.0.0 CLIs.')
