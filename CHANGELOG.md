@@ -31,6 +31,8 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-05-26
+
 ### Added — LMSCNet third-base support
 - **`scripts/dump_lmscnet_predictions.py`**, **`src/gssc/models/lmscnet_base.py`** (`.npy` reader), **`configs/train/lmscnet_real.yaml`**, **`configs/eval/lmscnet_val_1step.yaml`** — together they let any visitor reproduce the paper's third cross-base result, **LMSCNet → +S²D² = 16.59 % val mIoU (+4.49 pp over LMSCNet 12.10 %)**, under the official `semantic-kitti-api` evaluator.
 - **`base_kind` Literal** in `src/gssc/data/semantickitti.py` now accepts `'lmscnet'` alongside `'scpnet'` and `'js3c'`.
