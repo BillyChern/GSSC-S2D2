@@ -13,7 +13,8 @@ Examples::
 
     python scripts/reproduce_table.py tab:perclass
     python scripts/reproduce_table.py tab:main_results
-    python scripts/reproduce_table.py tab:cross_base_js3c   # NEW v1.1.0
+    python scripts/reproduce_table.py tab:cross_base_js3c   # cross-base v1.1.0
+    python scripts/reproduce_table.py tab:cross_base_lmsc   # cross-base v1.2.0
     python scripts/reproduce_table.py tab:bev_results
 """
 
@@ -43,39 +44,76 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
         "checkpoint": "gssc_js3c/gssc_js3c_s2d2_real",
         "metrics": "miou per_class completion_iou",
         "base_pred_dir_required": "data/js3cnet_predictions",
+        "base_kind": "js3c",
         "expected_mIoU": 26.72,
+    },
+    "tab:cross_base_lmsc":  {
+        "config": "eval/lmscnet_val_1step",
+        "checkpoint": "gssc_lmsc/gssc_lmsc_s2d2_real",
+        "metrics": "miou per_class completion_iou",
+        "base_pred_dir_required": "data/lmscnet_predictions",
+        "base_kind": "lmscnet",
+        "expected_mIoU": 16.59,
+    },
+}
+
+BASE_DUMPER_INFO: dict[str, dict[str, str]] = {
+    "js3c": {
+        "name": "JS3C-Net",
+        "dumper": "scripts/dump_js3c_predictions.py",
+        "extra_setup": (
+            "   git clone --depth 1 https://github.com/yangyangyang127/JS3C-Net external/JS3C-Net\n"
+            "   bash external/JS3C-Net/download_pretrained.sh"
+        ),
+        "args_hint": "--js3c-repo external/JS3C-Net",
+    },
+    "lmscnet": {
+        "name": "LMSCNet",
+        "dumper": "scripts/dump_lmscnet_predictions.py",
+        "extra_setup": (
+            "   git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet\n"
+            "   # download LMSCNet.pth from the upstream Google Drive folder into external/LMSCNet/pretrained_models/"
+        ),
+        "args_hint": "--lmscnet-repo external/LMSCNet --checkpoint external/LMSCNet/pretrained_models/LMSCNet.pth",
     },
 }
 
 
-def _check_js3c_predictions(required_dir: Path) -> None:
-    """Pre-flight: ensure JS3C-Net predictions are dumped before cross-base eval.
+def _check_base_predictions(required_dir: Path, base_kind: str) -> None:
+    """Pre-flight: ensure base-model predictions are dumped before cross-base eval.
 
-    The cross-base eval needs ``data/js3cnet_predictions/08/<frame>_pred.npy``.
-    If the directory is missing or empty, print the exact dumper command and
-    exit non-zero rather than crashing inside the dataloader.
+    Each cross-base eval needs ``<required_dir>/08/<frame>_pred.npy``. If the
+    directory is missing or empty, print the exact dumper command for the
+    relevant base (``base_kind in {'js3c', 'lmscnet'}``) and exit non-zero
+    rather than crashing inside the dataloader.
     """
     val_seq = required_dir / "08"
-    if not val_seq.is_dir() or not any(val_seq.glob("*_pred.npy")):
-        print("=" * 78)
-        print("Missing JS3C-Net predictions for the cross-base reproduction.")
-        print("Expected at least one *_pred.npy file under:")
-        print(f"   {val_seq}")
-        print()
-        print("Reproduce by running the dumper against your JS3C-Net clone:")
-        print()
-        print("   git clone --depth 1 https://github.com/yangyangyang127/JS3C-Net external/JS3C-Net")
-        print("   bash external/JS3C-Net/download_pretrained.sh")
-        print("   python scripts/dump_js3c_predictions.py \\")
-        print("       --js3c-repo external/JS3C-Net \\")
-        print("       --semantickitti_root data/SemanticKITTI/dataset \\")
-        print(f"       --output_dir {required_dir} \\")
-        print("       --sequences 08")
-        print()
-        print("Then re-run this script. See docs/REPRODUCIBILITY.md for the full")
-        print("cross-base protocol.")
+    if val_seq.is_dir() and any(val_seq.glob("*_pred.npy")):
+        return
+    info = BASE_DUMPER_INFO.get(base_kind)
+    print("=" * 78)
+    if info is None:
+        print(f"Missing base predictions for cross-base reproduction (base_kind={base_kind}).")
+        print(f"Expected at least one *_pred.npy file under: {val_seq}")
         print("=" * 78)
         sys.exit(2)
+    print(f"Missing {info['name']} predictions for the cross-base reproduction.")
+    print("Expected at least one *_pred.npy file under:")
+    print(f"   {val_seq}")
+    print()
+    print(f"Reproduce by running the dumper against your {info['name']} clone:")
+    print()
+    print(info["extra_setup"])
+    print(f"   python {info['dumper']} \\")
+    print(f"       {info['args_hint']} \\")
+    print("       --semantickitti_root data/SemanticKITTI/dataset \\")
+    print(f"       --output_dir {required_dir} \\")
+    print("       --sequences 08")
+    print()
+    print("Then re-run this script. See docs/REPRODUCIBILITY.md for the full")
+    print("cross-base protocol.")
+    print("=" * 78)
+    sys.exit(2)
 
 
 def _resolve_checkpoint(ckpt_dir: Path, name: str, prefer_ema: bool = True) -> Path:
@@ -121,9 +159,12 @@ def main() -> None:
     print()
 
     if "base_pred_dir_required" in spec:
-        _check_js3c_predictions(data_root.parent / spec["base_pred_dir_required"]
-                                if not Path(spec["base_pred_dir_required"]).is_absolute()
-                                else Path(spec["base_pred_dir_required"]))
+        required = (
+            data_root.parent / spec["base_pred_dir_required"]
+            if not Path(spec["base_pred_dir_required"]).is_absolute()
+            else Path(spec["base_pred_dir_required"])
+        )
+        _check_base_predictions(required, spec.get("base_kind", "js3c"))
 
     if "[" in spec["checkpoint"]:
         print("Multi-row table. Each row variant must be run with its own checkpoint.")

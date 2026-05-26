@@ -34,8 +34,8 @@ import torch
 LMSCNET_REPO = Path("/workspace/reference/LMSCNet").resolve()
 sys.path.insert(0, str(LMSCNET_REPO))
 
-from LMSCNet.models.LMSCNet import LMSCNet
 import LMSCNet.data.io_data as SemKittiIO
+from LMSCNet.models.LMSCNet import LMSCNet
 
 logger = logging.getLogger("dump_lmscnet")
 
