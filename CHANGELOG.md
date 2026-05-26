@@ -31,6 +31,16 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+### Added — LMSCNet third-base support
+- **`scripts/dump_lmscnet_predictions.py`**, **`src/gssc/models/lmscnet_base.py`** (`.npy` reader), **`configs/train/lmscnet_real.yaml`**, **`configs/eval/lmscnet_val_1step.yaml`** — together they let any visitor reproduce the paper's third cross-base result, **LMSCNet → +S²D² = 16.59 % val mIoU (+4.49 pp over LMSCNet 12.10 %)**, under the official `semantic-kitti-api` evaluator.
+- **`base_kind` Literal** in `src/gssc/data/semantickitti.py` now accepts `'lmscnet'` alongside `'scpnet'` and `'js3c'`.
+- **`tests/test_lmscnet_base.py`** — 4 unit tests (shape/dtype loading, error paths for shape mismatch / out-of-range / missing-file, uint8 → int64 upcast, base_kind Literal regression guard).
+- **`scripts/reproduce_table.py tab:cross_base_lmsc`** — one-command repro for the LMSCNet+S²D² row; generalises `_check_js3c_predictions` to `_check_base_predictions(dir, base_kind)` driven by a new `BASE_DUMPER_INFO` table so adding future cross-bases needs only a config + a dict row.
+- **`docs/MODEL_ZOO.md`** reframes the *Cross-base headline* section as a 3-row table (LMSCNet | JS3C-Net | SCPNet) instead of just listing JS3C.
+
+### Removed
+- **Drop unreferenced `src/gssc/models/extras_*.py` (22 files)** — these were development-time exploration modules (alternative diffusion variants, MIMO experiments, DSKD probes, etc.) with zero callers in the public path. Several had broken imports (e.g. references to a private `diffssc_utils` module that was never released, since the corresponding research direction is intentionally out of scope for the released codebase). The release surface now stays focused on the three pillars actually documented in the paper.
+
 ## [2.0.0] — 2026-05-18
 
 ### Removed (BREAKING)
