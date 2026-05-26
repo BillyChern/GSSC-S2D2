@@ -29,14 +29,26 @@ convention, kept as-is).
 | `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 39.0 (N=4 plain) / 39.2 (+D4 TTA) / 38.8 (N=1 real-time) | `configs/train/31k_mf.yaml` | ~265 MB |
 | `gssc_mf/gssc_57k_mf_step40000/` | Tab. V (negative result) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
 
-## Cross-base headline (NEW in v1.1.0, paper Tab. III rows 90-91)
+## Cross-base portability (paper Tab. III rows 90-91)
 
-| Subdir | Paper section | Val mIoU (paper) | Val mIoU (realistic) | Config | Size |
-|---|---|---|---|---|---|
-| `gssc_js3c/gssc_js3c_s2d2_real/` | Tab. III row 91 + supp tab:supp_b6_val | **26.72** (paper protocol, GT BEV + internal SSCMetrics) | **24.32** (deploy protocol, derived BEV + official semantic-kitti-api) | `configs/train/js3c_real.yaml` | ~265 MB |
+The same recipe and hyperparameters applied to three structurally different
+frozen base models lifts every one of them. LMSCNet and JS3C-Net ship as
+released checkpoints; SCPNet uses the same training recipe with
+`configs/train/31k_mf.yaml` and lands the headline `gssc_mf/gssc_31k_mf_step40000`.
 
-The two numbers come from different eval protocols (both documented in
-supp tab:supp_b6_val):
+| Subdir | Base | Architecture family | Base mIoU | +S²D² mIoU | Δ | Config |
+|---|---|---|---|---|---|---|
+| `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 12.10 | **16.59** | **+4.49** | `configs/train/lmscnet_real.yaml` |
+| `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.73 | **26.72** | **+3.99** | `configs/train/js3c_real.yaml`    |
+| (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.37** | `configs/train/31k_mf.yaml`       |
+
+Each cross-base checkpoint is ~265 MB. Evaluators differ across rows: the
+LMSCNet and JS3C-Net deltas are measured under the official
+`semantic-kitti-api`; the SCPNet delta uses our internal `SSCMetrics`
+evaluator (+0.31 pp internal/official gap, documented in
+supp tab:supp_b6_val). The JS3C-Net row also has a derived-BEV
+deploy-protocol number (**24.32**) under
+`eval/js3c_val_realistic.yaml`:
 - `eval/js3c_val_paper.yaml` reproduces the **26.72%** number by loading
   preprocessed GT BEV via `--bev_source gt`. The paper used the internal
   SSCMetrics evaluator; GSSC-S2D2 reports the same protocol via the official
@@ -119,6 +131,10 @@ python scripts/eval.py eval/val_1step \
 # JS3C-Net cross-base (26.72% val, +3.99 pp)
 python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
+
+# LMSCNet cross-base (16.59% val, +4.49 pp)
+python scripts/eval.py eval/lmscnet_val_1step \
+    --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 ```
 
 Or reproduce a specific paper table with the all-in-one driver::
