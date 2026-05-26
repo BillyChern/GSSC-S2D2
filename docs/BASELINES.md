@@ -62,9 +62,12 @@ cross-base reproduction".
 DiffSSC's open-source release contains only the geometric-completion pipeline
 (3-channel xyz diffusion on top of LiDiff); the semantic side is missing.
 
-We provide a faithful reimplementation of the full (3+C)-channel pipeline
-(anisotropic additive forward process, custom DDIM sampling, logit-domain
-semantic encoding) in `src/gssc/models/extras_diffssc_*.py` for the
-qualitative panels in Fig. 4. We do **not** report DiffSSC numbers in the
-leaderboard table because the original authors did not submit; our
-reimplementation is for visualization only.
+The qualitative panels in Fig. 4 of the paper were produced from an internal
+(3+C)-channel reimplementation (anisotropic additive forward process, custom
+DDIM sampling, logit-domain semantic encoding). That reimplementation lives
+in our internal development codebase and is intentionally out of scope for
+this release: it is not part of any reported leaderboard number, depends on
+private utility code we cannot ship, and it would distract from the three
+pillars the released codebase already supports. We do **not** report DiffSSC
+numbers in the leaderboard table because the original authors did not submit;
+the reimplementation served visualization only.
