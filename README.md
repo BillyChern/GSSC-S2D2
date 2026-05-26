@@ -95,20 +95,6 @@ On full SemanticKITTI val seq 08:
 
 ---
 
-## Reproduction status
-
-A live snapshot of which paper claims have been re-verified end-to-end on a fresh clone of this public repo (see [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) for the matrix):
-
-| Claim | Command | Status |
-|---|---|---|
-| 38.54 % val mIoU (1-step) | `scripts/eval.py eval/val_1step …` | ✅ **verified** (matches Tab. I exactly) |
-| 38.73 % val mIoU (D₄ TTA) | `scripts/eval.py eval/val_d4tta …` | 🟡 retest in progress (~3 h) |
-| Headline retrain from scratch | `scripts/train.py train/31k_mf` | 🟡 retest in progress (~24 h, 1× H100) |
-| 36.09 % BEV mIoU (secondary) | `scripts/eval.py eval/bev_secondary …` | ⏳ awaits BEV checkpoint asset upload |
-| Test-server submission (39.2 %) | see [docs/INFERENCE.md](docs/INFERENCE.md) | ⏳ documented, requires CodaLab account |
-
----
-
 ## Quick start (reproduce 38.54 % val in three commands)
 
 ```bash
