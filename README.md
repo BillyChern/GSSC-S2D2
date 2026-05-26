@@ -4,7 +4,7 @@
 
 ### Proposing S²D²: Structured Source Discrete Diffusion
 
-📄 **[Paper (TPAMI 2026)](https://arxiv.org/abs/TBD)** &nbsp;·&nbsp; 🏆 **[Leaderboard](https://www.codabench.org/competitions/13814/#/results-tab)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility Guide](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab Quickstart](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
+📄 **Paper** *(under review — link added on acceptance)* &nbsp;·&nbsp; 🌐 **[Project page](https://billychern.github.io/GSSC-project-page/)** &nbsp;·&nbsp; 🏆 **[Leaderboard](https://www.codabench.org/competitions/13814/#/results-tab)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BillyChern/GSSC-S2D2/blob/main/examples/quickstart.ipynb)
 
@@ -30,11 +30,12 @@
 
 ### What's new
 
-* **2026-05** — LMSCNet third-base support (slated for v2.1.0). Stacked on the lightweight 2D-CNN LMSCNet (Roldao et al., CVPRW 2020), one-step S²D² lifts val mIoU **12.10 % → 16.59 % (+4.49 pp)** under the official `semantic-kitti-api` evaluator (paper Tab. III row 90). Together with v1.1.0's JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point–voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`.
-* **2026-05** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the older point-voxel hybrid base JS3C-Net (Yan et al., ICCV 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official `semantic-kitti-api` evaluator (paper Tab. III rows 90-91). Direct evidence the refinement is base-agnostic. Reproduce: `python scripts/reproduce_table.py tab:cross_base_js3c`. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
-* **2026-04** — Public release v1.0.0. Headline checkpoint (gssc_31k_mf_step40000) released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU (matches paper Tab. I exactly).
+* **2026-05-26** — Release **v2.1.0**: LMSCNet third-base support. Stacked on the lightweight dense-2D-CNN LMSCNet (Roldao et al., CVPRW 2020), one-step S²D² lifts val mIoU **12.10 % → 16.59 % (+4.49 pp)** under the official `semantic-kitti-api` evaluator (paper Tab. III row 90). Together with the v1.1.0 JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point-voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`. Release surface focused: 22 unreferenced development modules removed.
+* **2026-05-18** — Release **v2.0.0**: drop deprecated `--bev_from_scpnet` flag and the `scpnet_pred_dir` shim. Use `--bev_from_base` / `base_pred_dir` instead. Headline numerical artefacts unchanged.
+* **2026-05-14** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the point-voxel hybrid JS3C-Net (Yan et al., ICCV 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official `semantic-kitti-api` evaluator. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
+* **2026-04** — Public release **v1.0.0**. Headline checkpoint released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU.
 * **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.09 % mIoU.
-* **2026-03** — 39.2 % mIoU on SemanticKITTI hidden test leaderboard — paper under review at TPAMI.
+* **2026-03** — **39.2 %** mIoU on SemanticKITTI hidden test leaderboard — paper under review.
 
 ---
 
@@ -278,12 +279,12 @@ The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:p
 
 | What | Where | Size |
 |---|---|---|
-| Pretrained checkpoints (~14 files) | [HF: gssc-s2d2/checkpoints](`[CHECKPOINTS_URL]`) | 3 GB |
-| SCPNet val + test predictions | [HF: gssc-s2d2/scpnet_predictions](`[SCPNET_PREDICTIONS_URL]`) | 50 GB |
-| Object bank (57,789 instances, 8 rare classes) | [HF: gssc-s2d2/object_bank](`[OBJECT_BANK_URL]`) | 448 MB |
-| Synthetic pool (0K / 10K / 20K / 31K / 57K) | [IEEE DataPort](`[SYNTHETIC_POOL_URL]`) | 120 – 220 GB per variant |
+| Pretrained checkpoints (17 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face *(URL added on first upload — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md))* | ≈ 3 GB |
+| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face *(URL pending; meanwhile reproduce locally via `scripts/dump_{js3c,lmscnet}_predictions.py` — see [docs/DATASET.md](docs/DATASET.md))* | ≈ 60 GB total |
+| Object bank (57,789 instances, 8 rare classes) | Hugging Face *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 448 MB |
+| Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 120 – 220 GB per variant |
 
-All weights and synthetic data are released under Apache-2.0; SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)).
+All weights and synthetic data are released under Apache-2.0; SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). The `download_assets.py` script will populate every entry once URLs are live; until then `docs/DATASET.md` documents manual provisioning.
 
 ---
 
@@ -329,12 +330,11 @@ A. Figures and paper-typesetting code live with the paper repo, not here. This r
 ## Citation
 
 ```bibtex
-@article{gssc2026,
+@article{chen2026gssc,
   title   = {Generative Semantic Scene Completion},
-  author  = {[AUTHOR_LIST_TBD]},
-  journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence},
-  year    = {2026},
-  doi     = {10.1109/TPAMI.2026.[DOI_TBD]}
+  author  = {Chen, Shi and Ge, Weifeng},
+  journal = {Submitted to IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  year    = {2026}
 }
 ```
 
@@ -353,13 +353,12 @@ A. Figures and paper-typesetting code live with the paper repo, not here. This r
 
 ## Acknowledgements
 
-This codebase builds on top of:
+Supported by NSFC Grant No. 624B1006. Thanks to the [SemanticKITTI](http://www.semantic-kitti.org/) authors for the public benchmark and raw data. Open-source software this project builds on:
 
-* **SCPNet** ([CVPR 2023](https://github.com/SCPNet/Codes-for-SCPNet)) — frozen base model whose predictions seed the structured source.
-* **SemanticKITTI** ([ICCV 2019](http://www.semantic-kitti.org/)) — voxelised LiDAR scene completion benchmark.
-* **Pyramid Discrete Diffusion** ([Liu et al., 2023](https://arxiv.org/abs/2311.12085)) — multi-scale discrete diffusion for 3D scene synthesis; the foundation of our offline data augmentation pipeline (S₁/S₂/S₃ + LiDAR ray-tracing + rare-class object bank).
+* **Pyramid Discrete Diffusion** ([Liu et al., 2023](https://arxiv.org/abs/2311.12085)) — multi-scale discrete diffusion for 3D scene synthesis; foundation of our offline data augmentation pipeline (𝒮₁/𝒮₂/𝒮₃ + HDL-64E ray-tracing + rare-class object bank).
+* **D3PM / Multinomial Diffusion** ([Austin et al., NeurIPS 2021](https://arxiv.org/abs/2107.03006)) — discrete diffusion family that S²D² generalises with a structured source.
+* **Cold Diffusion** ([Bansal et al., 2022](https://arxiv.org/abs/2208.09392)) — non-noise correction sampling whose linear-simplex specialisation underlies our $N=1$ deployment.
 * **spconv 2.3** ([traveller59/spconv](https://github.com/traveller59/spconv)) — sparse 3D convolution backend.
-* **D3PM / Multinomial Diffusion** ([NeurIPS 2021](https://arxiv.org/abs/2107.03006)) — discrete diffusion family.
 * **TALoS** ([NeurIPS 2024](https://arxiv.org/abs/2410.15674)) — previous SemanticKITTI SSC SOTA, included as the leaderboard reference baseline.
 
 ---
