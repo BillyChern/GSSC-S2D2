@@ -30,6 +30,7 @@
 
 ### What's new
 
+* **2026-05** — LMSCNet third-base support (slated for v2.1.0). Stacked on the lightweight 2D-CNN LMSCNet (Roldao et al., CVPRW 2020), one-step S²D² lifts val mIoU **12.10 % → 16.59 % (+4.49 pp)** under the official `semantic-kitti-api` evaluator (paper Tab. III row 90). Together with v1.1.0's JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point–voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`.
 * **2026-05** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the older point-voxel hybrid base JS3C-Net (Yan et al., ICCV 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official `semantic-kitti-api` evaluator (paper Tab. III rows 90-91). Direct evidence the refinement is base-agnostic. Reproduce: `python scripts/reproduce_table.py tab:cross_base_js3c`. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
 * **2026-04** — Public release v1.0.0. Headline checkpoint (gssc_31k_mf_step40000) released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU (matches paper Tab. I exactly).
 * **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.09 % mIoU.
