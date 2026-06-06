@@ -45,15 +45,15 @@
   <img src="assets/teaser.png" width="92%" alt="GSSC-S2D2 two-stage pipeline: offline data augmentation + S²D² one-step deployment" />
 </p>
 
-<sub><b>Stage A</b> (top) — offline data augmentation: pyramid multinomial diffusion (𝒮₁ → 𝒮₂ → 𝒮₃ at 32²×4 → 64²×8 → 256²×32) synthesises complete scenes; an HDL-64E Bresenham3D ray-tracer (64×2048 rays) converts each into a matching sparse input; a 57,789-instance / 8-rare-class object bank (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk) pastes rare classes on ground-level voxels. The synthetic pairs are pooled with the real SemanticKITTI training split. <b>Stage B</b> (bottom) — at deployment, a real sparse LiDAR scan is voxelized through a frozen base SSC model <i>g</i><sub>φ</sub> (e.g. SCPNet, LMSCNet) to produce <b>x</b><sub>src</sub>, then refined by <i>f</i><sub>θ</sub> — a sparse 3D U-Net with FiLM(<i>t</i>, <b>L</b>, <b>B</b>) at every level — into <b>x̂</b><sub>0</sub> in one forward pass with EMA weights. No distillation. Source: paper Fig. 2.</sub>
+<sub><b>Stage A</b> (top) — offline data augmentation: pyramid multinomial diffusion (𝒮₁ → 𝒮₂ → 𝒮₃ at 32²×4 → 64²×8 → 256²×32) synthesises complete scenes; an HDL-64E Bresenham3D ray-tracer (64×2048 rays) converts each into a matching sparse input; a 57,789-instance / 8-rare-class object bank (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk) pastes rare classes on ground-level voxels. The synthetic pairs are pooled with the real SemanticKITTI training split. <b>Stage B</b> (bottom) — at deployment, a real sparse LiDAR scan is voxelized through a frozen base SSC model <i>g</i><sub>φ</sub> (e.g. SCPNet, LMSCNet) to produce <b>x</b><sub>src</sub>, then refined by <i>f</i><sub>θ</sub> — a dense 3D U-Net (Conv3d) with additive <b>L</b>/<b>B</b> conditioning + time-AdaGN at every level — into <b>x̂</b><sub>0</sub> in one forward pass with EMA weights. No distillation. Source: paper Fig. 2.</sub>
 
 **Why it works.** Pure-noise diffusion wastes capacity learning to invert random corruption. By starting from the base model's *structured* prediction **x**<sub>src</sub> rather than *x*<sub>T</sub> ∼ π, the network only has to learn the **residual** between **x**<sub>src</sub> and ground truth — a much smaller chunk of probability mass to transport. One correction step suffices for the headline 38.54 % val mIoU; four steps + *D*<sub>4</sub> TTA push to **39.2 % test**.
 
 <p align="center">
-  <img src="assets/architecture.png" width="92%" alt="S²D² simplex transport + 4-level sparse 3D UNet denoiser" />
+  <img src="assets/architecture.png" width="92%" alt="S²D² simplex transport + 4-level dense 3D U-Net (Conv3d) denoiser" />
 </p>
 
-<sub><b>Top:</b> the learned velocity field <b>v</b><sub>θ</sub> = <i>f</i><sub>θ</sub>(<b>x</b><sub><i>t</i></sub>, <i>t</i>, <b>c</b>) − <b>x</b><sub>src</sub> transports the base prediction (gray cluster) toward the ground truth (orange cluster) in a single Euler step on the per-voxel simplex. <b>Middle:</b> <i>f</i><sub>θ</sub> is a 4-level sparse 3D U-Net (stages 256²×32 → 32²×4, channels 32 → 256, 16²×2 bottleneck with two Sparse Residual Blocks, mirror decoder) with FiLM(<i>t</i>, <b>L</b>, <b>B</b>) modulation at every level and three conditioning buses (timestep <i>t</i>, multi-scale LiDAR <b>L</b>, base-derived BEV <b>B</b>). <b>Bottom:</b> a representative rare-class recovery on SemanticKITTI val seq 08 frame 001390 — motorcyclist IoU lifts from 27.3 % to <b>41.5 %</b> with a single Euler step (<i>N</i>=1), a +14.3 point jump. Source: paper Fig. 3.</sub>
+<sub><b>Top:</b> the learned velocity field <b>v</b><sub>θ</sub> = <i>f</i><sub>θ</sub>(<b>x</b><sub><i>t</i></sub>, <i>t</i>, <b>c</b>) − <b>x</b><sub>src</sub> transports the base prediction (gray cluster) toward the ground truth (orange cluster) in a single Euler step on the per-voxel simplex. <b>Middle:</b> <i>f</i><sub>θ</sub> is a 4-level dense 3D U-Net (Conv3d) (stages 256²×32 → 32²×4, channels 32 → 256, 16²×2 bottleneck with two Residual Blocks, mirror decoder) with additive <b>L</b>/<b>B</b> conditioning + time-AdaGN modulation at every level and three conditioning buses (timestep <i>t</i>, multi-scale LiDAR <b>L</b>, base-derived BEV <b>B</b>). <b>Bottom:</b> a representative rare-class recovery on SemanticKITTI val seq 08 frame 001390 — motorcyclist IoU lifts from 27.3 % to <b>41.5 %</b> with a single Euler step (<i>N</i>=1), a +14.3 point jump. Source: paper Fig. 3.</sub>
 
 ---
 
@@ -169,7 +169,7 @@ python scripts/train.py train/bev_secondary
 ```
 GSSC-S2D2/
 ├── src/gssc/                       # the Python package
-│   ├── models/                     # sparse 3D U-Net, SCPNet base, pyramid, BEV variant, FiLM
+│   ├── models/                     # dense 3D U-Net (+ sparse LiDAR encoder), SCPNet base, pyramid, BEV variant
 │   ├── diffusion/                  # forward process, Dirac posterior, correction sampler, D4 TTA
 │   ├── data/                       # SemanticKITTI loader, synthetic pool, object bank, HDL-64E ray-tracer
 │   ├── losses/                     # KL posterior + Lovász + auxiliary + focal-CE
