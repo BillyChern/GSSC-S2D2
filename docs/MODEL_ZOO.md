@@ -104,6 +104,12 @@ Reproduction requires `data/js3cnet_predictions/` (54 GB; download via
 | `gssc_sf/gssc_31K_sf_step100000/` | 31K synthetic (headline) | 38.42 / 38.49 (N=2-5)| `configs/train/31k_sf.yaml` |
 | `gssc_sf/gssc_57K_sf_step100000/` | 57K synthetic            | 37.66 / 38.05 (N=5)  | `configs/train/57K_sf.yaml` |
 
+> **Copy these names verbatim — the casing is intentionally mixed.** The
+> checkpoint subdirs use an uppercase `K` (e.g. `gssc_31K_sf_step100000`),
+> but the `31K` row's training config is lowercase, `configs/train/31k_sf.yaml`
+> (the `0K`/`20K`/`57K` configs keep the uppercase `K`). Do not "normalize" the
+> case by analogy or you will hit a missing-file error.
+
 ## Training-timestep ablations (Tab. XII)
 
 | Subdir | Schedule | Val mIoU | Config |
