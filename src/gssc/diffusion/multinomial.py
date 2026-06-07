@@ -1128,7 +1128,7 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
     5. Very low weight for class 0 (empty) to focus on semantics
     6. Lovász loss component for direct IoU optimization
 
-    Based on analysis of BEV perception loss (L3-deeper: 24.01% mIoU).
+    The loss design follows analysis of the BEV-perception training loss.
     """
 
     def __init__(

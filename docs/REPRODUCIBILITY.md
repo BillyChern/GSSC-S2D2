@@ -1,5 +1,25 @@
 # Reproducibility
 
+## Scope: which pillar this doc reproduces
+
+The paper organises the method into three pillars (see `README.md`); this
+release — and therefore everything reproduced below — is the **S²D²**
+deployment pillar (one-step refinement of a frozen base SSC model). The other
+two pillars are scoped as follows:
+
+* **PS³** (*Paired Sparse–Dense Scene Synthesis*) is the offline
+  data-augmentation pipeline (pyramid multinomial diffusion 𝒮₁→𝒮₂→𝒮₃ +
+  Jensen–Shannon filter + HDL-64E ray-tracer + rare-class object bank) that
+  builds the synthetic (sparse, complete) training pool. Its generator
+  checkpoints ship in the model zoo (`pyramid/pyramid_s1|s2|s3`) and the
+  training commands live in `docs/TRAIN.md` ("Pyramid diffusion"); the
+  synthetic pool itself is consumed by the single-frame data-scaling configs
+  (Tab. VII).
+* **SGSC** (*Semantic-guided Generative Scene Completion*, the from-noise
+  regime, **30.54 % val mIoU**) is **intentionally out of scope for this
+  release**: no SGSC checkpoint or from-noise sampler is shipped, mirroring the
+  `README.md` caveat. The numbers below do not cover it.
+
 ## Hardware
 
 | Component | Used in paper | Minimum required |

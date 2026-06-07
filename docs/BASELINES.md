@@ -38,7 +38,7 @@ to test.
 
 ## JS3C-Net cross-base (added v1.1.0)
 
-The v1.1.0 cross-base reproduction (paper Tab. III rows 90-91, +3.99 pp val
+The v1.1.0 cross-base reproduction (paper tab:portable_s2d2, +3.99 pp val
 mIoU) uses JS3C-Net (Yan et al. 2021, AAAI) as a *prediction-only*
 alternative base.
 
@@ -49,11 +49,12 @@ alternative base.
   `data/scpnet_predictions/` exactly).
 * Dumper: `scripts/dump_js3c_predictions.py` — depends on a local clone of
   the upstream JS3C-Net repo (CLI argument `--js3c-repo`, no hardcoded path).
-* Released base reproduction: paper Tab. III row 90 = **22.73 %** val mIoU
-  under the official `semantic-kitti-api` evaluator, exactly matching
+* Released base reproduction: **22.73 %** val mIoU (paper tab:portable_s2d2,
+  base row) under the official `semantic-kitti-api` evaluator, exactly matching
   JS3C-Net's published recipe (no spconv kernel-shape patches required —
-  unlike SCPNet, JS3C-Net's official codebase loads cleanly under the
-  bundled TorchSparse + spconv 1.x pin).
+  unlike SCPNet, JS3C-Net's own upstream codebase loads cleanly under its
+  published spconv 1.x stack, so we run the dumper against an unmodified clone
+  rather than bundling any base-model dependency in this release).
 * S²D² lift on top: **26.72 %** val mIoU (+3.99 pp), real-frames-only
   training, `cold_diffusion=true` (paper supp § H).
 

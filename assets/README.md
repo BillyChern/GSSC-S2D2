@@ -37,12 +37,13 @@ cp teaser.png ../../GSSC-S2D2/assets/
 (Note: the paper repo is private until publication; the steps are
 documented for completeness once it goes public.)
 
-## Until figures are dropped in
+## Missing-figure behaviour
 
-The README falls back to an inline ASCII diagram (see "Method at a
-glance" section) so visitors aren't blocked by missing PNGs. When
-real figures replace this fallback, **also remove the ASCII diagram**
-to avoid duplication.
+The core figures (`teaser.png`, `architecture.png`, `qualitative.png`)
+are present and embedded in `README.md`, so the README renders fully on
+GitHub today. The "Planned additions" above are not yet referenced from
+`README.md`; until they are dropped in, their absence is a no-op (no
+image tag points at them), so a missing file never breaks the README.
 
 ## License
 

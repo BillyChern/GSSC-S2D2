@@ -1,6 +1,6 @@
-_paper_table: "tab:main_results row 91 + supplementary tab:supp_b6_val (paper protocol)"
+_paper_table: "tab:portable_s2d2 (JS3C cross-base) + supplementary tab:supp_b6_val (paper protocol)"
 _description: |
-  JS3C-Net cross-base eval reproducing the paper Tab. III row 91 protocol:
+  JS3C-Net cross-base eval reproducing the paper tab:portable_s2d2 (JS3C row) protocol:
   N=1 Algo2 sampling with GT-BEV conditioning. See `js3c_val_paper.yaml` for
   the explicit protocol description and `js3c_val_realistic.yaml` for the
   realistic-deployment variant (derived BEV).

@@ -112,7 +112,7 @@ Pyramid checkpoints do not use EMA; each subdir ships
 | Subdir | Task | Pipeline mIoU | Config |
 |---|---|---|---|
 | `bev/bev_perception_net/` | LiDAR-only BEV refinement (S²D² applied to BEV) | **36.09** (34.27 base + 1.82 refinement) | `configs/train/bev_secondary.yaml` |
-| `bev/bev_direct_l3_deeper/` | Supp BEV ablation (deeper 3D-direct baseline) | n/a (ablation only) | recipe in `docs/REPRODUCIBILITY.md` (no shipped config — was a one-off ablation run) |
+| `bev/bev_direct_l3_deeper/` | Supp BEV ablation (deeper 3D-direct baseline) | n/a (ablation only) | one-off internal ablation; recipe not released (no shipped config) |
 
 ## SCPNet base (frozen)
 

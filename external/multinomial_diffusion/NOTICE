@@ -1,0 +1,58 @@
+Third-Party Code Notice
+=======================
+
+This directory (`external/multinomial_diffusion/`) contains vendored
+third-party code that is NOT part of the GSSC-S2D2 project itself. It is
+redistributed here under its original license, separate from the
+Apache-2.0 license that governs the rest of this repository.
+
+Upstream project
+----------------
+
+  Name:    Multinomial Diffusion
+  Source:  https://github.com/ehoogeboom/multinomial_diffusion
+  Paper:   "Argmax Flows and Multinomial Diffusion:
+            Learning Categorical Distributions"
+           Emiel Hoogeboom, Didrik Nielsen, Priyank Jaini,
+           Patrick Forré, Max Welling. NeurIPS 2021.
+           arXiv:2102.05379  (https://arxiv.org/abs/2102.05379)
+  Code authors / copyright holders:
+           Emiel Hoogeboom, Didrik Nielsen
+
+License
+-------
+
+The upstream code is released under the MIT License (declared via the
+`License :: OSI Approved :: MIT License` classifier in its `setup.py`).
+The full MIT license text is reproduced below. The original copyright
+notice is retained as required by the MIT terms.
+
+  MIT License
+
+  Copyright (c) Emiel Hoogeboom, Didrik Nielsen
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Modifications
+-------------
+
+This vendored copy may contain minor adaptations for integration with the
+GSSC-S2D2 codebase. All such modifications remain under the original MIT
+License above.

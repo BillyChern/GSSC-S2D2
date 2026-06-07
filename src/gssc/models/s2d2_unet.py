@@ -1,10 +1,14 @@
 """
-3D U-Net for Scene Completion with Sparse LiDAR Encoder (exp_2)
+S2D2 scene-completion denoiser: dense 3D U-Net with an auxiliary
+SparseLiDAREncoder.
 
-This variant uses spconv for efficient LiDAR feature extraction,
-which is more suitable for SemanticKITTI's ~1% sparse occupancy.
+The denoiser body is a dense ``Conv3d`` 3D U-Net (the "Sparse" in the class name
+``SceneCompletionUNetSparse`` refers only to the auxiliary LiDAR encoder, not the
+denoiser; see docs/MODEL_ZOO.md). LiDAR features are extracted with spconv via
+``SparseLiDAREncoder``, which is efficient for SemanticKITTI's ~1% sparse
+occupancy.
 
-Key differences from scene_unet.py (exp_1):
+Compared with the dense-Conv3d LiDAR baseline in ``scene_unet.py``:
 - LiDAR processed with SparseLiDAREncoder (spconv) instead of dense Conv3d
 - Multi-scale LiDAR features injected at each U-Net level
 - More memory efficient for sparse inputs
@@ -136,10 +140,12 @@ class ResidualBlock3DSparse(nn.Module):
 
 class SceneCompletionUNetSparse(nn.Module):
     """
-    3D U-Net with Sparse LiDAR Encoder (exp_2).
+    S2D2 scene-completion denoiser: dense 3D U-Net with an auxiliary
+    SparseLiDAREncoder.
 
-    Uses spconv to efficiently extract multi-scale LiDAR features,
-    which are then used to condition each level of the U-Net.
+    The denoiser body is dense Conv3d; the auxiliary SparseLiDAREncoder uses
+    spconv to efficiently extract multi-scale LiDAR features, which are then
+    used to condition each level of the U-Net.
 
     Architecture for SemanticKITTI (256×256×32):
     - Level 0: 256×256×32, 32 channels + LiDAR level0
@@ -810,7 +816,7 @@ def count_parameters(model: nn.Module) -> int:
 
 
 if __name__ == "__main__":
-    print("=== Phase 3 exp_2: Sparse LiDAR Encoder ===\n")
+    print("=== S2D2 denoiser: dense Conv3d U-Net + auxiliary SparseLiDAREncoder ===\n")
 
     # Parameter counts
     model = SceneCompletionUNetSparse(num_classes=20, base_channels=32)
@@ -825,11 +831,11 @@ if __name__ == "__main__":
     print("  U-Net channels: 16 → 32 → 64 → 128")
     print("  LiDAR encoder: 8 → 16 → 32 → 64")
 
-    print("\n=== Comparison with exp_1 (Dense Conv3d) ===")
+    print("\n=== Comparison with dense-Conv3d LiDAR baseline (scene_unet.py) ===")
     from .scene_unet import SceneCompletionUNet, SceneCompletionUNetLite
-    exp1_full = SceneCompletionUNet(num_classes=20, base_channels=32)
-    exp1_lite = SceneCompletionUNetLite(num_classes=20, base_channels=16)
-    print(f"exp_1 Full: {count_parameters(exp1_full):,} params")
-    print(f"exp_2 Full: {count_parameters(model):,} params")
-    print(f"exp_1 Lite: {count_parameters(exp1_lite):,} params")
-    print(f"exp_2 Lite: {count_parameters(model_lite):,} params")
+    dense_lidar_full = SceneCompletionUNet(num_classes=20, base_channels=32)
+    dense_lidar_lite = SceneCompletionUNetLite(num_classes=20, base_channels=16)
+    print(f"Dense-Conv3d-LiDAR Full: {count_parameters(dense_lidar_full):,} params")
+    print(f"SparseLiDAREncoder  Full: {count_parameters(model):,} params")
+    print(f"Dense-Conv3d-LiDAR Lite: {count_parameters(dense_lidar_lite):,} params")
+    print(f"SparseLiDAREncoder  Lite: {count_parameters(model_lite):,} params")
