@@ -56,11 +56,39 @@ python scripts/eval.py eval/js3c_val_d4tta \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 ```
 
+> **GT BEV vs. derived BEV.** `eval/js3c_val_1step` uses `bev_source: gt`
+> (the paper Tab. III protocol), which conditions on a ground-truth BEV
+> oracle, so its 26.72 % is a paper-protocol number, not an at-deploy result.
+> For the honest deployment number use `eval/js3c_val_realistic`
+> (`bev_source: derived`), which lands at **24.32 %** under the official
+> `semantic-kitti-api` evaluator. See `docs/REPRODUCIBILITY.md` and
+> `docs/MODEL_ZOO.md` for the full GT-vs-derived breakdown.
+
 The all-in-one driver runs the same eval with a pre-flight check on the
 JS3C predictions:
 
 ```bash
 python scripts/reproduce_table.py tab:cross_base_js3c
+```
+
+## LMSCNet cross-base (paper Tab. III, third base)
+
+```bash
+# Verify the LMSCNet predictions are dumped (see docs/REPRODUCIBILITY.md)
+ls data/lmscnet_predictions/08 | head
+
+# N=1, no TTA — expect 16.59 % val mIoU (+4.49 pp over LMSCNet base 12.10 %)
+python scripts/eval.py eval/lmscnet_val_1step \
+    --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
+```
+
+LMSCNet conditions on a derived BEV (`bev_from_base: true`, height-pooled
+from LMSCNet's own 3D prediction — never GT BEV), so 16.59 % is already an
+at-deploy number with no GT-BEV oracle caveat. The all-in-one driver runs
+the same eval with a pre-flight check on the LMSCNet predictions:
+
+```bash
+python scripts/reproduce_table.py tab:cross_base_lmsc
 ```
 
 ## Single-frame demo

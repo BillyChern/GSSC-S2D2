@@ -78,6 +78,8 @@ The paper organises the method into three pillars that share one structured-sour
 | **S²D² (Ours, *N* = 4, no TTA)** | **39.0** | 58.8 | **+2.3** | practical deployable variant |
 | **S²D² (Ours, *N* = 4, *D*<sub>4</sub> TTA)** | **39.2** | 59.0 | **+2.5** | hidden-test best; leaderboard row public upon release |
 
+<sub><b>Source.</b> The mIoU and IoU<sub>cmpl</sub> values for the baseline rows, and the IoU<sub>cmpl</sub> values for the S²D² <i>N</i>=1 / <i>N</i>=4 rows, are the corresponding entries on the public SemanticKITTI SSC test leaderboard; they are not all reported in our paper. Only the S²D² mIoU column and the headline 39.2 % / 59.0 % <i>D</i><sub>4</sub>-TTA row are paper-reported (supplementary Tab. of test results).</sub>
+
 On full SemanticKITTI **val** seq 08 (note: val numbers below, distinct from the 39.2 % **hidden-test** figure above):
 * **val: 38.54 %** mIoU (single correction step, $N{=}1$)  — verified end-to-end by the maintainers (requires the released assets)
 * **val: 38.73 %** mIoU (4-step correction sampling + *D*<sub>4</sub> TTA) → the same recipe scores **39.2 %** on the hidden test
@@ -115,7 +117,7 @@ uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
 #    URLs come online on paper acceptance; until then the script prints
 #    a pointer to docs/DATASET.md for manual download instructions.
 python scripts/download_assets.py --checkpoints --predictions
-# → data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors           (~140 MB)
+# → data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors           (~140 MB; full subdir ~265 MB — see docs/MODEL_ZOO.md)
 # → data/scpnet_predictions/   (~178 GB real + synth; ~135 GB total for eval-only — see docs/DATASET.md)
 
 # 3. Reproduce the headline 38.54 % val mIoU
@@ -274,10 +276,10 @@ The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:p
 
 | What | Where | Size |
 |---|---|---|
-| Pretrained checkpoints (17 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face *(URL added on first upload — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md))* | ≈ 3 GB |
-| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face *(URL pending; meanwhile reproduce locally via `scripts/dump_{js3c,lmscnet}_predictions.py` — see [docs/DATASET.md](docs/DATASET.md))* | ≈ 60 GB total |
+| Pretrained checkpoints (17 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face *(URL added on first upload — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md))* | ≈ 4 GB |
+| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face *(URL pending; meanwhile reproduce locally via `scripts/dump_{js3c,lmscnet}_predictions.py` — see [docs/DATASET.md](docs/DATASET.md))* | ≈ 272 GB total (SCPNet ~178 GB + JS3C-Net ~54 GB + LMSCNet ~40 GB; only ~135 GB needed for the SCPNet eval-only headline) |
 | Object bank (57,789 instances, 8 rare classes) | Hugging Face *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 448 MB |
-| Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 120 – 220 GB per variant |
+| Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | ~120 GB (31K) – ~220 GB (57K), approx. |
 
 All weights and synthetic data are released under Apache-2.0 **upon paper acceptance**; SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). Until the hosting URLs are live, `scripts/download_assets.py` fails loudly with a pointer to `docs/DATASET.md`, which documents manual provisioning; the script will populate every entry automatically once the URLs are wired in.
 
@@ -309,7 +311,7 @@ A. We add **+2.5 absolute mIoU** on the hidden test set with a single extra forw
 A. Yes — the framework is base-model-agnostic. We provide a working SCPNet integration; switching to JS3C-Net or any other base requires only providing per-voxel categorical predictions as `x_src`. See [docs/BASELINES.md](docs/BASELINES.md).
 
 **Q. Do we need the synthetic pool to use the released checkpoint?**
-A. **No.** Eval-only deployment uses the released weights + SCPNet predictions only (~135 GB total). The 230 GB synthetic pool is only needed for retraining from scratch.
+A. **No.** Eval-only deployment uses the released weights + SCPNet predictions only (~135 GB total). The synthetic pool (~120 GB for the 31K headline variant, ~220 GB for the 57K variant) is only needed for retraining from scratch.
 
 **Q. Why does the train script use a YAML "config" rather than direct CLI args?**
 A. Every paper artefact corresponds to a config file. `python scripts/train.py train/31k_mf` runs the exact headline recipe with no chance of accidentally diverging from the paper.

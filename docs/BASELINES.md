@@ -1,6 +1,9 @@
 # Baselines
 
-This codebase ships with the SCPNet base (frozen) and a faithful DiffSSC reimplementation.
+This codebase ships the frozen base predictors (SCPNet weights plus JS3C-Net /
+LMSCNet prediction readers) and the S²D² refinement on top of them. The DiffSSC
+reimplementation used only for the Fig. 4 qualitative panels is **not** shipped
+(out of scope for this release; see the section below).
 
 ## SCPNet base (frozen)
 

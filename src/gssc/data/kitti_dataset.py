@@ -219,7 +219,14 @@ class SemanticKITTIDataset(Dataset):
 
 
 class SemanticKITTIAugmentationDataset(Dataset):
-    """Dataset combining original and augmented SemanticKITTI data."""
+    """Dataset that would combine original and synthetic SemanticKITTI data.
+
+    This is a stub: the on-disk loading of the synthetic (sparse, complete)
+    pool is not wired up here. The headline runs consume the synthetic pool
+    through the dump/retrain scripts (see ``docs/DATASET.md`` "Synthetic pool"),
+    not through this class, so this dataset only proxies the original data and
+    explicitly refuses any request that would require synthetic samples.
+    """
 
     def __init__(self,
                  original_dataset: SemanticKITTIDataset,
@@ -228,25 +235,38 @@ class SemanticKITTIAugmentationDataset(Dataset):
         """
         Args:
             original_dataset: Original SemanticKITTI dataset
-            augmented_data_path: Path to augmented data (if available)
+            augmented_data_path: Path to augmented data. Synthetic-pool loading
+                is not implemented here; passing a non-None value raises
+                NotImplementedError rather than silently ignoring the path.
             augmentation_ratio: Ratio of augmented to original data
         """
+        if augmented_data_path is not None:
+            raise NotImplementedError(
+                "Synthetic-pool loading is not wired into "
+                "SemanticKITTIAugmentationDataset. Provision the synthetic "
+                "(sparse, complete) pool via the dump/retrain scripts described "
+                "in docs/DATASET.md ('Synthetic pool'); this class only proxies "
+                "the original dataset."
+            )
         self.original_dataset = original_dataset
         self.augmented_data_path = augmented_data_path
         self.augmentation_ratio = augmentation_ratio
 
-        # For now, just use original data
-        # TODO: Add augmented data loading when available
+        # Synthetic samples are not loaded here, so the length matches the
+        # original dataset exactly (see class docstring / docs/DATASET.md).
         self.total_samples = len(original_dataset)
 
     def __len__(self) -> int:
         return self.total_samples
 
     def __getitem__(self, idx: int) -> dict:
-        # For now, return original data
-        # TODO: Implement augmented data sampling
+        # Only original indices are valid: total_samples == len(original_dataset)
+        # because synthetic loading is not implemented (see class docstring).
         if idx < len(self.original_dataset):
             return self.original_dataset[idx]
-        else:
-            # Return augmented sample (placeholder)
-            return self.original_dataset[idx % len(self.original_dataset)]
+        raise NotImplementedError(
+            "Synthetic-augmented sampling is not implemented in "
+            "SemanticKITTIAugmentationDataset; index "
+            f"{idx} exceeds the original dataset. See docs/DATASET.md "
+            "('Synthetic pool') for the supported augmentation path."
+        )

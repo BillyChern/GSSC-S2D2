@@ -3,11 +3,20 @@
 This directory holds the figures and animations referenced from the
 top-level README. Drop-in convention so the README never breaks:
 
+Currently present and embedded in `README.md`:
+
 | Filename | What | Where it appears |
 |---|---|---|
 | `teaser.png` | Hero teaser — paper Fig. 2 (two-stage pipeline rendered for the README) | top of `README.md`, above the badges |
 | `architecture.png` | Method architecture — paper Fig. 3 (denoiser UNet + S2D2 correction sampler) | `README.md` "Method at a glance" |
 | `qualitative.png` | Three-panel qualitative example — SCPNet vs Ours vs GT, motorcyclist 000708 | `README.md` "Headline numbers" |
+
+Planned additions (not yet present in this directory and not yet referenced
+from `README.md` — the convention below reserves their names so the README
+can embed them without churn once they are dropped in):
+
+| Filename | What | Intended location |
+|---|---|---|
 | `bev_qualitative.png` | BEV second-task qualitative — base BEV vs S²D² BEV vs GT | `README.md` "Secondary task" |
 | `step_sweep.png` | Tab. V step reduction plot (mIoU vs N) | `README.md` "Reproducing every paper number" |
 | `data_scaling.png` | Tab. VII data-scaling plot (mIoU vs synthetic-pool size) | `README.md` "Reproducing every paper number" |

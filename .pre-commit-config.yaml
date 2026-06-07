@@ -12,9 +12,9 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^(material|external|src/gssc/_improved_diffusion)/
+        exclude: ^(external|src/gssc/_improved_diffusion)/
       - id: end-of-file-fixer
-        exclude: ^(material|external|src/gssc/_improved_diffusion)/
+        exclude: ^(external|src/gssc/_improved_diffusion)/
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files

@@ -140,13 +140,13 @@ DataPort upon paper publication; until then the download script exits with the
 manual-download instructions::
 
     # Via download script (prints the manual-download note until the mirror is live):
-    python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB
-    python scripts/download_assets.py --synthetic-pool 57K   # ~220 GB
+    python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB (approx.)
+    python scripts/download_assets.py --synthetic-pool 57K   # ~220 GB (approx.)
 
 You only need the synthetic pool if you want to **retrain from scratch**. The
 released checkpoint already contains the trained weights.
 
-## Checkpoints (~3 GB)
+## Checkpoints (~4 GB)
 
 ```bash
 python scripts/download_assets.py --checkpoints
@@ -160,10 +160,11 @@ python scripts/download_assets.py --checkpoints
 | Voxel labels | (inside `data/SemanticKITTI/`) | 1.6 GB |
 | SCPNet predictions | `data/scpnet_predictions/` | 178 GB (real + synth) |
 | JS3C-Net predictions (v1.1.0) | `data/js3cnet_predictions/` | 54 GB |
+| LMSCNet predictions (v2.1.0) | `data/lmscnet_predictions/` | ~40 GB (real-only) |
 | Object bank | `data/object_bank/` | 448 MB |
-| Synthetic pool 31K | `data/synthetic_pool_31K/` | 62 GB |
-| Synthetic pool 57K (Tab. V) | `data/synthetic_pool_57K/` | 305 GB |
-| Pretrained checkpoints | `data/checkpoints/` | ~4.5 GB |
+| Synthetic pool 31K | `data/synthetic_pool_31K/` | ~120 GB (approx.) |
+| Synthetic pool 57K (Tab. V) | `data/synthetic_pool_57K/` | ~220 GB (approx.) |
+| Pretrained checkpoints | `data/checkpoints/` | ~4 GB |
 | **Total (eval-only, SCPNet headline)** | | **~135 GB** |
 | **Total (eval-only, +cross-base JS3C)** | | **~189 GB** |
-| **Total (full retrain, 31K)** | | **~317 GB** |
+| **Total (full retrain, 31K)** | | **~375 GB** |

@@ -21,12 +21,20 @@ Each safetensors file is a complete model state_dict — EMA-tracked parameters
 overlaid onto trained BatchNorm running statistics (running_mean / running_var /
 num_batches_tracked) — so `load_state_dict(strict=True)` works out of the box.
 
+**Download/disk sizes.** A single `model_ema.safetensors` (the deployment file
+the quickstart in `README.md` points at) is **~140 MB**. `download_assets.py`
+provisions the **whole per-checkpoint subdir** — `model.safetensors` +
+`model_ema.safetensors` + `config.json` — which is **~265 MB total**. The "Size"
+column below and the "~265 MB" figures in this doc refer to the full subdir; the
+"~140 MB" figure in `README.md`'s quickstart refers to the single
+`model_ema.safetensors` it downloads for inference.
+
 The legacy SCPNet base ships as a flat `scpnet_v2_port.pth` (third-party
 convention, kept as-is).
 
 ## Headline scene-completion checkpoints
 
-| Subdir | Paper section | Val mIoU | Test mIoU | Config | Size |
+| Subdir | Paper section | Val mIoU | Test mIoU | Config | Size (full subdir) |
 |---|---|---|---|---|---|
 | `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 39.0 (N=4 plain) / 39.2 (+D4 TTA) / 38.8 (N=1 real-time) | `configs/train/31k_mf.yaml` | ~265 MB |
 | `gssc_mf/gssc_57k_mf_step40000/` | Tab. V (negative result) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
@@ -44,7 +52,8 @@ released checkpoints; SCPNet uses the same training recipe with
 | `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.73 | **26.72** | **+3.99** | `configs/train/js3c_real.yaml`    |
 | (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.37** | `configs/train/31k_mf.yaml`       |
 
-Each cross-base checkpoint is ~265 MB. Evaluators differ across rows: the
+Each cross-base checkpoint subdir is ~265 MB total (~140 MB for the single
+`model_ema.safetensors` alone). Evaluators differ across rows: the
 LMSCNet and JS3C-Net deltas are measured under the official
 `semantic-kitti-api`; the SCPNet delta uses our internal `SSCMetrics`
 evaluator (+0.31 pp internal/official gap, documented in the paper's
@@ -111,20 +120,27 @@ Pyramid checkpoints do not use EMA; each subdir ships
 |---|---|---|
 | `scpnet_v2_port.pth` | SCPNet pretrained weights, ported to spconv v2.3 with kernel-shape patches. | Loads via `gssc.models.scpnet_base`. Third-party flat `.pth` (not converted). |
 
-## Architecture note (released checkpoint vs. paper)
+## Architecture note (released checkpoint = paper denoiser)
 
-The released denoiser class is `SceneCompletionUNetSparse`, but the **denoiser
-body is a dense 3D U-Net built from `nn.Conv3d` / `nn.ConvTranspose3d`** with
-additive L/B conditioning and time-AdaGN at every level. The word "Sparse" in
-the class name refers only to the **auxiliary LiDAR encoder**
-(`SparseLiDAREncoder`, which uses spconv), **not** to the denoiser. The
+The released checkpoint **is** the paper's denoiser as specified in the paper
+Method section and the supplementary hyperparameter table: a **4-level dense 3D
+U-Net** built from `nn.Conv3d` / `nn.ConvTranspose3d` (~35M parameters) with
+additive L/B conditioning and time-AdaGN at every level. This matches the
+repo's own `README.md` architecture caption ("dense 3D U-Net (Conv3d) … this
+release ≈ 35M") and the released notebook.
+
+The denoiser class is named `SceneCompletionUNetSparse`, but the word "Sparse"
+in the class name refers only to the **auxiliary LiDAR encoder**
+(`SparseLiDAREncoder`, which uses spconv), **not** to the denoiser body. The
 denoiser does not use sparse convolutions.
 
-This released checkpoint is a simplified **dense Conv3d / ~35M-parameter
-reproduction**. The paper's reported model is the sparse SubMConv3d + FiLM
-**~58M-parameter** variant (paper Fig. 3 / App. I); the released code does not
-ship that variant. When comparing against the paper, treat the released
-checkpoint as the dense reproduction, not as the paper's headline architecture.
+> Note for authors: the GSSC paper's supplementary architecture-ablation table
+> contains a self-contradicting row that labels the headline denoiser "Sparse
+> 3D U-Net". That row is inconsistent with the paper's own Method section and
+> supplementary hyperparameter table (both dense Conv3d, ~35M) and should be
+> corrected in GSSC-paper. The released code is authoritative here and matches
+> the dense Conv3d specification; it does not ship any sparse-SubMConv3d
+> denoiser variant.
 
 ## How to use
 
