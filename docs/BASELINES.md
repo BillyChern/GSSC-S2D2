@@ -1,9 +1,10 @@
 # Baselines
 
-This codebase ships the frozen base predictors (SCPNet weights plus JS3C-Net /
-LMSCNet prediction readers) and the S²D² refinement on top of them. The DiffSSC
-reimplementation used only for the Fig. 4 qualitative panels is **not** shipped
-(out of scope for this release; see the section below).
+This codebase ships three frozen base predictors — SCPNet (weights ported to
+spconv v2.3), JS3C-Net, and LMSCNet (the latter two as prediction readers) —
+and the S²D² refinement on top of each. Each base has its own section below.
+The DiffSSC reimplementation used only for the Fig. 4 qualitative panels is
+**not** shipped (out of scope for this release; see the section below).
 
 ## SCPNet base (frozen)
 
@@ -60,6 +61,36 @@ alternative base.
 
 Reproduction protocol: `docs/REPRODUCIBILITY.md`, section "JS3C-Net
 cross-base reproduction".
+
+## LMSCNet cross-base (added v2.1.0)
+
+LMSCNet (Roldão et al. 2020, 3DV) is the third structurally different frozen
+base alongside SCPNet (sparse 3D CNN) and JS3C-Net (point-voxel hybrid): a
+lightweight (~0.4M-param) dense 2D-CNN that treats the Z=32 axis as input
+channels. The v2.1.0 cross-base reproduction (paper tab:portable_s2d2, third
+base, +4.49 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
+
+* Original: [LMSCNet](https://github.com/cv-rits/LMSCNet) (3DV 2020)
+* Our reader: `src/gssc/models/lmscnet_base.py` — a thin per-frame `.npy`
+  loader. No LMSCNet model code is shipped because we release the predictions
+  themselves as a separate dataset (`data/lmscnet_predictions/`, mirrors
+  `data/scpnet_predictions/` exactly).
+* Dumper: `scripts/dump_lmscnet_predictions.py` — depends on a local clone of
+  the upstream LMSCNet repo (CLI argument `--lmscnet-repo`, no hardcoded path;
+  `--weights` is accepted as an alias for `--checkpoint`).
+* Released base reproduction: **12.10 %** val mIoU (paper tab:portable_s2d2,
+  base row) under the official `semantic-kitti-api` evaluator. No spconv
+  kernel-shape patches are required (LMSCNet is a plain dense 2D CNN, so there
+  is no spconv v1 → v2 weight-loading concern as with SCPNet).
+* S²D² lift on top: **16.59 %** val mIoU (+4.49 pp), real-frames-only
+  training, `cold_diffusion=true`.
+* Unlike the JS3C-Net row, LMSCNet has no GT-BEV vs. derived-BEV split: the
+  seed BEV is always height-pooled from LMSCNet's own 3D prediction
+  (`bev_from_base: true`, never GT BEV), so 16.59 % is already the at-deploy
+  number with no GT-BEV oracle caveat.
+
+Reproduction protocol: `docs/REPRODUCIBILITY.md`, section "LMSCNet cross-base
+reproduction".
 
 ## DiffSSC reimplementation (qualitative comparison only)
 

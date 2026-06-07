@@ -65,7 +65,8 @@ python scripts/eval.py eval/js3c_val_d4tta \
 > `docs/MODEL_ZOO.md` for the full GT-vs-derived breakdown.
 
 The all-in-one driver runs the same eval with a pre-flight check on the
-JS3C predictions:
+JS3C predictions (`tab:cross_base_js3c` is the `reproduce_table.py` command
+key for the JS3C-Net row of the paper's cross-base table `tab:portable_s2d2`):
 
 ```bash
 python scripts/reproduce_table.py tab:cross_base_js3c
@@ -85,7 +86,9 @@ python scripts/eval.py eval/lmscnet_val_1step \
 LMSCNet conditions on a derived BEV (`bev_from_base: true`, height-pooled
 from LMSCNet's own 3D prediction — never GT BEV), so 16.59 % is already an
 at-deploy number with no GT-BEV oracle caveat. The all-in-one driver runs
-the same eval with a pre-flight check on the LMSCNet predictions:
+the same eval with a pre-flight check on the LMSCNet predictions
+(`tab:cross_base_lmsc` is the `reproduce_table.py` command key for the
+LMSCNet row of the paper's cross-base table `tab:portable_s2d2`):
 
 ```bash
 python scripts/reproduce_table.py tab:cross_base_lmsc

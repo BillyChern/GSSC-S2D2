@@ -66,29 +66,31 @@ except ImportError:
         S3DSKDDataset = None
         create_s3_dataloader = None
 
-# S4: MIMO (Multi-Input Multi-Output)
+# S4: MIMO (Multi-Input Multi-Output) — optional dev-only modules.
+# The mimo / mimo_dataset / mimo_scene_unet modules are NOT part of the public
+# release (the headline `model_type: sparse_full` path uses s2d2_unet only).
+# The import is guarded so the module imports cleanly without them; the
+# mimo_lite / mimo_full branches below fail loudly with NotImplementedError.
 try:
-    from mimo import BEVAugmenter, MIMOEnsembler, MIMOSceneCompletion
-    from mimo_dataset import MIMODatasetWrapper, create_mimo_dataloader, mimo_collate_fn
-    from mimo_scene_unet import MIMOSceneCompletionUNet, MIMOSceneCompletionUNetLite
+    from gssc.models.mimo import BEVAugmenter, MIMOEnsembler, MIMOSceneCompletion
+    from gssc.models.mimo_dataset import (
+        MIMODatasetWrapper,
+        create_mimo_dataloader,
+        mimo_collate_fn,
+    )
+    from gssc.models.mimo_scene_unet import (
+        MIMOSceneCompletionUNet,
+        MIMOSceneCompletionUNetLite,
+    )
 except ImportError:
-    try:
-        from gssc.models.mimo import BEVAugmenter, MIMOEnsembler, MIMOSceneCompletion
-        from gssc.models.mimo_dataset import (
-            MIMODatasetWrapper,
-            create_mimo_dataloader,
-            mimo_collate_fn,
-        )
-        from gssc.models.mimo_scene_unet import MIMOSceneCompletionUNet, MIMOSceneCompletionUNetLite
-    except ImportError:
-        MIMOSceneCompletion = None
-        BEVAugmenter = None
-        MIMOEnsembler = None
-        MIMODatasetWrapper = None
-        create_mimo_dataloader = None
-        mimo_collate_fn = None
-        MIMOSceneCompletionUNet = None
-        MIMOSceneCompletionUNetLite = None
+    MIMOSceneCompletion = None
+    BEVAugmenter = None
+    MIMOEnsembler = None
+    MIMODatasetWrapper = None
+    create_mimo_dataloader = None
+    mimo_collate_fn = None
+    MIMOSceneCompletionUNet = None
+    MIMOSceneCompletionUNetLite = None
 
 # S5: Dense 3D CNN at coarse resolution
 try:
@@ -1360,7 +1362,12 @@ class SceneCompletionTrainer:
         elif model_type == 'mimo_lite':
             # S4 MIMO lite: PaSCo-style with N separate decoder heads
             if MIMOSceneCompletionUNetLite is None:
-                raise ImportError("MIMOSceneCompletionUNetLite not available - check mimo_scene_unet.py")
+                raise NotImplementedError(
+                    "model_type='mimo_lite' requires the MIMO modules "
+                    "(gssc.models.mimo / mimo_dataset / mimo_scene_unet), which are "
+                    "not part of this release. Use model_type='sparse_full' (the "
+                    "headline S2D2 denoiser)."
+                )
             n_subnets = config.get('mimo_num_subnets', 3)
             model = MIMOSceneCompletionUNetLite(
                 num_classes=config['num_classes'],
@@ -1375,7 +1382,12 @@ class SceneCompletionTrainer:
         elif model_type == 'mimo_full':
             # S4 MIMO full: PaSCo-style with N separate decoder heads
             if MIMOSceneCompletionUNet is None:
-                raise ImportError("MIMOSceneCompletionUNet not available - check mimo_scene_unet.py")
+                raise NotImplementedError(
+                    "model_type='mimo_full' requires the MIMO modules "
+                    "(gssc.models.mimo / mimo_dataset / mimo_scene_unet), which are "
+                    "not part of this release. Use model_type='sparse_full' (the "
+                    "headline S2D2 denoiser)."
+                )
             n_subnets = config.get('mimo_num_subnets', 3)
             model = MIMOSceneCompletionUNet(
                 num_classes=config['num_classes'],

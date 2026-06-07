@@ -2,7 +2,7 @@
 
 Usage::
 
-    python scripts/download_assets.py --checkpoints          # ~3 GB models
+    python scripts/download_assets.py --checkpoints          # ~4 GB models
     python scripts/download_assets.py --predictions          # ~178 GB SCPNet val/test/synth predictions
     python scripts/download_assets.py --js3c-predictions     # ~54 GB JS3C-Net cross-base predictions
     python scripts/download_assets.py --lmscnet-predictions  # ~40 GB LMSCNet cross-base predictions
@@ -49,14 +49,14 @@ def _ensure_url_configured(url: str, label: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoints", action="store_true", help="Download model checkpoints (~3 GB)")
+    parser.add_argument("--checkpoints", action="store_true", help="Download model checkpoints (~4 GB)")
     parser.add_argument("--predictions", action="store_true", help="Download SCPNet predictions (~178 GB, real + synth)")
     parser.add_argument("--js3c-predictions", action="store_true", help="Download JS3C-Net predictions (~54 GB, cross-base eval)")
     parser.add_argument("--lmscnet-predictions", action="store_true", help="Download LMSCNet predictions (~40 GB, cross-base eval)")
     parser.add_argument("--object-bank", action="store_true", help="Download rare-class object bank (~448 MB)")
     parser.add_argument("--synthetic-pool", choices=["0K", "10K", "20K", "31K", "57K"],
                         default=None, help="Download a synthetic pool variant")
-    parser.add_argument("--all", action="store_true", help="Download everything (~3 GB models + ~50 GB predictions)")
+    parser.add_argument("--all", action="store_true", help="Download everything (~4 GB models + ~50 GB predictions)")
     parser.add_argument("--root", default=str(REPO_ROOT / "data"), help="Where to store downloads")
     args = parser.parse_args()
 

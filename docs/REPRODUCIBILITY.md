@@ -194,9 +194,9 @@ paper.
 |---|---|---|
 | Tab. I (test mIoU) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl |
 | Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --metrics miou per_class` | 38.54 mIoU |
-| Tab. III (cross-base JS3C, paper protocol)   | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | ~26.7 mIoU (GT BEV, +0.31 pp internal/official delta documented in the paper's supplementary validation-protocol table) |
-| Tab. III (cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api) |
-| Tab. III (cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; +4.49 pp over LMSCNet base 12.10) |
+| Tab. III (tab:portable_s2d2, cross-base JS3C, paper protocol)   | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | ~26.7 mIoU (GT BEV, +0.31 pp internal/official delta documented in the paper's supplementary validation-protocol table) |
+| Tab. III (tab:portable_s2d2, cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api) |
+| Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; +4.49 pp over LMSCNet base 12.10) |
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` | See MODEL_ZOO.md |
@@ -207,7 +207,7 @@ paper.
 
 All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`). Cross-base reproduction additionally requires `data/js3cnet_predictions/` (JS3C-Net) or `data/lmscnet_predictions/` (LMSCNet); see the dedicated sections below.
 
-## JS3C-Net cross-base reproduction (paper Tab. III, cross-base rows)
+## JS3C-Net cross-base reproduction (paper Tab. III / tab:portable_s2d2, cross-base rows)
 
 Stacking S²D² on the older point-voxel hybrid base JS3C-Net (Yan et al.,
 AAAI 2021) lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the
@@ -243,7 +243,7 @@ sequences 00-08, 09, 10; the hidden test 11-21 is optional.)
 # Real-only training (~37 GPU-hours on 2× H100; cold_diffusion=true is required)
 python scripts/train.py train/js3c_real
 
-# Paper-protocol eval — GT BEV + N=1 Algo2 (paper Tab. III, JS3C+S²D² row)
+# Paper-protocol eval — GT BEV + N=1 Algo2 (paper Tab. III / tab:portable_s2d2, JS3C+S²D² row)
 python scripts/eval.py eval/js3c_val_paper \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 # → expect ~26.7 % val mIoU. The paper reports 26.72 % via internal SSCMetrics;
@@ -263,7 +263,9 @@ python scripts/eval.py eval/js3c_val_d4tta \
 # → expect ≥ 24.32 % (TTA monotone gain on the realistic-deploy variant).
 ```
 
-Or use the all-in-one driver:
+Or use the all-in-one driver (`tab:cross_base_js3c` is the
+`reproduce_table.py` command key for the JS3C-Net row of the paper's
+cross-base table `tab:portable_s2d2`):
 
 ```bash
 python scripts/reproduce_table.py tab:cross_base_js3c
@@ -286,7 +288,7 @@ SCPNet's synth predictions (`scpnet_predictions/synthetic/`) cover all
 57 650 synth frames without any gap and are the recommended pseudo-label
 source for new synth-augmented experiments.
 
-## LMSCNet cross-base reproduction (paper Tab. III, third base; v2.1.0)
+## LMSCNet cross-base reproduction (paper Tab. III / tab:portable_s2d2, third base; v2.1.0)
 
 LMSCNet (Roldão et al., 3DV 2020) is the third structurally different
 frozen base alongside SCPNet (sparse 3D CNN) and JS3C-Net (point-voxel
@@ -328,7 +330,7 @@ Real-only reproduction needs sequences 00-08, 09, 10.)
 # Real-only training (~37 GPU-hours on 2× H100; cold_diffusion=true is required)
 python scripts/train.py train/lmscnet_real
 
-# Eval — N=1 Algo2, derived BEV (paper Tab. III, LMSCNet+S²D² row)
+# Eval — N=1 Algo2, derived BEV (paper Tab. III / tab:portable_s2d2, LMSCNet+S²D² row)
 python scripts/eval.py eval/lmscnet_val_1step \
     --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 # → expect 16.59 % val mIoU under the official semantic-kitti-api scorer.
@@ -339,7 +341,9 @@ seed BEV is always height-pooled from LMSCNet's own 3D prediction
 (`bev_from_base: true`, never GT BEV), so 16.59 % is already the at-deploy
 number.
 
-Or use the all-in-one driver:
+Or use the all-in-one driver (`tab:cross_base_lmsc` is the
+`reproduce_table.py` command key for the LMSCNet row of the paper's
+cross-base table `tab:portable_s2d2`):
 
 ```bash
 python scripts/reproduce_table.py tab:cross_base_lmsc

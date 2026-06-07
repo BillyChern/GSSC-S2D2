@@ -257,6 +257,9 @@ always a **MAJOR** bump, even if the API is identical.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.1.1...v2.0.0
+[1.1.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/BillyChern/GSSC-S2D2/releases/tag/v1.1.0
 [1.0.0]: https://github.com/BillyChern/GSSC-S2D2/releases/tag/v1.0.0

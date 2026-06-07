@@ -9,7 +9,7 @@ Currently present and embedded in `README.md`:
 |---|---|---|
 | `teaser.png` | Hero teaser — paper Fig. 2 (two-stage pipeline rendered for the README) | top of `README.md`, above the badges |
 | `architecture.png` | Method architecture — paper Fig. 3 (denoiser UNet + S2D2 correction sampler) | `README.md` "Method at a glance" |
-| `qualitative.png` | Three-panel qualitative example — SCPNet vs Ours vs GT, motorcyclist 000708 | `README.md` "Headline numbers" |
+| `qualitative.png` | Five-column qualitative comparison — paper Fig. 4 (left → right: JS3C-Net, SCPNet, TALoS, S²D² ours N=4, Ground Truth) over two seq-08 frames | `README.md` "Headline numbers" |
 
 Planned additions (not yet present in this directory and not yet referenced
 from `README.md` — the convention below reserves their names so the README

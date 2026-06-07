@@ -28,7 +28,7 @@ The paper organises the method into three pillars that share one structured-sour
 * **S²D²** — *Structured Source Discrete Diffusion*: the one-step deployment regime that refines a frozen base SSC model's prediction — the headline 38.54 % val / 39.2 % test result and the focus of this repository.
 
 > [!IMPORTANT]
-> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100 (the added correction step costs 107 ms; 1000 / 107 ≈ 9.3 FPS), and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5** over the frozen SCPNet base (36.7 → 39.2). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU**).
+> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100 (the added correction step costs 107 ms; 1000 / 107 ≈ 9.3 FPS), and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5** over the frozen SCPNet base (36.7 → 39.2). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU** over the base-derived BEV: 34.27 % → 36.09 % on val seq 08).
 
 > [!TIP]
 > **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for the 3-command reproduction recipe of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once the base predictions are local.
@@ -125,7 +125,7 @@ python scripts/eval.py eval/val_1step \
     --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 ```
 
-> **Note on `spconv`.** `spconv` is deliberately *not* pinned in `uv.lock` because it ships a CUDA-specific wheel; `uv sync` will not install it. Install it explicitly with the pinned, CUDA-coherent line shown above (`uv pip install spconv-cu126==2.3.8`). This release is validated against the cu126 build only — match the wheel to your local CUDA toolkit if you deviate.
+> **Note on `spconv`.** `spconv` is deliberately *not* pinned in `uv.lock` because it ships a CUDA-specific wheel; `uv sync` will not install it. Install it explicitly with the pinned, CUDA-coherent line shown above (`uv pip install spconv-cu126==2.3.8`). This release is validated against the cu126 build only — match the wheel to your local CUDA toolkit if you deviate (e.g. for CUDA 11.8 use `uv pip install spconv-cu118==2.3.8`). The stock PyPI wheel is sufficient: the SCPNet v1→v2 kernel-shape "patches" are applied in code at weight-load time, so no custom-built spconv is required.
 
 Once the released assets are in place, that is the whole pipeline. Expected output (truncated):
 
@@ -256,7 +256,7 @@ Expected best-EMA val mIoU ∈ [38.3 %, 38.7 %] (within seed noise of the 38.54 
 | OS | Ubuntu 22.04 + CUDA 12.8 | Linux + CUDA 12.x |
 | Python | 3.10 / 3.11 | 3.10+ |
 | PyTorch | 2.4.0 | 2.4.x |
-| spconv | 2.3.8 (cu126, with our patches) | required |
+| spconv | `spconv-cu126==2.3.8` (stock PyPI wheel; SCPNet v1→v2 kernel-shape patches applied in code at load time) | required |
 
 Pinned versions in `uv.lock`. See [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) for the exact environment matrix.
 
