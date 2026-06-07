@@ -17,9 +17,13 @@ data/checkpoints/<group>/<name>/
 └── config.json              # train cfg + best_miou + global_step + source SHA256
 ```
 
-Each safetensors file is a complete model state_dict — EMA-tracked parameters
-overlaid onto trained BatchNorm running statistics (running_mean / running_var /
-num_batches_tracked) — so `load_state_dict(strict=True)` works out of the box.
+`model.safetensors` is a complete model state_dict, so
+`load_state_dict(strict=True)` works out of the box on it. `model_ema.safetensors`
+holds the EMA-tracked parameters but omits a few non-EMA buffers (e.g. BatchNorm
+running_mean / running_var / num_batches_tracked), so loading it requires
+`load_state_dict(strict=False)` — the usage snippet below uses `strict=False` for
+exactly this reason. For exact reproduction prefer `scripts/eval.py`, which wires
+the EMA weights in the same way the paper numbers were produced.
 
 **Download/disk sizes.** A single `model_ema.safetensors` (the deployment file
 the quickstart in `README.md` points at) is **~140 MB**. `download_assets.py`
@@ -118,7 +122,7 @@ Pyramid checkpoints do not use EMA; each subdir ships
 
 | File | What | Notes |
 |---|---|---|
-| `scpnet_v2_port.pth` | SCPNet pretrained weights, ported to spconv v2.3 with kernel-shape patches. | Loads via `gssc.models.scpnet_base`. Third-party flat `.pth` (not converted). |
+| `scpnet_v2_port.pth` | SCPNet pretrained weights, ported to spconv v2.3 with kernel-shape patches. | Loads via `gssc.inference.run_scpnet`. Third-party flat `.pth` (not converted). |
 
 ## Architecture note (released checkpoint = paper denoiser)
 

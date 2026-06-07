@@ -55,7 +55,9 @@ python scripts/train.py train/js3c_real --gpu 0,1
 ```
 
 * Real-only sequences (00-07, 09, 10) — no synthetic pool (JS3C-Net's seg
-  head OOMs on voxel-derived fake point clouds; see paper supp § H).
+  head misclassifies the voxel-derived fake point clouds as out-of-distribution
+  and crashes the dumper on them; see paper supp § H and the "Known gap on the
+  synthetic pool" section in `docs/REPRODUCIBILITY.md`).
 * 100K iterations, batch size 4, lr 1e-4, ema_decay 0.9999.
 * `cold_diffusion=true` (REQUIRED for cross-base — deterministic forward).
 * Expected val mIoU at step 100K: **26.72 %** (paper tab:portable_s2d2, +3.99 pp

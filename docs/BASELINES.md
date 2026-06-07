@@ -12,7 +12,7 @@ The headline configuration uses SCPNet as the frozen base model whose
 prediction `x_src` is refined by S²D².
 
 * Original: [SCPNet](https://github.com/SCPNet/Codes-for-SCPNet) (CVPR 2023)
-* Our port: `src/gssc/models/scpnet_base.py` + `src/gssc/inference/run_scpnet.py`
+* Our port + spconv patches: `src/gssc/inference/run_scpnet.py`
 * Released weights: `scpnet_v2_port.pth` in our model zoo.
 
 ### spconv v1 → v2 port

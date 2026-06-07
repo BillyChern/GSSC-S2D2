@@ -45,10 +45,10 @@ not on the overlay-fs root. The tooling persists predictions under
 ## Exact software environment
 
 ```
-Python:         3.10.14 or 3.11.x
+Python:         3.10-3.12 (3.10.14 / 3.11.x validated)
 PyTorch:        2.4.0
 CUDA:           12.8
-spconv:        2.3.8 (built for cu126, with our kernel-shape patches)
+spconv:        2.3.8 (stock cu126 PyPI wheel; SCPNet v1->v2 kernel-shape patches applied in code at load time)
 NumPy:          1.26.x (NOT 2.x; spconv v2.3 incompat)
 ```
 
@@ -89,7 +89,7 @@ v1 weights load correctly:
   `src/gssc/inference/run_scpnet.py` for the loader.
 
 If you swap in a different SCPNet checkpoint or rebuild against `spconv 1.0`
-on legacy CUDA, the patches in `src/gssc/models/scpnet_base.py` need to be
+on legacy CUDA, the patches in `src/gssc/inference/run_scpnet.py` need to be
 reverted; see the comments in that file.
 
 #### A note on community-wide SCPNet reproduction difficulty
@@ -201,7 +201,7 @@ paper.
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` | See MODEL_ZOO.md |
 | Tab. XII (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` (multi-row; run each `gssc_timesteps/` checkpoint via `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`) | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
-| Tab. XV (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` | 36.09 BEV mIoU |
+| Tab. XV (tab:bev_results, BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` (or `python scripts/reproduce_table.py tab:bev_results`) | 36.09 BEV mIoU |
 | Fig. 4 / Fig. 5 (qualitative) | Single-frame qualitative demo: `examples/quickstart.ipynb` | — |
 
 > **Tab. VIII (DW-IoU) is out of scope for this release.** The distance-weighted

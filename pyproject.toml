@@ -95,7 +95,6 @@ target-version = "py310"
 # auditability of the original training runs but not part of the public API.
 extend-exclude = [
     "src/gssc/_improved_diffusion",            # OpenAI improved-diffusion fork
-    "src/gssc/models/extras_*.py",              # legacy ablation-only modules
     "src/gssc/models/scene_unet*.py",           # legacy scene-UNet variants used by trainer
     "src/gssc/models/bev_*.py",                 # vendored BEV second-task pipeline
     "src/gssc/models/conditioning.py",          # vendored conditioning helpers

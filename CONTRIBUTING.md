@@ -25,8 +25,8 @@ This repository targets **Google/Apple production-grade standards**.
 
 > **Scope note.** Type-checking is enforced on the public-API surface
 > (`gssc.inference`, `gssc.utils`) where annotations are complete.
-> Legacy modules under `src/gssc/_improved_diffusion/`,
-> `src/gssc/models/extras_*.py`, and `src/gssc/training/train_pyramid_*.py`
+> Legacy modules under `src/gssc/_improved_diffusion/`
+> and `src/gssc/training/train_pyramid_*.py`
 > are deliberately excluded from style + type gating until they're
 > refactored or removed (tracked in `CHANGELOG.md` Unreleased).
 

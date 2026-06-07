@@ -319,8 +319,8 @@ A. Every paper artefact corresponds to a config file. `python scripts/train.py t
 **Q. Single-seed numbers — why no error bars?**
 A. Same convention as every method in the leaderboard table: a full SemanticKITTI SSC training run is expensive (~37 GPU-hours), and the official scoring server takes a single submission. We use a single seed (42) to match this convention. See §V.A of the paper for the variance-disclosure discussion.
 
-**Q. The repo has no figures — where are they?**
-A. Figures and paper-typesetting code live with the paper repo, not here. This repo focuses on **method reproduction**; the shipped notebook (`examples/quickstart.ipynb`) walks through the headline eval end-to-end.
+**Q. Where do I find figures and paper-typesetting source?**
+A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `assets/qualitative.png`) live under `assets/` and are embedded above. The full paper figure set and the LaTeX typesetting source live in the (private until publication) paper repo, not here. This repo focuses on **method reproduction**; the shipped notebook (`examples/quickstart.ipynb`) walks through the headline eval end-to-end.
 
 ---
 

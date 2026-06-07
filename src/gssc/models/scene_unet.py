@@ -1,7 +1,7 @@
 """
 3D U-Net for Scene Completion with Multinomial Diffusion
 
-Based on the architecture from Figure 4-4, adapted for SemanticKITTI resolution.
+Based on the dense 3D U-Net architecture (paper Fig. 3), adapted for SemanticKITTI resolution.
 
 Key differences from CarlaSC (128×128×8):
 - SemanticKITTI uses 256×256×32 voxels
@@ -49,7 +49,7 @@ class ResidualBlock3D(nn.Module):
     """
     3D Residual Block with FiLM time conditioning and additive BEV/LiDAR conditioning.
 
-    Architecture (from Figure 4-4):
+    Architecture (paper Fig. 3):
     1. GroupNorm → SiLU → 3D Conv
     2. + BEV embedding (via 3D conv)
     3. + LiDAR embedding (via 3D conv)

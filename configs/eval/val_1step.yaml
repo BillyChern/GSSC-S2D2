@@ -2,5 +2,7 @@ _paper_table: tab:perclass (1-step row)
 _description: 1-step S2D2 correction-sampling evaluation on full val seq 08. Expected 38.54% mIoU.
 split: val
 sequences: "08"
+# base_pred_dir: data/scpnet_predictions  (default if omitted; ~135 GB of SCPNet
+# predictions must live here — eval defaults to <data-root>/scpnet_predictions)
 correction_steps: 1
 tta: none
