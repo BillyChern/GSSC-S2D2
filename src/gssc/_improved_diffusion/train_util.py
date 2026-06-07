@@ -369,7 +369,8 @@ class TrainLoop:
                     print((vgrid == voxel_valid).all())
                     assert False'''
                         
-                    #TODO: have to add random empty voxel
+                    # Note: random empty-voxel sampling is intentionally not added here;
+                    # the current path uses only occupied voxels for the point sample.
                     #print(voxel_coords.shape, voxel_logits.shape, point_sample.shape)
                 
                 if self.lidar_point:

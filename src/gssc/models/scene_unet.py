@@ -12,7 +12,7 @@ Architecture:
 - 3D U-Net with residual blocks
 - BEV conditioning: expanded along Z axis and embedded
 - LiDAR conditioning: sparse binary voxels embedded
-- Time conditioning: AdaGN-style affine after GroupNorm (FiLM-on-GroupNorm; matches the paper's AdaGN)
+- Time conditioning: paper time-AdaGN (affine modulation after GroupNorm; mathematically equivalent to FiLM-on-GroupNorm)
 """
 
 import math
@@ -47,14 +47,17 @@ def timestep_embedding(timesteps: torch.Tensor, dim: int, max_period: int = 1000
 
 class ResidualBlock3D(nn.Module):
     """
-    3D Residual Block with AdaGN time conditioning (FiLM-on-GroupNorm; paper
-    time-AdaGN) and additive BEV/LiDAR conditioning.
+    3D Residual Block with paper time-AdaGN conditioning and additive
+    BEV/LiDAR conditioning.
+
+    Note: time-AdaGN is an affine modulation after GroupNorm; it is
+    mathematically equivalent to FiLM-on-GroupNorm.
 
     Architecture (paper Fig. 3):
     1. GroupNorm → SiLU → 3D Conv
     2. + BEV embedding (via 3D conv)
     3. + LiDAR embedding (via 3D conv)
-    4. GroupNorm → AdaGN(t) [FiLM-on-GroupNorm; paper time-AdaGN] → SiLU → 3D Conv
+    4. GroupNorm → AdaGN(t) → SiLU → 3D Conv
     5. Residual connection
     """
 
@@ -76,9 +79,9 @@ class ResidualBlock3D(nn.Module):
         self.bev_proj = nn.Conv3d(cond_channels, out_channels, kernel_size=3, padding=1)
         self.lidar_proj = nn.Conv3d(cond_channels, out_channels, kernel_size=3, padding=1)
 
-        # Second half with AdaGN (FiLM-on-GroupNorm; paper time-AdaGN)
+        # Second half with paper time-AdaGN
         self.norm2 = nn.GroupNorm(min(num_groups, out_channels), out_channels)
-        self.time_fc = nn.Linear(time_emb_dim, out_channels * 2)  # w and b for AdaGN (FiLM-on-GroupNorm)
+        self.time_fc = nn.Linear(time_emb_dim, out_channels * 2)  # w and b for time-AdaGN
         self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1)
 
         # Skip connection
@@ -104,10 +107,10 @@ class ResidualBlock3D(nn.Module):
         # Add conditioning
         h = h + self.bev_proj(bev_emb) + self.lidar_proj(lidar_emb)
 
-        # Second conv with AdaGN (FiLM-on-GroupNorm; paper time-AdaGN)
+        # Second conv with paper time-AdaGN
         h = self.norm2(h)
 
-        # AdaGN (FiLM-on-GroupNorm): w * h + b
+        # time-AdaGN: w * h + b
         wb = self.time_fc(t_emb)  # [B, out_channels * 2]
         w, b = wb.chunk(2, dim=-1)  # [B, out_channels] each
         w = w[:, :, None, None, None]  # [B, C, 1, 1, 1]

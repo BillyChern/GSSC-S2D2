@@ -123,8 +123,9 @@ class ResidualBlock3DSparse(nn.Module):
             # Default: Additive — h + proj(lidar)
             h = h + self.lidar_proj(lidar_emb)
 
-        # AdaGN-style time conditioning: GroupNorm followed by time-derived
-        # per-channel affine (w * h + b). Equivalent to FiLM-on-GroupNorm.
+        # time-AdaGN time conditioning: GroupNorm followed by time-derived
+        # per-channel affine (w * h + b). See class docstring for the
+        # FiLM-on-GroupNorm equivalence.
         h = self.norm2(h)
         wb = self.time_fc(t_emb)
         w, b = wb.chunk(2, dim=-1)

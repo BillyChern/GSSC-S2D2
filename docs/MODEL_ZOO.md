@@ -168,6 +168,10 @@ model = SceneCompletionUNetSparse(
     lidar_out_channels=32,
     lidar_in_channels=1,
     ssc_cond_channels=20,
+    # no_bev / ssc_multiscale left at their constructor defaults (False) here;
+    # the real inference path (generate_predictions.py) wires no_bev=args.no_bev,
+    # ssc_multiscale=args.ssc_multiscale, and scripts/eval.py passes the production
+    # values for exact reproduction — see below.
 )
 model.load_state_dict(state, strict=False)  # EMA files omit some buffers; for exact reproduction prefer scripts/eval.py
 model.train(False)

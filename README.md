@@ -125,7 +125,7 @@ python scripts/eval.py eval/val_1step \
     --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 ```
 
-> **Note on `spconv`.** `spconv` is deliberately *not* pinned in `uv.lock` because it ships a CUDA-specific wheel; `uv sync` will not install it. Install it explicitly with the pinned, CUDA-coherent line shown above (`uv pip install spconv-cu126==2.3.8`). This release is validated against the cu126 build only — match the wheel to your local CUDA toolkit if you deviate (e.g. for CUDA 11.8 use `uv pip install spconv-cu118==2.3.8`). The cu126 wheel runs on the reference CUDA 12.8 runtime via forward compatibility, so the install line stays correct on the 12.8 box in the hardware table below. The stock PyPI wheel is sufficient: the SCPNet v1→v2 kernel-shape "patches" are applied in code at weight-load time, so no custom-built spconv is required.
+> **Note on `spconv`.** `spconv` is deliberately *not* pinned in `uv.lock` because it ships a CUDA-specific wheel; `uv sync` will not install it. Install it explicitly with the pinned, CUDA-coherent line shown above (`uv pip install spconv-cu126==2.3.8`). Note that the pinned `torch==2.4.0` PyPI wheel bundles its *own* CUDA 12.1 runtime libraries (`nvidia-*-cu12`), so torch carries cu121 regardless of your local toolkit; only the separately-installed `spconv` wheel must be matched to the local CUDA. The validated combination is **cu121-torch (2.4.0 stock wheel) + cu126-spconv (2.3.8)** — match the spconv wheel to your local CUDA toolkit if you deviate (e.g. for CUDA 11.8 use `uv pip install spconv-cu118==2.3.8`). Both libraries load on a ≥12.6 driver via CUDA minor-version forward compatibility, so the install line stays correct on the reference CUDA 12.8 box in the hardware table below. The stock PyPI wheel is sufficient: the SCPNet v1→v2 kernel-shape "patches" are applied in code at weight-load time, so no custom-built spconv is required.
 
 Once the released assets are in place, that is the whole pipeline. Expected output (truncated):
 
@@ -152,6 +152,8 @@ Once the released assets are in place, that is the whole pipeline. Expected outp
   ...
 ============================================================
 ```
+
+<sub>Note: the `IoU_cmpl` 52.66 % here is on **val** seq 08, distinct from the 58.8–59.0 % `IoU<sub>cmpl</sub>` reported on the **hidden test** in the headline table above — the same val-vs-test split flagged for the mIoU column.</sub>
 
 For the full hidden-test leaderboard submission flow (39.2 % via *D*<sub>4</sub> TTA), see [docs/INFERENCE.md](docs/INFERENCE.md).
 
@@ -223,7 +225,7 @@ The repo ships the exact recipe + checkpoint for every reported number.
 
 | Paper artefact | Command | Expected |
 |---|---|---|
-| `tab:perclass` (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/` then submit to [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) | **39.2 %** test mIoU |
+| `tab:main_results` (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/` then submit to [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) | **39.2 %** test mIoU |
 | `tab:perclass` (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline>` | **38.54 %** val mIoU |
 | `tab:step_reduction` (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
 | `tab:data_scaling` (data scaling) | `python scripts/reproduce_table.py tab:data_scaling` | 0K/10K/20K/31K/57K SF retrains |
@@ -307,7 +309,7 @@ Style conventions, commit conventions, and hard requirements: **[CONTRIBUTING.md
 ## FAQ
 
 **Q. Why use this over running SCPNet alone?**
-A. We add **+2.5 absolute mIoU** on the hidden test set with a single extra forward pass (107.2 ms marginal added-step latency on H100 — the same figure as the 9.33 FPS marginal throughput quoted above, since 1000 / 107.2 ≈ 9.33), no extra training data beyond what SCPNet was trained on, and no distillation. The gains concentrate on safety-critical rare classes — for the **released checkpoint** these are motorcyclist +8.2, other-vehicle +6.4, truck +5.9, bicyclist +4.2 on val seq 08 (paper `tab:perclass`). (`docs/REPRODUCIBILITY.md` reports a slightly different motorcyclist delta of +4.4 measured on an independent spconv-v2 retrain rather than the released checkpoint; the other three deltas match exactly.)
+A. We add **+2.5 absolute mIoU** on the hidden test set with a single extra forward pass (107.2 ms marginal added-step latency on H100 — the same figure as the 9.33 FPS marginal throughput quoted above, since 1000 / 107.2 ≈ 9.33), no extra training data beyond what SCPNet was trained on, and no distillation. The gains concentrate on safety-critical rare classes — for the **released checkpoint** these are motorcyclist +8.2, other-vehicle +6.4, truck +5.9, bicyclist +4.2 on val seq 08 (paper `tab:perclass`). (`docs/REPRODUCIBILITY.md` reports a slightly different motorcyclist delta of +4.4 measured on an independent spconv-v2 *reproduction retrain* — not the shipped release weights — so the +8.2 above and the +4.4 there are two different motorcyclist runs; the other three deltas match the released checkpoint exactly.)
 
 **Q. Can S²D² be applied to a different base SSC network?**
 A. Yes — the framework is base-model-agnostic. We provide a working SCPNet integration; switching to JS3C-Net or any other base requires only providing per-voxel categorical predictions as `x_src`. See [docs/BASELINES.md](docs/BASELINES.md).

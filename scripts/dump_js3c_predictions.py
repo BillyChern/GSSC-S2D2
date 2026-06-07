@@ -18,7 +18,7 @@ Then run this script from anywhere inside the GSSC-S2D2 venv::
 
     python scripts/dump_js3c_predictions.py \\
         --js3c-repo external/JS3C-Net \\
-        --semantickitti_root data/SemanticKITTI/dataset \\
+        --semantickitti_root data/SemanticKITTI \\
         --output_dir data/js3cnet_predictions \\
         --sequences 00 01 02 03 04 05 06 07 08 09 10 \\
         --gpu 0

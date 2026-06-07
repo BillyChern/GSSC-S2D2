@@ -8,7 +8,9 @@ Uses Submanifold Sparse Convolutions (spconv) to efficiently process
 sparse LiDAR voxel grids and project to BEV features.
 
 Architecture:
-    - Sparse 3D U-Net encoder with SubMConv3d (preserves sparsity)
+    - Sparse 3D encoder (SubMConv3d, preserves sparsity) for the BEV
+      secondary task -- distinct from the dense Conv3d S2D2 denoiser in
+      s2d2_unet.py
     - Strided convolutions for downsampling
     - Height compression to produce BEV features
 

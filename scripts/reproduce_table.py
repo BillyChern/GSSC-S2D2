@@ -102,7 +102,7 @@ def _check_base_predictions(required_dir: Path, base_kind: str) -> None:
     print(info["extra_setup"])
     print(f"   python {info['dumper']} \\")
     print(f"       {info['args_hint']} \\")
-    print("       --semantickitti_root data/SemanticKITTI/dataset \\")
+    print("       --semantickitti_root data/SemanticKITTI \\")
     print(f"       --output_dir {required_dir} \\")
     print("       --sequences 08")
     print()

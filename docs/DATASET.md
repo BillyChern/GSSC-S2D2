@@ -55,7 +55,7 @@ locally, shown below). Layout mirrors `scpnet_predictions/` exactly:
 ```
 data/js3cnet_predictions/
 ├── 00/ 01/ … 21/                       # real-frame predictions (4 541 + 1 101 + … frames per seq)
-├── synthetic_31k/                      # 31 442 frames (597 missing per known gap)
+├── synthetic_31k/                      # 31 442 of 32 039 pool frames; 597 (1.9%) missing per known gap
 ├── synthetic_filtered/                 # 38 322 frames (covers the 57K pool variant)
 ├── synthetic_31k_bad_frames.txt        # blacklist for the 597-frame gap
 └── README.md
