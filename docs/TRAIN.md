@@ -10,12 +10,12 @@ python scripts/train.py train/31k_mf --gpu 0,1
 ```
 
 * 100K iterations
-* Batch size 4 (effective ~8 with 2× H100)
+* Effective batch size 4 (2 per GPU across 2× H100)
 * AdamW, lr 1e-4, no warmup
 * Loss: KL posterior + Lovász (0.3) + auxiliary (5e-4)
 * Eval every 5K steps with N=100 S²D² correction sampling
 
-Wall-clock: ~37 hours on 2× H100 80 GB.
+Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock at 2 GPUs).
 Output: `outputs/train_31k_mf/step_{5000,10000,...,100000}.pt` + `best.pt`.
 
 ## Data-scaling ablations (Tab. VII)
@@ -61,9 +61,11 @@ python scripts/train.py train/js3c_real --gpu 0,1
 * 100K iterations, batch size 4, lr 1e-4, ema_decay 0.9999.
 * `cold_diffusion=true` (REQUIRED for cross-base — deterministic forward).
 * Expected val mIoU at step 100K: **26.72 %** (paper tab:portable_s2d2, +3.99 pp
-  over the JS3C-Net base 22.73 %).
+  over the JS3C-Net base 22.73 %, paper protocol: GT BEV + internal SSCMetrics;
+  realistic-deploy derived-BEV number is 24.32 % under the official
+  `semantic-kitti-api`).
 
-Wall-clock: ~37 hours on 2× H100 80 GB (identical to the headline 31k_mf run).
+Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock; identical to the headline 31k_mf run).
 Output: `outputs/train_js3c_real/step_{5000,...,100000}.pt`.
 
 ## LMSCNet cross-base (paper tab:portable_s2d2, third base; v2.1.0)
@@ -86,7 +88,7 @@ python scripts/train.py train/lmscnet_real --gpu 0,1
 * Expected val mIoU at step 100K: **16.59 %** (paper tab:portable_s2d2, +4.49 pp
   over the LMSCNet base 12.10 %) under the official `semantic-kitti-api` evaluator.
 
-Wall-clock: ~37 hours on 2× H100 80 GB (identical to the headline 31k_mf run).
+Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock; identical to the headline 31k_mf run).
 Output: `outputs/train_lmscnet_real/step_{5000,...,100000}.pt`.
 
 ## BEV second task

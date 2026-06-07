@@ -216,9 +216,12 @@ All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already e
 
 Stacking S²D² on the older point-voxel hybrid base JS3C-Net (Yan et al.,
 AAAI 2021) lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the
-official `semantic-kitti-api` evaluator. This row is independent of the
-SCPNet base port; the only spconv-version concern is matching JS3C-Net's
-own published recipe, which the dump script handles for you.
+paper protocol (GT BEV + internal SSCMetrics); the realistic-deployment
+number under the official `semantic-kitti-api` is **24.32 %** (derived
+BEV). See the per-table rows above and the eval notes below for the exact
+evaluator each figure uses. This row is independent of the SCPNet base
+port; the only spconv-version concern is matching JS3C-Net's own published
+recipe, which the dump script handles for you.
 
 ### One-time setup (clone JS3C-Net externally)
 

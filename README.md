@@ -28,7 +28,7 @@ The paper organises the method into three pillars that share one structured-sour
 * **S²D²** — *Structured Source Discrete Diffusion*: the one-step deployment regime that refines a frozen base SSC model's prediction — the headline 38.54 % val / 39.2 % test result and the focus of this repository.
 
 > [!IMPORTANT]
-> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100 (the added correction step costs 107.2 ms; 1000 / 107.2 ≈ 9.33 FPS), and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5** over the frozen SCPNet base (36.7 → 39.2). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU** over the base-derived BEV: 34.27 % → 36.09 % on val seq 08).
+> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100 (the added correction step costs 107.2 ms; 1000 / 107.2 ≈ 9.33 FPS), and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5** over the frozen SCPNet base (36.7 → 39.2, hidden test; the SCPNet base scores 36.17 % on val seq 08). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU** over the base-derived BEV: 34.27 % → 36.09 % on val seq 08).
 
 > [!TIP]
 > **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for the 3-command reproduction recipe of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once the base predictions are local.
@@ -38,9 +38,9 @@ The paper organises the method into three pillars that share one structured-sour
 
 ### What's new
 
-* **2026-05-26** — Release **v2.1.0**: LMSCNet third-base support. Stacked on the lightweight dense-2D-CNN LMSCNet (Roldao et al., 3DV 2020), one-step S²D² lifts val mIoU **12.10 % → 16.59 % (+4.49 pp)** under the official `semantic-kitti-api` evaluator (paper tab:portable_s2d2). Together with the v1.1.0 JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point-voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`. Release surface focused: 22 unreferenced development modules removed.
+* **2026-05-26** — Release **v2.1.0**: LMSCNet third-base support. Stacked on the lightweight dense-2D-CNN LMSCNet (Roldao et al., 3DV 2020), one-step S²D² lifts val mIoU **12.10 % → 16.59 % (+4.49 pp)** under the official `semantic-kitti-api` evaluator (paper tab:portable_s2d2). Together with the v1.1.0 JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point-voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`. Release surface focused: 22 unreferenced development modules pruned; the remaining V2/V3 FiLM denoiser variants are retained as clearly-labeled research-reference prototypes (excluded from the public API and CI gating), so the dense-Conv3d headline path stays the single supported surface.
 * **2026-05-18** — Release **v2.0.0**: deprecate the `--bev_from_scpnet` flag in favour of `--bev_from_base`. `base_pred_dir` is now the preferred config key (used by the JS3C-Net and LMSCNet bases); `scpnet_pred_dir` is still accepted and remains in the SCPNet configs for backward compatibility. Headline numerical artefacts unchanged.
-* **2026-05-14** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the point-voxel hybrid JS3C-Net (Yan et al., AAAI 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official `semantic-kitti-api` evaluator. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
+* **2026-05-14** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the point-voxel hybrid JS3C-Net (Yan et al., AAAI 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the paper protocol (GT BEV + internal SSCMetrics); the realistic-deployment number under the official `semantic-kitti-api` is **24.32 %** (derived BEV) — see `docs/REPRODUCIBILITY.md`. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
 * **2026-04** — Public release **v1.0.0**. Headline checkpoint released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU.
 * **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.09 % mIoU.
 * **2026-03** — **39.2 %** mIoU on SemanticKITTI hidden test leaderboard — paper under review.
@@ -72,7 +72,7 @@ The paper organises the method into three pillars that share one structured-sour
 | LMSCNet | 17.6 | 56.7 | — | 3DV 2020 |
 | JS3C-Net | 23.8 | 56.6 | — | AAAI 2021 |
 | SSA-SC | 23.5 | 58.8 | — | IROS 2021 |
-| SCPNet (base) | 36.7 | 56.1 | baseline | CVPR 2023 (frozen base) |
+| SCPNet (base) | 36.7 | 56.1 | baseline | CVPR 2023 (frozen base; 36.7 hidden test, 36.17 val seq 08) |
 | TALoS (prev. SOTA) | 37.9 | **60.2** | +1.2 | NeurIPS 2024, line-of-sight test-time adaptation |
 | **S²D² (Ours, 1-step real-time)** | **38.8** | 58.9 | **+2.1** | 9.33 FPS marginal; cheapest deployable |
 | **S²D² (Ours, *N* = 4, no TTA)** | **39.0** | 58.8 | **+2.3** | practical deployable variant |
@@ -125,7 +125,7 @@ python scripts/eval.py eval/val_1step \
     --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 ```
 
-> **Note on `spconv`.** `spconv` is deliberately *not* pinned in `uv.lock` because it ships a CUDA-specific wheel; `uv sync` will not install it. Install it explicitly with the pinned, CUDA-coherent line shown above (`uv pip install spconv-cu126==2.3.8`). This release is validated against the cu126 build only — match the wheel to your local CUDA toolkit if you deviate (e.g. for CUDA 11.8 use `uv pip install spconv-cu118==2.3.8`). The stock PyPI wheel is sufficient: the SCPNet v1→v2 kernel-shape "patches" are applied in code at weight-load time, so no custom-built spconv is required.
+> **Note on `spconv`.** `spconv` is deliberately *not* pinned in `uv.lock` because it ships a CUDA-specific wheel; `uv sync` will not install it. Install it explicitly with the pinned, CUDA-coherent line shown above (`uv pip install spconv-cu126==2.3.8`). This release is validated against the cu126 build only — match the wheel to your local CUDA toolkit if you deviate (e.g. for CUDA 11.8 use `uv pip install spconv-cu118==2.3.8`). The cu126 wheel runs on the reference CUDA 12.8 runtime via forward compatibility, so the install line stays correct on the 12.8 box in the hardware table below. The stock PyPI wheel is sufficient: the SCPNet v1→v2 kernel-shape "patches" are applied in code at weight-load time, so no custom-built spconv is required.
 
 Once the released assets are in place, that is the whole pipeline. Expected output (truncated):
 
@@ -228,6 +228,8 @@ The repo ships the exact recipe + checkpoint for every reported number.
 | `tab:step_reduction` (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
 | `tab:data_scaling` (data scaling) | `python scripts/reproduce_table.py tab:data_scaling` | 0K/10K/20K/31K/57K SF retrains |
 | `tab:train_timesteps_curriculum` (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` | T=10/50/100-skewed/100-uniform |
+| `tab:portable_s2d2` (JS3C-Net cross-base) | `python scripts/reproduce_table.py tab:cross_base_js3c` | **26.72 %** val mIoU (paper protocol: GT BEV + internal SSCMetrics; realistic-deploy derived BEV is 24.32 % under the official api — see `docs/REPRODUCIBILITY.md`) |
+| `tab:portable_s2d2` (LMSCNet cross-base) | `python scripts/reproduce_table.py tab:cross_base_lmsc` | **16.59 %** val mIoU (derived BEV, official `semantic-kitti-api`) |
 | `tab:bev_results` (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` | **36.09 %** BEV mIoU |
 
 Full mapping with anticipated wall-clock and disk requirements: **[docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md)**.

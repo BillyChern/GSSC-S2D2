@@ -9,6 +9,10 @@ This module implements different ways to incorporate LiDAR conditioning into the
 4. BOTTLENECK_ATTN: Full cross-attention only at bottleneck resolution (e.g., 8x8)
 5. HYBRID: Concatenation at all scales + cross-attention at bottleneck
 
+Note: the released BEV second-task checkpoint uses SUM (additive) conditioning,
+matching the paper's additive/AdaGN conditioning story. FiLM and the other
+mechanisms here are research-time options not selected by any shipped config.
+
 References:
     - SegDiff: https://arxiv.org/abs/2112.00390 (SUM conditioning)
     - FiLM: https://arxiv.org/abs/1709.07871 (Feature-wise Linear Modulation)

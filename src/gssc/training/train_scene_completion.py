@@ -34,78 +34,27 @@ from tqdm import tqdm
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# S1: Classifier-Free Guidance
-try:
-    from cfg_diffusion import CFGWrapper, SDEditSampler
-except ImportError:
-    pass
-
-# S2: 2D→3D Lifting
-try:
-    from lifting import BEVTo3DLifter, LiftingModule
-except ImportError:
-    pass
-
-# S3: DSKD for Scene Completion (pairwise feature similarity, per SCPNet)
-# Reference: SCPNet CVPR 2023 - matches pairwise feature relationships, not KL divergence
-try:
-    from dskd import DSKDLoss3D
-except ImportError:
-    try:
-        from gssc.models.dskd import DSKDLoss3D
-    except ImportError:
-        DSKDLoss3D = None  # Will be None if DSKD not available
-
-# S3: Enhanced DSKD Dataset (separate Teacher/Student modes)
-try:
-    from s3_dskd_dataset import S3DSKDDataset, create_s3_dataloader
-except ImportError:
-    try:
-        from gssc.data.semantickitti import S3DSKDDataset, create_s3_dataloader
-    except ImportError:
-        S3DSKDDataset = None
-        create_s3_dataloader = None
-
-# S4: MIMO (Multi-Input Multi-Output) — optional dev-only modules.
-# The mimo / mimo_dataset / mimo_scene_unet modules are NOT part of the public
-# release (the headline `model_type: sparse_full` path uses s2d2_unet only).
-# The import is guarded so the module imports cleanly without them; the
-# mimo_lite / mimo_full branches below fail loudly with NotImplementedError.
-try:
-    from gssc.models.mimo import BEVAugmenter, MIMOEnsembler, MIMOSceneCompletion
-    from gssc.models.mimo_dataset import (
-        MIMODatasetWrapper,
-        create_mimo_dataloader,
-        mimo_collate_fn,
-    )
-    from gssc.models.mimo_scene_unet import (
-        MIMOSceneCompletionUNet,
-        MIMOSceneCompletionUNetLite,
-    )
-except ImportError:
-    MIMOSceneCompletion = None
-    BEVAugmenter = None
-    MIMOEnsembler = None
-    MIMODatasetWrapper = None
-    create_mimo_dataloader = None
-    mimo_collate_fn = None
-    MIMOSceneCompletionUNet = None
-    MIMOSceneCompletionUNetLite = None
-
-# S5: Dense 3D CNN at coarse resolution
-try:
-    from dense_3d_cnn import Dense3DBottleneck, Dense3DEnhancer, DenseHallucinationModule
-except ImportError:
-    try:
-        from gssc.models.dense_3d_cnn import (
-            Dense3DBottleneck,
-            Dense3DEnhancer,
-            DenseHallucinationModule,
-        )
-    except ImportError:
-        Dense3DBottleneck = None
-        DenseHallucinationModule = None
-        Dense3DEnhancer = None
+# Sentinels for dev-only modules that are NOT part of the public release.
+# The headline `model_type: sparse_full` + `diffusion_version: v2` path (the dense
+# Conv3d S2D2 denoiser) never touches any of these. The DSKD / S3-DSKD-dataset /
+# MIMO / dense-3D-CNN / lifting / spatial-propagation / CFG / Gaussian-VE /
+# factored-diffusion modules were removed from the release surface; the names are
+# kept as ``None`` sentinels so the unreachable research branches below still
+# guard cleanly (``... is not None``) without importing nonexistent modules.
+DSKDLoss3D = None
+S3DSKDDataset = None
+create_s3_dataloader = None
+MIMOSceneCompletion = None
+BEVAugmenter = None
+MIMOEnsembler = None
+MIMODatasetWrapper = None
+create_mimo_dataloader = None
+mimo_collate_fn = None
+MIMOSceneCompletionUNet = None
+MIMOSceneCompletionUNetLite = None
+Dense3DBottleneck = None
+DenseHallucinationModule = None
+Dense3DEnhancer = None
 
 
 class SSCMetrics:
@@ -719,93 +668,6 @@ class SceneCompletionTrainer:
                 completion_weight=config.get('completion_weight', 0.0),
                 loss_type=config.get('loss_type', 'kl'),
             ).to(device)
-        elif diffusion_version == 'gaussian':
-            from gssc.models.gaussian_diffusion_3d import GaussianDiffusion3D
-            self.logger.info("Using GaussianDiffusion3D (continuous, DiffSSC-style)")
-            self.diffusion = GaussianDiffusion3D(
-                num_channels=21,  # 1 occ_logit + 20 sem_logits
-                num_timesteps=config['num_timesteps'],
-                logit_scale=config.get('logit_scale', 5.0),
-                sigma_occ=config.get('sigma_occ', 1.0),
-                sigma_sem=config.get('sigma_sem', 1.0),
-                lambda_p=config.get('lambda_p', 5.0),
-                lambda_s=config.get('lambda_s', 4.0),
-                use_skewness_reg=config.get('use_skewness_reg', False),
-                anisotropic=config.get('anisotropic', False),
-                beta_schedule=config.get('beta_schedule', 'linear_diffssc'),
-                num_classes=config['num_classes'],
-            ).to(device)
-        elif diffusion_version == 'gaussian_ve':
-            from gssc.models.gaussian_diffusion_ve import GaussianDiffusionVE
-            self.logger.info("Using GaussianDiffusionVE (VE diffusion, soft probs, no amplification)")
-            self.diffusion = GaussianDiffusionVE(
-                num_classes=config['num_classes'],  # 20 channels (soft probs)
-                num_timesteps=config['num_timesteps'],
-                sigma_min=config.get('sigma_min', 0.01),
-                sigma_max=config.get('sigma_max', 1.0),
-                sigma_schedule=config.get('sigma_schedule', 'linear'),
-                label_smoothing=config.get('label_smoothing', 0.1),
-                lambda_reg=config.get('lambda_reg', 5.0),
-            ).to(device)
-            self.logger.info(f"    sigma: [{config.get('sigma_min', 0.01)}, {config.get('sigma_max', 1.0)}] ({config.get('sigma_schedule', 'linear')})")
-            self.logger.info(f"    label_smoothing: {config.get('label_smoothing', 0.1)}")
-        elif diffusion_version == 'gaussian_logit':
-            from gssc.models.gaussian_diffusion_logit import GaussianDiffusionLogit
-            logit_scale = config.get('logit_scale', 3.0)
-            sigma_max = config.get('sigma_max', 80.0)
-            self.logger.info("Using GaussianDiffusionLogit (VE + EDM preconditioning)")
-            self.diffusion = GaussianDiffusionLogit(
-                num_classes=config['num_classes'],
-                num_timesteps=config['num_timesteps'],
-                sigma_min=config.get('sigma_min', 0.01),
-                sigma_max=sigma_max,
-                sigma_schedule=config.get('sigma_schedule', 'cosine'),
-                logit_scale=logit_scale,
-                sigma_data=logit_scale,  # EDM: sigma_data = characteristic data scale
-            ).to(device)
-            self.logger.info(f"    sigma: [{config.get('sigma_min', 0.01)}, {sigma_max}] ({config.get('sigma_schedule', 'cosine')})")
-            self.logger.info(f"    logit_scale: {logit_scale}, sigma_data: {logit_scale} (EDM)")
-            self.logger.info(f"    EDM c_in at σ_max={sigma_max}: {1.0 / (sigma_max**2 + logit_scale**2)**0.5:.4f}")
-        elif diffusion_version == 'gaussian_vp':
-            from gssc.models.gaussian_diffusion_3d import GaussianDiffusion3D
-            logit_scale = config.get('logit_scale', 5.0)
-            beta_schedule = config.get('beta_schedule', 'linear_diffssc')
-            lambda_p = config.get('lambda_p', 5.0)
-            lambda_s = config.get('lambda_s', 4.0)
-            class_0_wt = config.get('class_0_weight', 0.02)
-            occupied_wt = config.get('occupied_weight', 10.0)
-            lovasz_wt = config.get('lovasz_weight', 0.3)
-            obs_wt = config.get('obs_weight_factor', 2.0)
-            self.logger.info("Using GaussianDiffusion3D (VP DDPM, 20ch logit encoding)")
-            self.diffusion = GaussianDiffusion3D(
-                num_channels=20,
-                num_timesteps=config['num_timesteps'],
-                logit_scale=logit_scale,
-                encoding='logit_20ch',
-                beta_schedule=beta_schedule,
-                num_classes=config['num_classes'],
-                lambda_p=lambda_p,
-                lambda_s=lambda_s,
-                use_skewness_reg=config.get('use_skewness_reg', False),
-                class_0_weight=class_0_wt,
-                occupied_weight=occupied_wt,
-                lovasz_weight=lovasz_wt,
-                obs_weight_factor=obs_wt,
-            ).to(device)
-            self.logger.info(f"    beta_schedule: {beta_schedule}, logit_scale: {logit_scale}")
-            self.logger.info(f"    lambda_p: {lambda_p}, lambda_s: {lambda_s}")
-            self.logger.info(f"    class_0_weight: {class_0_wt}, occupied_weight: {occupied_wt}")
-            self.logger.info(f"    lovasz_weight: {lovasz_wt}, obs_weight_factor: {obs_wt}")
-            self.logger.info("    encoding: logit_20ch (20ch, mean-centered)")
-        elif diffusion_version == 'factored':
-            from gssc.models.factored_diffusion_3d import FactoredDiffusion3D
-            self.logger.info("Using FactoredDiffusion3D (K=2 occ + K=20 sem)")
-            self.diffusion = FactoredDiffusion3D(
-                num_classes=config['num_classes'],
-                num_timesteps=config['num_timesteps'],
-                beta_max_occ=config.get('beta_max_occ', 0.15),
-                beta_max_sem=config.get('beta_max_sem', 0.05),
-            ).to(device)
         else:
             self.logger.info("Using MultinomialDiffusion3D (v1)")
             self.diffusion = MultinomialDiffusion3D(
@@ -878,22 +740,26 @@ class SceneCompletionTrainer:
             self.logger.info("S48: Direct prediction mode enabled (no diffusion)")
             self.logger.info(f"    Loss: CE(class_0={dp_weights[0]:.3f}) + Lovász(weight={self.dp_lovasz_weight})")
 
-            # Lifted BEV initialization (S3CNet-inspired: BEV → 3D via height priors)
+            # Lifted BEV initialization (S3CNet-inspired: BEV → 3D via height priors).
+            # The `lifting` module is a research-only component not shipped in this
+            # release; the headline sparse_full + v2 path never sets dp_lifted_init.
             if self.dp_use_lifted_init:
-                from gssc.models.lifting import BEVTo3DLifter
-                self.dp_lifter = BEVTo3DLifter(num_classes=config['num_classes'], num_z=32).to(device)
-                self.logger.info("    Init: Lifted BEV (S3CNet height priors) instead of uniform 1/K")
+                raise NotImplementedError(
+                    "dp_lifted_init requires the gssc.models.lifting module, which "
+                    "is not part of this release. The headline S2D2 path "
+                    "(model_type='sparse_full', diffusion_version='v2') does not use it."
+                )
             else:
                 self.dp_lifter = None
 
-            # SPSR post-processing at eval time
+            # SPSR post-processing at eval time. The `spatial_propagation` module is
+            # a research-only component not shipped in this release.
             if self.dp_use_spsr:
-                from gssc.models.spatial_propagation import SpatialPropagationRefinement
-                self.dp_spsr = SpatialPropagationRefinement(
-                    num_classes=config['num_classes'], num_iterations=3,
-                    confidence_threshold=0.5, preserve_lidar=True,
-                ).to(device)
-                self.logger.info("    Eval: SPSR post-processing enabled (3 iterations)")
+                raise NotImplementedError(
+                    "dp_spsr requires the gssc.models.spatial_propagation module, "
+                    "which is not part of this release. The headline S2D2 path does "
+                    "not use it."
+                )
 
         # S44: Height-pool BEV auxiliary loss (no BEV conditioning, but BEV as aux target)
         self.use_hp_bev_aux = False
@@ -972,22 +838,16 @@ class SceneCompletionTrainer:
             eta_min=config['lr'] * 0.01,
         )
 
-        # S2: Initialize lifter for 2D→3D lifting (if enabled)
+        # S2: Initialize lifter for 2D→3D lifting (if enabled). The `lifting`
+        # module is a research-only component not shipped in this release; the
+        # headline sparse_full + v2 path never sets use_lifting.
         self.lifter = None
         if config.get('use_lifting', False):
-            from gssc.models.lifting import LiftingModule
-            self.lifter = LiftingModule(
-                num_classes=config['num_classes'],
-                num_z=32,  # SemanticKITTI uses 32 z-slices
-                feature_dim=config.get('lifting_feature_dim', 64),
-                learnable=config.get('learnable_lifting', False),
-            ).to(device)
-            # Add lifter encoder params to optimizer
-            lifter_params = list(self.lifter.parameters())
-            if lifter_params:
-                self.optimizer.add_param_group({'params': lifter_params})
-                self.logger.info(f"S2: Added lifter to optimizer ({sum(p.numel() for p in lifter_params)} params)")
-            self.logger.info("S2: Initialized LiftingModule for 2D→3D lifting")
+            raise NotImplementedError(
+                "use_lifting requires the gssc.models.lifting module, which is not "
+                "part of this release. The headline S2D2 path "
+                "(model_type='sparse_full', diffusion_version='v2') does not use it."
+            )
 
         # S3: Initialize Enhanced DSKD for knowledge distillation
         # New Strategy: Teacher (GT BEV + Multi-frame) → Student (Pred BEV + Single-frame)
@@ -1358,46 +1218,6 @@ class SceneCompletionTrainer:
             if config.get('geom_dir'):
                 extra_info += f" [{lidar_in_ch}ch sparse]"
             self.logger.info(f"exp_2 full: SceneCompletionUNetSparse (35M params){extra_info}")
-
-        elif model_type == 'mimo_lite':
-            # S4 MIMO lite: PaSCo-style with N separate decoder heads
-            if MIMOSceneCompletionUNetLite is None:
-                raise NotImplementedError(
-                    "model_type='mimo_lite' requires the MIMO modules "
-                    "(gssc.models.mimo / mimo_dataset / mimo_scene_unet), which are "
-                    "not part of this release. Use model_type='sparse_full' (the "
-                    "headline S2D2 denoiser)."
-                )
-            n_subnets = config.get('mimo_num_subnets', 3)
-            model = MIMOSceneCompletionUNetLite(
-                num_classes=config['num_classes'],
-                n_subnets=n_subnets,
-                base_channels=16,
-                time_emb_dim=64,
-                lidar_base_channels=8,
-                lidar_out_channels=16,
-            ).to(self.device)
-            self.logger.info(f"S4 MIMO lite: MIMOSceneCompletionUNetLite (n_subnets={n_subnets})")
-
-        elif model_type == 'mimo_full':
-            # S4 MIMO full: PaSCo-style with N separate decoder heads
-            if MIMOSceneCompletionUNet is None:
-                raise NotImplementedError(
-                    "model_type='mimo_full' requires the MIMO modules "
-                    "(gssc.models.mimo / mimo_dataset / mimo_scene_unet), which are "
-                    "not part of this release. Use model_type='sparse_full' (the "
-                    "headline S2D2 denoiser)."
-                )
-            n_subnets = config.get('mimo_num_subnets', 3)
-            model = MIMOSceneCompletionUNet(
-                num_classes=config['num_classes'],
-                n_subnets=n_subnets,
-                base_channels=32,
-                time_emb_dim=128,
-                lidar_base_channels=16,
-                lidar_out_channels=32,
-            ).to(self.device)
-            self.logger.info(f"S4 MIMO full: MIMOSceneCompletionUNet (n_subnets={n_subnets})")
 
         elif model_type == 'v2_full':
             # V2 full: FiLM conditioning + multi-scale aux BEV (no cascade)
@@ -2806,11 +2626,8 @@ class SceneCompletionTrainer:
                         cfg_scale = self.config.get('cfg_guidance_scale', 1.0)
                         cfg_drop = self.config.get('cfg_drop_prob', 0.0)
                         model_type = self.config.get('model_type', 'full')
-                        diffusion_version = self.config.get('diffusion_version', 'v1')
 
                         is_v3_cfg = model_type in ('v3_coarse2fine', 'v3_c2f_ablation') and cfg_drop > 0 and cfg_scale > 1.0
-                        is_v4 = model_type in ('v4_continuous', 'v4_factored')
-                        is_v5_ve = model_type == 'v5_ve'
 
                         # Disable CFG for V3/V4 models during early training.
                         # CFG requires a well-trained unconditional model (cfg_drop_prob=0.1
@@ -2822,152 +2639,7 @@ class SceneCompletionTrainer:
                         # sampling is the supported eval path (see docs/TRAIN.md).
                         use_cfg_at_eval = False  # Disabled: uncond model under-trained early on
 
-                        if is_v5_ve and diffusion_version == 'gaussian_ve':
-                            # S16+: VE Gaussian diffusion — use DPM-Solver++ with SDEdit
-                            dpm_steps = self.config.get('dpm_solver_steps', 50)
-                            # For VE diffusion, we use sample_dpm_solver which handles
-                            # initialization from uniform probs (no SDEdit by default)
-                            pred_scene = self.diffusion.sample_dpm_solver(
-                                self.model,
-                                bev,
-                                lidar,
-                                shape=(B, H, W, D),
-                                device=self.device,
-                                num_steps=dpm_steps,
-                                show_progress=False,
-                            )
-                        elif diffusion_version == 'gaussian_logit':
-                            # S17+: Logit-space VE Gaussian diffusion
-                            dpm_steps = self.config.get('dpm_solver_steps', 50)
-                            sdedit_start = self.config.get('sdedit_start_step', 500)
-
-                            # cond_3d: LSK3DNet 3D predictions as conditioning
-                            eval_cond_3d = None
-                            if 'lsk3d_3d_probs' in batch and self.config.get('cond_3d_channels', 0) > 0:
-                                eval_cond_3d = batch['lsk3d_3d_probs'].to(self.device)
-
-                            # SDEdit init (if configured): start from noised predictions
-                            init_probs = None
-                            if sdedit_start < self.diffusion.num_timesteps - 1:
-                                if 'lsk3d_3d_probs' in batch:
-                                    init_probs = batch['lsk3d_3d_probs'].to(self.device)
-                                elif self.lifter is not None:
-                                    if bev.dim() == 4:
-                                        bev_oh = bev
-                                    else:
-                                        bev_oh = F.one_hot(bev.long(), self.config['num_classes']).float()
-                                        bev_oh = bev_oh.permute(0, 3, 1, 2)
-                                    lifted_3d, _ = self.lifter(bev_oh)
-                                    init_probs = lifted_3d
-
-                            pred_scene = self.diffusion.sample_dpm_solver(
-                                self.model,
-                                bev,
-                                lidar,
-                                shape=(B, H, W, D),
-                                device=self.device,
-                                cond_3d=eval_cond_3d,
-                                init_probs=init_probs,
-                                start_timestep=sdedit_start if init_probs is not None else None,
-                                num_steps=dpm_steps,
-                                guidance_scale=cfg_scale,
-                                show_progress=False,
-                            )
-                        elif diffusion_version == 'gaussian_vp':
-                            # S21: VP DDPM with 20ch logit encoding
-                            # Pure-noise generation: model completes scene from
-                            # Gaussian noise conditioned on LSK3DNet features.
-                            #
-                            # SDEdit is WRONG for scene completion:
-                            # - LSK3DNet only predicts at ~1% of voxels (observed)
-                            # - Unobserved voxels encoded as class 0 (empty)
-                            # - At t=200, noise too mild to override "empty" bias
-                            # - Result: recall locked at 11.8% (= LSK3DNet baseline)
-                            #
-                            # Pure-noise generation works because:
-                            # - Dense conditioning (coarse2fine) provides layout at ALL voxels
-                            # - Sparse FiLM provides high-quality features at observed voxels
-                            # - Model trained to denoise from pure noise → generates full scene
-                            dpm_steps = self.config.get('dpm_solver_steps', 50)
-
-                            # CFG: requires well-trained unconditional model.
-                            # With cfg_drop_prob=0.1, uncond gets trained 10% of steps.
-                            # Disable CFG until unconditional model has enough training.
-                            cfg_min_step = self.config.get('cfg_min_step', 50000)
-                            if self.global_step < cfg_min_step:
-                                eval_cfg_scale = 1.0
-                            else:
-                                eval_cfg_scale = cfg_scale
-
-                            if cfg_drop > 0 and eval_cfg_scale > 1.0:
-                                # CFG + DPM-Solver++ from pure noise
-                                pred_scene = self.diffusion.sample_cfg(
-                                    self.model,
-                                    bev,
-                                    lidar,
-                                    shape=(B, H, W, D),
-                                    device=self.device,
-                                    guidance_scale=eval_cfg_scale,
-                                    num_steps=dpm_steps,
-                                    show_progress=False,
-                                )
-                            else:
-                                # DPM-Solver++ without CFG
-                                pred_scene = self.diffusion.sample_dpm_solver(
-                                    self.model,
-                                    bev,
-                                    lidar,
-                                    shape=(B, H, W, D),
-                                    device=self.device,
-                                    num_steps=dpm_steps,
-                                    show_progress=False,
-                                )
-                        elif is_v4 and diffusion_version == 'gaussian':
-                            # S14/S15: Gaussian diffusion — use DPM-Solver++
-                            dpm_steps = self.config.get('dpm_solver_steps', 50)
-                            if use_cfg_at_eval and cfg_drop > 0 and cfg_scale > 1.0:
-                                pred_scene = self.diffusion.sample_cfg(
-                                    self.model,
-                                    bev,
-                                    lidar,
-                                    shape=(B, H, W, D),
-                                    device=self.device,
-                                    guidance_scale=cfg_scale,
-                                    num_steps=dpm_steps,
-                                    show_progress=False,
-                                )
-                            else:
-                                pred_scene = self.diffusion.sample_dpm_solver(
-                                    self.model,
-                                    bev,
-                                    lidar,
-                                    shape=(B, H, W, D),
-                                    device=self.device,
-                                    num_steps=dpm_steps,
-                                    show_progress=False,
-                                )
-                        elif is_v4 and diffusion_version == 'factored':
-                            # S13: Factored discrete — ancestral sampling
-                            if use_cfg_at_eval and cfg_drop > 0 and cfg_scale > 1.0:
-                                pred_scene = self.diffusion.sample_cfg(
-                                    self.model,
-                                    bev,
-                                    lidar,
-                                    shape=(B, H, W, D),
-                                    device=self.device,
-                                    guidance_scale=cfg_scale,
-                                    show_progress=False,
-                                )
-                            else:
-                                pred_scene = self.diffusion.sample(
-                                    self.model,
-                                    bev,
-                                    lidar,
-                                    shape=(B, H, W, D),
-                                    device=self.device,
-                                    show_progress=False,
-                                )
-                        elif is_v3_cfg:
+                        if is_v3_cfg:
                             # V3.1: non-CFG sampling (plain sample)
                             if use_cfg_at_eval:
                                 pred_scene = self.diffusion.sample_cfg(

@@ -1,10 +1,15 @@
 """
-Modular 2D U-Net for BEV Diffusion with Configurable Conditioning.
+Modular 2D U-Net for the BEV second task with Configurable Conditioning.
 
 This is a more flexible version of the BEV U-Net that supports:
 - Different conditioning mechanisms (SUM, CONCAT, FiLM, BottleneckAttn, Hybrid)
 - Different input resolutions (64x64 for architecture search, 256x256 for final)
 - Configurable model sizes
+
+Note: the released BEV second-task checkpoint uses ``conditioning_type='sum'``
+(additive), matching the paper's additive/AdaGN conditioning story. The other
+conditioning types listed above (CONCAT, FiLM, BottleneckAttn, Hybrid) are
+research-time options exercised by no shipped config.
 """
 
 import math

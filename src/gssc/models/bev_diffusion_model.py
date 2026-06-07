@@ -1,12 +1,13 @@
 """
-BEV Diffusion Model
+BEV Diffusion Model (BEV second-task auxiliary; NOT the dense Conv3d +
+additive/AdaGN S2D2 scene-completion denoiser in s2d2_unet.py)
 
-Combines D3PM, LiDAR encoder, and BEV U-Net into a complete model
+Combines D3PM, a sparse LiDAR encoder, and a BEV U-Net into a complete model
 for BEV semantic segmentation via discrete diffusion.
 
 Architecture:
-    LiDAR Voxels (256×256×32) → Sparse 3D U-Net → BEV Features (256×256×C)
-                                                       ↓
+    LiDAR Voxels (256×256×32) → Sparse 3D LiDAR Encoder → BEV Features (256×256×C)
+       (genuinely sparse SubMConv3d aux encoder)              ↓
     Noisy BEV Labels → 2D U-Net Denoiser → Clean BEV Labels (256×256×20)
                             ↑
                      (conditioning + self-conditioning)
@@ -27,7 +28,7 @@ class BEVDiffusionModel(nn.Module):
     Complete BEV Diffusion Model for semantic segmentation.
 
     Combines:
-        - Sparse 3D U-Net for LiDAR → BEV feature extraction
+        - Sparse 3D LiDAR encoder for LiDAR → BEV feature extraction
           (BEV second-task aux encoder; genuinely sparse SubMConv3d -- NOT the dense
           Conv3d + additive/AdaGN S2D2 denoiser in s2d2_unet.py)
         - D3PM discrete diffusion process
