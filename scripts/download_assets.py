@@ -2,16 +2,17 @@
 
 Usage::
 
-    python scripts/download_assets.py --checkpoints     # ~3 GB models
-    python scripts/download_assets.py --predictions     # ~50 GB SCPNet val/test predictions
-    python scripts/download_assets.py --object-bank     # ~448 MB rare-class object bank
+    python scripts/download_assets.py --checkpoints          # ~3 GB models
+    python scripts/download_assets.py --predictions          # ~178 GB SCPNet val/test/synth predictions
+    python scripts/download_assets.py --js3c-predictions     # ~54 GB JS3C-Net cross-base predictions
+    python scripts/download_assets.py --lmscnet-predictions  # ~40 GB LMSCNet cross-base predictions
+    python scripts/download_assets.py --object-bank          # ~448 MB rare-class object bank
     python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB headline synth pool
-    python scripts/download_assets.py --all              # everything
+    python scripts/download_assets.py --all                  # everything
 
-Hugging Face host: [HF_ORG_URL]
-
-The full 230 GB synthetic pool is mirrored to IEEE DataPort; see
-docs/DATASET.md for direct download links.
+The Hugging Face mirrors and the IEEE DataPort synthetic-pool archive come
+online on paper publication. Until then every download flag exits with the
+manual-download instructions in docs/DATASET.md / docs/REPRODUCIBILITY.md.
 """
 from __future__ import annotations
 
@@ -51,6 +52,7 @@ def main() -> None:
     parser.add_argument("--checkpoints", action="store_true", help="Download model checkpoints (~3 GB)")
     parser.add_argument("--predictions", action="store_true", help="Download SCPNet predictions (~178 GB, real + synth)")
     parser.add_argument("--js3c-predictions", action="store_true", help="Download JS3C-Net predictions (~54 GB, cross-base eval)")
+    parser.add_argument("--lmscnet-predictions", action="store_true", help="Download LMSCNet predictions (~40 GB, cross-base eval)")
     parser.add_argument("--object-bank", action="store_true", help="Download rare-class object bank (~448 MB)")
     parser.add_argument("--synthetic-pool", choices=["0K", "10K", "20K", "31K", "57K"],
                         default=None, help="Download a synthetic pool variant")
@@ -58,7 +60,7 @@ def main() -> None:
     parser.add_argument("--root", default=str(REPO_ROOT / "data"), help="Where to store downloads")
     args = parser.parse_args()
 
-    if not any([args.checkpoints, args.predictions, args.js3c_predictions, args.object_bank, args.synthetic_pool, args.all]):
+    if not any([args.checkpoints, args.predictions, args.js3c_predictions, args.lmscnet_predictions, args.object_bank, args.synthetic_pool, args.all]):
         parser.print_help()
         sys.exit(0)
 
@@ -88,6 +90,12 @@ def main() -> None:
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["js3cnet_predictions/*"],
                           local_dir=root / "js3cnet_predictions", local_dir_use_symlinks=False)
+    if args.lmscnet_predictions or args.all:
+        _ensure_url_configured(HF_REPO_DATA, "Datasets (LMSCNet predictions)")
+        logger.info("Downloading LMSCNet predictions from %s ...", HF_REPO_DATA)
+        snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
+                          allow_patterns=["lmscnet_predictions/*"],
+                          local_dir=root / "lmscnet_predictions", local_dir_use_symlinks=False)
     if args.object_bank or args.all:
         _ensure_url_configured(HF_REPO_DATA, "Datasets (object bank)")
         logger.info("Downloading object bank from %s ...", HF_REPO_DATA)

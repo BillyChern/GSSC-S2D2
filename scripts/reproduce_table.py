@@ -35,8 +35,6 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
     "tab:dwiou":            {"config": "eval/val_1step",     "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "dwiou"},
     "tab:step_reduction":   {"config": "eval/step_sweep",    "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou completion_iou"},
     "tab:train_timesteps_curriculum": {"config": "eval/timestep_ablation", "checkpoint": "[gssc_timesteps/gssc_T10|gssc_timesteps/gssc_T50|gssc_timesteps/gssc_T100skewed|gssc_mf/gssc_31k_mf_step40000]", "metrics": "miou"},
-    "tab:loss_ablation":    {"config": "eval/loss_ablation", "checkpoint": "[per-row variant]", "metrics": "miou"},
-    "tab:s2d2_ablation":    {"config": "eval/s2d2_ablation", "checkpoint": "[per-row variant]", "metrics": "miou"},
     "tab:bev_results":      {"config": "eval/bev_secondary", "checkpoint": "bev/bev_perception_net",         "metrics": "miou"},
     "tab:data_scaling":     {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step100000]", "metrics": "miou"},
     "tab:cross_base_js3c":  {

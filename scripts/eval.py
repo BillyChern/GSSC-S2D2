@@ -5,20 +5,25 @@ reports per-class IoU + mIoU + completion IoU.
 
 Examples
 --------
+Checkpoints since v1.1.0 use a per-checkpoint subdir layout
+``data/checkpoints/<group>/<name>/{model.safetensors, model_ema.safetensors,
+config.json}`` (the layout ``scripts/download_assets.py`` writes). Inference
+defaults to the EMA weights ``model_ema.safetensors``.
+
 Reproduce the headline 38.54% val mIoU (single correction step, N=1)::
 
     python scripts/eval.py eval/val_1step \
-        --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt
+        --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
 Reproduce the 38.73% val mIoU under D4 TTA::
 
     python scripts/eval.py eval/val_d4tta \
-        --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt
+        --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
 Reproduce the 36.09% BEV mIoU (secondary task, paper Sec. 4)::
 
     python scripts/eval.py eval/bev_secondary \
-        --checkpoint data/checkpoints/bev_perception_net.pt
+        --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors
 """
 from __future__ import annotations
 

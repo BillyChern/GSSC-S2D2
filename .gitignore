@@ -69,6 +69,10 @@ assets/*_backup_*.pdf
 assets/*_20[0-9][0-9][0-9][0-9][0-9][0-9]_*.png
 assets/*_20[0-9][0-9][0-9][0-9][0-9][0-9]_*.pdf
 
+# Scratch / pre-patch backup files (never publish)
+*.bak
+*.prepatch.*
+
 # External submodule scratch outputs
 external/**/scores.txt
 # Local-only PR description drafts

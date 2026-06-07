@@ -35,19 +35,22 @@ users skip running SCPNet themselves::
 
     python scripts/download_assets.py --predictions
 
-Hosted at `[SCPNET_PREDICTIONS_URL]`. Layout matches the JS3C-Net dataset
-described below (`{00..21}/{frame_id}_pred.npy` + `synthetic/{frame_id}_pred.npy`).
+The hosted mirror is released upon paper publication; until then
+`download_assets.py --predictions` exits with the manual-download
+instructions. Layout matches the JS3C-Net dataset described below
+(`{00..21}/{frame_id}_pred.npy` + `synthetic/{frame_id}_pred.npy`).
 
 ## JS3C-Net predictions (required for cross-base reproduction, ~54 GB)
 
 Precomputed for val seq 08 + train seqs 00-07, 09, 10 + test 11-21 + the 31K
 and 57K synthetic pools. Required to reproduce the v1.1.0 cross-base headline
-(paper Tab. III rows 90-91, +3.99 pp val mIoU)::
+(paper Tab. III cross-base rows, +3.99 pp val mIoU)::
 
     python scripts/download_assets.py --js3c-predictions
 
-Hosted at `[JS3C_PREDICTIONS_URL]`. Layout mirrors `scpnet_predictions/`
-exactly:
+The hosted mirror is released upon paper publication; until then the command
+above exits with the manual-download instructions (clone JS3C-Net and dump
+locally, shown below). Layout mirrors `scpnet_predictions/` exactly:
 
 ```
 data/js3cnet_predictions/
@@ -59,8 +62,8 @@ data/js3cnet_predictions/
 ```
 
 The cross-base headline (26.72 % val mIoU) is trained on real frames only;
-the synth subdirs are shipped for the supp tab:supp_b6_val analysis and
-future use.
+the synth subdirs are shipped for the synth-augmentation analysis in the
+paper's supplementary validation-protocol table and future use.
 
 Alternatively, dump locally from your own JS3C-Net clone:
 
@@ -76,23 +79,67 @@ python scripts/dump_js3c_predictions.py \
 
 See `docs/REPRODUCIBILITY.md` for the full cross-base protocol.
 
+## LMSCNet predictions (required for the LMSCNet cross-base row, ~40 GB)
+
+LMSCNet (Roldão et al., 2020) is the third structurally different frozen base
+(a ~0.4M-param 2D-CNN SSC model) used for the cross-base demonstration in
+paper Tab. III. The LMSCNet+S²D² row lifts val mIoU **12.10 → 16.59 (+4.49 pp)**
+and is trained on **real frames only** (sequences 00-07, 09, 10 + val 08).
+
+Hosted predictions are released upon paper publication. Until then, dump them
+locally from the publicly released multiscale LMSCNet checkpoint:
+
+```bash
+# 1. Clone LMSCNet and fetch its pretrained multiscale checkpoint
+#    (Google Drive link in the official LMSCNet README).
+git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet
+
+# 2. Dump per-frame base predictions. Real-only reproduction needs the
+#    train split + val 08; the hidden test (11-21) is optional.
+python scripts/dump_lmscnet_predictions.py \
+    --weights external/LMSCNet/pretrained_models/LMSCNet.pth \
+    --semantickitti_root data/SemanticKITTI \
+    --output_dir data/lmscnet_predictions \
+    --sequences 00 01 02 03 04 05 06 07 08 09 10
+```
+
+Once the mirror is live, the same predictions can be fetched with:
+
+```bash
+python scripts/download_assets.py --lmscnet-predictions
+```
+
+Layout mirrors `scpnet_predictions/` / `js3cnet_predictions/`:
+
+```
+data/lmscnet_predictions/
+└── {00..21}/
+    └── {frame_id}_pred.npy   # (256, 256, 32) uint8 class indices in [0, 19]
+```
+
+Each frame is ~2.1 MB (uint8, 256×256×32); the real-only set (~19K frames) is
+~40 GB. `configs/{train,eval}/lmscnet_*.yaml` read this directory via
+`base_pred_dir: data/lmscnet_predictions`. See `docs/REPRODUCIBILITY.md` for
+the full cross-base protocol.
+
 ## Object bank (required for training, 448 MB)
 
 57,789 rare-class instances across 8 classes (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk)::
 
     python scripts/download_assets.py --object-bank
 
-Hosted at `[OBJECT_BANK_URL]`.
+The hosted mirror is released upon paper publication; until then
+`download_assets.py --object-bank` exits with the manual-download
+instructions.
 
 ## Synthetic pool (optional, 120-220 GB)
 
 The 31K synthetic (sparse, complete) pairs used by the headline run. Five sizes
-released for the data-scaling ablation::
+released for the data-scaling ablation. The full pool is mirrored to IEEE
+DataPort upon paper publication; until then the download script exits with the
+manual-download instructions::
 
-    # IEEE DataPort (full):
-    [SYNTHETIC_POOL_URL]
-
-    # Or via download script:
+    # Via download script (prints the manual-download note until the mirror is live):
     python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB
     python scripts/download_assets.py --synthetic-pool 57K   # ~220 GB
 

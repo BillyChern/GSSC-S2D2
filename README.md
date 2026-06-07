@@ -2,7 +2,7 @@
 
 # Generative Semantic Scene Completion
 
-### Proposing S²D²: Structured Source Discrete Diffusion
+### A three-pillar generative framework: PS³ · SGSC · S²D²
 
 📄 **Paper** *(under review — link added on acceptance)* &nbsp;·&nbsp; 🌐 **[Project page](https://billychern.github.io/GSSC-project-page/)** &nbsp;·&nbsp; 🏆 **[Leaderboard](https://www.codabench.org/competitions/13814/#/results-tab)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
 
@@ -15,23 +15,31 @@
 [![PyTorch 2.4](https://img.shields.io/badge/pytorch-2.4-orange.svg)](https://pytorch.org/)
 [![Code style: ruff](https://img.shields.io/badge/lint-ruff-46a2f1.svg)](https://github.com/astral-sh/ruff)
 [![Type checks: mypy](https://img.shields.io/badge/types-mypy-2A6DB2.svg)](https://mypy.readthedocs.io/)
-[![Tested coverage](https://img.shields.io/badge/coverage-89%25-success.svg)](#code-quality--testing)
-[![SemanticKITTI SOTA](https://img.shields.io/badge/SemanticKITTI-39.2%20mIoU%20%F0%9F%8F%86-orange.svg)](https://www.codabench.org/competitions/13814/#/results-tab)
+[![SemanticKITTI](https://img.shields.io/badge/SemanticKITTI-39.2%20mIoU-orange.svg)](https://www.codabench.org/competitions/13814/#/results-tab)
 
-**🏆 SemanticKITTI hidden-test SOTA — 39.2 % mIoU**, the first leaderboard advance among single-frame single-sample LiDAR SSC submissions since TALoS (NeurIPS 2024).
+**SemanticKITTI hidden test — 39.2 % mIoU** under 4-step correction sampling + *D*<sub>4</sub> TTA. The leaderboard entry on [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) will be made public upon paper acceptance.
 
 </div>
 
+The paper organises the method into three pillars that share one structured-source discrete-diffusion core:
+
+* **PS³** — *Paired Sparse–Dense Scene Synthesis*: the offline data-augmentation pipeline (pyramid multinomial diffusion 𝒮₁→𝒮₂→𝒮₃ + Jensen–Shannon filter + HDL-64E ray-tracer + rare-class object bank) that builds the synthetic (sparse, complete) training pool.
+* **SGSC** — *Semantic-guided Generative Scene Completion*: the from-noise regime that completes a scene by sampling from the prior (no frozen 3D base), reaching **30.54 % val mIoU** on SemanticKITTI seq 08 (> PaSCo's 30.11 %). *The SGSC checkpoint is not part of this release; the released surface is the deployment-oriented S²D² pillar.*
+* **S²D²** — *Structured Source Discrete Diffusion*: the one-step deployment regime that refines a frozen base SSC model's prediction — the headline 38.54 % val / 39.2 % test result and the focus of this repository.
+
 > [!IMPORTANT]
-> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100, and **+1.3 absolute mIoU** over the previous SOTA. Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU**).
+> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100, and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5** over the frozen SCPNet base (36.7 → 39.2). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU**).
 
 > [!TIP]
-> **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for a 3-command reproduction of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once SCPNet predictions are downloaded.
+> **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for the 3-command reproduction recipe of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once the base predictions are local.
+
+> [!NOTE]
+> **Assets are not yet public.** The pretrained checkpoints and base-model predictions are released **upon paper acceptance**; until then `scripts/download_assets.py` fails loudly with a pointer to `docs/DATASET.md` for manual provisioning, and a fresh clone cannot reach 38.54 % without those assets. The commands below are the exact recipe — the "verified end-to-end" labels record what the maintainers measured locally, not what an external clone can run today.
 
 ### What's new
 
 * **2026-05-26** — Release **v2.1.0**: LMSCNet third-base support. Stacked on the lightweight dense-2D-CNN LMSCNet (Roldao et al., CVPRW 2020), one-step S²D² lifts val mIoU **12.10 % → 16.59 % (+4.49 pp)** under the official `semantic-kitti-api` evaluator (paper Tab. III row 90). Together with the v1.1.0 JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point-voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`. Release surface focused: 22 unreferenced development modules removed.
-* **2026-05-18** — Release **v2.0.0**: drop deprecated `--bev_from_scpnet` flag and the `scpnet_pred_dir` shim. Use `--bev_from_base` / `base_pred_dir` instead. Headline numerical artefacts unchanged.
+* **2026-05-18** — Release **v2.0.0**: deprecate the `--bev_from_scpnet` flag in favour of `--bev_from_base`. `base_pred_dir` is now the preferred config key (used by the JS3C-Net and LMSCNet bases); `scpnet_pred_dir` is still accepted and remains in the SCPNet configs for backward compatibility. Headline numerical artefacts unchanged.
 * **2026-05-14** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the point-voxel hybrid JS3C-Net (Yan et al., ICCV 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official `semantic-kitti-api` evaluator. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
 * **2026-04** — Public release **v1.0.0**. Headline checkpoint released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU.
 * **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.09 % mIoU.
@@ -68,12 +76,12 @@
 | TALoS (prev. SOTA) | 37.9 | **60.2** | +1.2 | NeurIPS 2024, line-of-sight test-time adaptation |
 | **S²D² (Ours, 1-step real-time)** | **38.8** | 58.9 | **+2.1** | 9.33 FPS marginal; cheapest deployable |
 | **S²D² (Ours, *N* = 4, no TTA)** | **39.0** | 58.8 | **+2.3** | practical deployable variant |
-| **S²D² (Ours, *N* = 4, *D*<sub>4</sub> TTA)** | 🏆 **39.2** | 59.0 | **+2.5** | leaderboard SOTA |
+| **S²D² (Ours, *N* = 4, *D*<sub>4</sub> TTA)** | **39.2** | 59.0 | **+2.5** | hidden-test best; leaderboard row public upon release |
 
-On full SemanticKITTI val seq 08:
-* **38.54 %** mIoU (single correction step, $N{=}1$)  ✅ verified end-to-end
-* **38.73 %** mIoU (4-step correction sampling + *D*<sub>4</sub> TTA)
-* **+2.37** absolute over our SCPNet base (36.17 %)
+On full SemanticKITTI **val** seq 08 (note: val numbers below, distinct from the 39.2 % **hidden-test** figure above):
+* **val: 38.54 %** mIoU (single correction step, $N{=}1$)  — verified end-to-end by the maintainers (requires the released assets)
+* **val: 38.73 %** mIoU (4-step correction sampling + *D*<sub>4</sub> TTA) → the same recipe scores **39.2 %** on the hidden test
+* **+2.37** absolute over our SCPNet base (36.17 % val)
 
 <p align="center">
   <img src="assets/qualitative.png" width="92%" alt="Qualitative comparison on SemanticKITTI val seq 08 vs SOTA baselines" />
@@ -83,7 +91,7 @@ On full SemanticKITTI val seq 08:
 
 ### Per-class IoU on val seq 08 (single correction step, verified)
 
-<sub>From `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors`. Numbers below match paper Tab. I exactly.</sub>
+<sub>From `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors`. Numbers below match the paper's per-class val table (`tab:perclass`) exactly.</sub>
 
 | | car | bicycle | motorcycle | truck | other-veh. | person | bicyclist | motorcyclist | road | parking |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -108,14 +116,16 @@ uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
 #    a pointer to docs/DATASET.md for manual download instructions.
 python scripts/download_assets.py --checkpoints --predictions
 # → data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors           (~140 MB)
-# → data/scpnet_predictions/                            (~50 GB, val + test)
+# → data/scpnet_predictions/   (~178 GB real + synth; ~135 GB total for eval-only — see docs/DATASET.md)
 
 # 3. Reproduce the headline 38.54 % val mIoU
 python scripts/eval.py eval/val_1step \
     --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 ```
 
-That's it. Expected output (truncated):
+> **Note on `spconv`.** `spconv` is deliberately *not* pinned in `uv.lock` because it ships a CUDA-specific wheel; `uv sync` will not install it. Install it explicitly with the pinned, CUDA-coherent line shown above (`uv pip install spconv-cu126==2.3.8`). This release is validated against the cu126 build only — match the wheel to your local CUDA toolkit if you deviate.
+
+Once the released assets are in place, that is the whole pipeline. Expected output (truncated):
 
 ```
 [gssc.inference.evaluate] Eval config: eval/val_1step
@@ -153,7 +163,7 @@ base BEV map and lifts BEV mIoU from **34.27 %** (base-derived) to
 ```bash
 # After step 3 above (predictions already downloaded), eval the BEV pipeline:
 python scripts/eval.py eval/bev_secondary \
-    --checkpoint data/checkpoints/bev_perception_net.pt
+    --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors
 ```
 
 To retrain the BEV-A checkpoint from scratch (~24 h on 1× H100):
@@ -169,7 +179,7 @@ python scripts/train.py train/bev_secondary
 ```
 GSSC-S2D2/
 ├── src/gssc/                       # the Python package
-│   ├── models/                     # dense 3D U-Net (+ sparse LiDAR encoder), SCPNet base, pyramid, BEV variant
+│   ├── models/                     # denoiser: dense 3D U-Net (Conv3d, this release ≈ 35M); "Sparse" in class names (e.g. SceneCompletionUNetSparse) refers to the aux LiDAR encoder, not the denoiser. Plus SCPNet base, pyramid, BEV variant
 │   ├── diffusion/                  # forward process, Dirac posterior, correction sampler, D4 TTA
 │   ├── data/                       # SemanticKITTI loader, synthetic pool, object bank, HDL-64E ray-tracer
 │   ├── losses/                     # KL posterior + Lovász + auxiliary + focal-CE
@@ -211,13 +221,12 @@ The repo ships the exact recipe + checkpoint for every reported number.
 
 | Paper artefact | Command | Expected |
 |---|---|---|
-| **Tab. I** (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/` then submit to [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) | **39.2 %** test mIoU |
-| **Tab. II** (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline>` | **38.54 %** val mIoU |
-| **Tab. V** (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
-| **Tab. VII** (data scaling) | `python scripts/reproduce_table.py tab:data_scaling` | 0K/10K/20K/31K/57K SF retrains |
-| **Tab. XII** (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` | T=10/50/100-skewed/100-uniform |
-| **Tab. XV** (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev_perception_net.pt` | **36.09 %** BEV mIoU |
-| **Fig. 4** / **Fig. 5** (qualitative) | `examples/01_render_figures.ipynb` *(coming soon)* | bicyclist 003096 + motorcyclist 001417 (Fig. 4); 10-row gallery (Fig. 5) |
+| `tab:perclass` (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/` then submit to [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) | **39.2 %** test mIoU |
+| `tab:perclass` (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline>` | **38.54 %** val mIoU |
+| `tab:step_reduction` (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
+| `tab:data_scaling` (data scaling) | `python scripts/reproduce_table.py tab:data_scaling` | 0K/10K/20K/31K/57K SF retrains |
+| `tab:train_timesteps_curriculum` (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` | T=10/50/100-skewed/100-uniform |
+| `tab:portable_s2d2` (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` | **36.09 %** BEV mIoU |
 
 Full mapping with anticipated wall-clock and disk requirements: **[docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md)**.
 
@@ -270,21 +279,21 @@ The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:p
 | Object bank (57,789 instances, 8 rare classes) | Hugging Face *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 448 MB |
 | Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 120 – 220 GB per variant |
 
-All weights and synthetic data are released under Apache-2.0; SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). The `download_assets.py` script will populate every entry once URLs are live; until then `docs/DATASET.md` documents manual provisioning.
+All weights and synthetic data are released under Apache-2.0 **upon paper acceptance**; SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). Until the hosting URLs are live, `scripts/download_assets.py` fails loudly with a pointer to `docs/DATASET.md`, which documents manual provisioning; the script will populate every entry automatically once the URLs are wired in.
 
 ---
 
 ## Code-quality + testing
 
-This codebase targets Google/Apple production-grade standards. The toolchain is **CI-enforced**:
+This codebase targets production-grade standards. CI enforces a subset (`ruff check` and `mypy` on the public API surface, plus a torch-free `pytest` smoke pass — see `.github/workflows/`); the remaining checks below are run **locally** before release:
 
 ```bash
-ruff check src/ tests/ scripts/      # style + import order
-mypy --strict src/gssc/              # static types
-pytest tests/ -v                     # unit + smoke tests
-pytest --cov=gssc --cov-fail-under=80 # coverage
-vulture src/                         # dead code
-bandit -r src/                       # security
+ruff check src/ tests/ scripts/      # style + import order   (CI-enforced)
+mypy src                             # static types           (CI-enforced)
+pytest tests/ -v                     # unit + smoke tests      (light subset CI-enforced)
+pytest --cov=gssc --cov-report=term  # coverage (local)
+vulture src/                         # dead code (local)
+bandit -r src/                       # security (local)
 ```
 
 Style conventions, commit conventions, and hard requirements: **[CONTRIBUTING.md](CONTRIBUTING.md)**.
@@ -309,7 +318,7 @@ A. Every paper artefact corresponds to a config file. `python scripts/train.py t
 A. Same convention as every method in the leaderboard table: a full SemanticKITTI SSC training run is expensive (~37 GPU-hours), and the official scoring server takes a single submission. We use a single seed (42) to match this convention. See §V.A of the paper for the variance-disclosure discussion.
 
 **Q. The repo has no figures — where are they?**
-A. Figures and paper-typesetting code live with the paper repo, not here. This repo focuses on **method reproduction**. A figure-rendering notebook (`examples/01_render_figures.ipynb`) that produces SSIM-matched outputs from the released checkpoint is planned alongside the paper release.
+A. Figures and paper-typesetting code live with the paper repo, not here. This repo focuses on **method reproduction**; the shipped notebook (`examples/quickstart.ipynb`) walks through the headline eval end-to-end.
 
 ---
 

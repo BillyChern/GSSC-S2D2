@@ -12,6 +12,28 @@ LiDAR input). It does NOT read .label files. Predictions are pure
 forward-pass outputs of the pretrained LMSCNet model -- no ground-truth
 leakage into x_src.
 
+Setup
+-----
+Clone the upstream LMSCNet repo and place the pretrained checkpoint following
+its README::
+
+    git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet
+    # download LMSCNet.pth from the upstream Google Drive folder into
+    # external/LMSCNet/pretrained_models/
+
+Then run this script from anywhere inside the GSSC-S2D2 venv::
+
+    python scripts/dump_lmscnet_predictions.py \\
+        --lmscnet-repo external/LMSCNet \\
+        --checkpoint external/LMSCNet/pretrained_models/LMSCNet.pth \\
+        --semantickitti_root data/SemanticKITTI \\
+        --output_dir data/lmscnet_predictions \\
+        --sequences 08
+
+The LMSCNet repo path may also be supplied via the ``$LMSCNET_REPO``
+environment variable. All path arguments default to repo-relative locations
+(``external/LMSCNet`` and ``data/...``) so no machine-specific paths are baked in.
+
 Output format
 -------------
 data/lmscnet_predictions/{seq}/{frame_id}_pred.npy containing a
@@ -31,13 +53,42 @@ from pathlib import Path
 import numpy as np
 import torch
 
-LMSCNET_REPO = Path("/workspace/reference/LMSCNet").resolve()
-sys.path.insert(0, str(LMSCNET_REPO))
-
-import LMSCNet.data.io_data as SemKittiIO
-from LMSCNet.models.LMSCNet import LMSCNet
+# Repo root (scripts/ -> repo). Used to anchor repo-relative argument defaults
+# so the script is reproducible on any machine, not just the author's box.
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 logger = logging.getLogger("dump_lmscnet")
+
+# LMSCNet's upstream modules are imported lazily inside ``main()`` after the
+# ``--lmscnet-repo`` path is known. Bound at module scope so the helper
+# functions below can reference them once ``main()`` has populated them.
+SemKittiIO = None  # type: ignore[assignment]  # LMSCNet.data.io_data
+LMSCNet = None  # type: ignore[assignment]  # LMSCNet.models.LMSCNet.LMSCNet
+
+
+def _import_lmscnet(repo: Path) -> None:
+    """Lazily import the upstream LMSCNet package from a local clone.
+
+    Adds ``repo`` to ``sys.path`` and binds the two upstream symbols this
+    script needs (``SemKittiIO`` and the ``LMSCNet`` model class) to the
+    module globals. Kept out of import time so ``--help`` works without a
+    LMSCNet checkout and so the repo path is configurable per machine.
+    """
+    global SemKittiIO, LMSCNet
+    if not repo.is_dir():
+        raise FileNotFoundError(
+            f"LMSCNet repo not found at: {repo}\n"
+            "Clone it and point --lmscnet-repo (or $LMSCNET_REPO) at the clone, e.g.\n"
+            "   git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet"
+        )
+    repo_str = str(repo)
+    if repo_str not in sys.path:
+        sys.path.insert(0, repo_str)
+    import LMSCNet.data.io_data as _SemKittiIO
+    from LMSCNet.models.LMSCNet import LMSCNet as _LMSCNet
+
+    SemKittiIO = _SemKittiIO
+    LMSCNet = _LMSCNet
 
 EXPECTED_SHAPE = (256, 256, 32)
 NUM_CLASSES = 20
@@ -95,10 +146,41 @@ def infer_one(model, bin_path, device):
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--weights", default="/workspace/reference/LMSCNet/pretrained_models/LMSCNet.pth")
-    p.add_argument("--semantickitti_root", default="/workspace/GSSC-S2D2/data/SemanticKITTI")
-    p.add_argument("--output_dir", default="/workspace/GSSC-S2D2/data/lmscnet_predictions")
+    p = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    default_repo = os.environ.get("LMSCNET_REPO", str(REPO_ROOT / "external" / "LMSCNet"))
+    p.add_argument(
+        "--lmscnet-repo",
+        dest="lmscnet_repo",
+        type=Path,
+        default=Path(default_repo),
+        help="Path to a local clone of the upstream LMSCNet repository "
+        "(env fallback: $LMSCNET_REPO; default: external/LMSCNet).",
+    )
+    p.add_argument(
+        "--checkpoint",
+        "--weights",
+        dest="checkpoint",
+        type=Path,
+        default=None,
+        help="Pretrained LMSCNet*.pth weights (default: "
+        "<lmscnet-repo>/pretrained_models/LMSCNet.pth). --weights is a "
+        "backward-compatible alias.",
+    )
+    p.add_argument(
+        "--semantickitti_root",
+        type=Path,
+        default=REPO_ROOT / "data" / "SemanticKITTI",
+        help="SemanticKITTI dataset root containing sequences/{00..21}/voxels/.",
+    )
+    p.add_argument(
+        "--output_dir",
+        type=Path,
+        default=REPO_ROOT / "data" / "lmscnet_predictions",
+        help="Output root for per-frame .npy predictions.",
+    )
     p.add_argument("--sequences", nargs="+", default=["08"])
     p.add_argument("--gpu", default="0")
     p.add_argument("--smoke_test", action="store_true")
@@ -123,13 +205,24 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     args = parse_args()
 
+    # Lazy import: bring the upstream LMSCNet package in from the configured
+    # clone now that --lmscnet-repo is known (keeps --help import-free).
+    lmscnet_repo = Path(args.lmscnet_repo).resolve()
+    _import_lmscnet(lmscnet_repo)
+
+    checkpoint = (
+        Path(args.checkpoint)
+        if args.checkpoint is not None
+        else lmscnet_repo / "pretrained_models" / "LMSCNet.pth"
+    )
+
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info("Device: %s", device)
 
-    model = load_lmscnet_model(args.weights, device)
+    model = load_lmscnet_model(checkpoint, device)
     n_params = sum(p.numel() for p in model.parameters()) / 1e6
-    logger.info("Loaded LMSCNet from %s (%.3f M params)", args.weights, n_params)
+    logger.info("Loaded LMSCNet from %s (%.3f M params)", checkpoint, n_params)
 
     seqs = expand_sequences(args.sequences)
     logger.info("Sequences: %s", seqs)

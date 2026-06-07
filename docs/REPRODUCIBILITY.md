@@ -65,8 +65,8 @@ v1 weights load correctly:
   forward passes under v2.
 * Empirical reproduction: 36.17% val seq-08 mIoU vs. SCPNet's published 37.2%
   (1.03% gap, confined to val; the test-server number reproduces exactly). See
-  [BASELINES.md](BASELINES.md) for the full diff and `tools/run_scpnet_inference.py`
-  for the loader.
+  [BASELINES.md](BASELINES.md) for the full diff and
+  `src/gssc/inference/run_scpnet.py` for the loader.
 
 If you swap in a different SCPNet checkpoint or rebuild against `spconv 1.0`
 on legacy CUDA, the patches in `src/gssc/models/scpnet_base.py` need to be
@@ -100,8 +100,9 @@ initialization. The seed is passed via `--seed 42` (default in
 `scripts/train.py`).
 
 We use a single seed throughout the paper. **This matches the prevailing
-SemanticKITTI SSC reporting convention** — every method in `tab:main_results`
-(LMSCNet, SSA-SC, JS3C-Net, SCPNet, TALoS) likewise reports a single
+SemanticKITTI SSC reporting convention** — every method in the paper's main
+hidden-test results table (LMSCNet, SSA-SC, JS3C-Net, SCPNet, TALoS) likewise
+reports a single
 test-server entry per configuration with no variance bars, because each full
 training run at 256×256×32 voxel resolution costs roughly 37 GPU-hours on
 2×H100, and the official scoring server returns one number per submission.
@@ -162,8 +163,8 @@ paper.
 ### Recipe summary
 
 - `--seed 42` (default) is the verified, reproducible setting.
-- `--batch_size 4` (default in `configs/train/31k_mf.yaml`) is the spec recipe
-  consistent with the original `tools/launch_exp1.sh`.
+- `--batch_size 4` (default in `configs/train/31k_mf.yaml`) is the spec recipe;
+  `configs/train/31k_mf.yaml` is the single source of truth for this setting.
 - All other hyperparameters (`lr=1e-4`, `num_iterations=100000`, `ema_decay=0.9999`,
   loss weights, schedules) are pinned in the YAML and require no changes.
 
@@ -173,8 +174,8 @@ paper.
 |---|---|---|
 | Tab. I (test mIoU) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl |
 | Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --metrics miou per_class` | 38.54 mIoU |
-| Tab. III rows 90-91 (cross-base JS3C, paper protocol)   | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | ~26.7 mIoU (GT BEV, +0.31 pp internal/official delta documented in supp tab:supp_b6_val) |
-| Tab. III rows 90-91 (cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api) |
+| Tab. III (cross-base JS3C, paper protocol)   | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | ~26.7 mIoU (GT BEV, +0.31 pp internal/official delta documented in the paper's supplementary validation-protocol table) |
+| Tab. III (cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api) |
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` | See MODEL_ZOO.md |
@@ -185,7 +186,7 @@ paper.
 
 All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`). Cross-base reproduction additionally requires `data/js3cnet_predictions/`; see the dedicated section below.
 
-## JS3C-Net cross-base reproduction (paper Tab. III rows 90-91)
+## JS3C-Net cross-base reproduction (paper Tab. III, cross-base rows)
 
 Stacking S²D² on the older point-voxel hybrid base JS3C-Net (Yan et al.,
 ICCV 2021) lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the
@@ -221,12 +222,13 @@ sequences 00-08, 09, 10; the hidden test 11-21 is optional.)
 # Real-only training (~37 GPU-hours on 2× H100; cold_diffusion=true is required)
 python scripts/train.py train/js3c_real
 
-# Paper-protocol eval — GT BEV + N=1 Algo2 (paper Tab. III row 91)
+# Paper-protocol eval — GT BEV + N=1 Algo2 (paper Tab. III, JS3C+S²D² row)
 python scripts/eval.py eval/js3c_val_paper \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 # → expect ~26.7 % val mIoU. The paper reports 26.72 % via internal SSCMetrics;
 #   GSSC-S2D2 ships the official semantic-kitti-api scorer, which differs by
-#   the +0.31 pp evaluator delta documented in supp tab:supp_b6_val (so the
+#   the +0.31 pp evaluator delta documented in the paper's supplementary
+#   validation-protocol table (so the
 #   reported number lands near the paper claim once that delta is applied).
 
 # Realistic-deployment eval — derived BEV + N=1 Algo2 (honest deploy number)
@@ -251,13 +253,14 @@ python scripts/reproduce_table.py tab:cross_base_js3c
 Of the 32 039 frames in the 31K synthetic pool, **597 (1.9 %) are missing**
 from `js3cnet_predictions/synthetic_31k/` because JS3C-Net's seg head
 misclassifies the voxel-derived fake point cloud as out-of-distribution
-and crashes the dumper on those frames (paper supp § H discusses the
-underlying segmentation-head OOD issue). The full blacklist ships with
+and crashes the dumper on those frames (the paper's supplementary material
+discusses the underlying segmentation-head OOD issue). The full blacklist ships with
 the dataset as `js3cnet_predictions/synthetic_31k_bad_frames.txt`.
 
 The headline cross-base row (26.72 % mIoU) is trained on **real frames
 only**, so the synth gap does not affect it. The synth-augmentation row
-(supp tab:supp_b6_val) filters at dataloader time using the blacklist;
+(reported in the paper's supplementary validation-protocol table) filters at
+dataloader time using the blacklist;
 SCPNet's synth predictions (`scpnet_predictions/synthetic/`) cover all
 57 650 synth frames without any gap and are the recommended pseudo-label
 source for new synth-augmented experiments.

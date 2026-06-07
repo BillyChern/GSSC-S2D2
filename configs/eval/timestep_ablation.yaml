@@ -1,0 +1,14 @@
+_paper_table: tab:train_timesteps_curriculum (Tab. XII, training-timestep schedule ablation)
+_description: |
+  Per-row eval recipe for the training-timestep ablation (T=10 / T=50 / T=100skewed
+  / T=100uniform headline). Identical N=1 correction-sampling protocol to
+  eval/val_1step; the only thing that varies across rows is which checkpoint is
+  loaded (gssc_timesteps/gssc_T10, gssc_timesteps/gssc_T50,
+  gssc_timesteps/gssc_T100skewed, and gssc_mf/gssc_31k_mf_step40000 for the
+  T=100uniform reference). The training-timestep count is fixed inside each
+  checkpoint, so no eval-side flag is required here. Run one row at a time via
+  `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`.
+split: val
+sequences: "08"
+correction_steps: 1
+tta: none

@@ -41,7 +41,7 @@ python scripts/eval.py eval/val_1step \
     --data-root /path/to/your_data
 ```
 
-## JS3C-Net cross-base (paper Tab. III rows 90-91)
+## JS3C-Net cross-base (paper Tab. III, cross-base rows)
 
 ```bash
 # Verify the JS3C predictions are dumped (see docs/REPRODUCIBILITY.md)
@@ -65,4 +65,4 @@ python scripts/reproduce_table.py tab:cross_base_js3c
 
 ## Single-frame demo
 
-See `examples/00_quickstart.ipynb` for an end-to-end demo on one frame.
+See `examples/quickstart.ipynb` for an end-to-end demo on one frame.

@@ -1,0 +1,13 @@
+_paper_table: tab:data_scaling (Tab. VII, single-frame data-scaling sweep)
+_description: |
+  Per-row eval recipe for the single-frame data-scaling sweep (0K/10K/20K/31K/57K).
+  Identical N=1 correction-sampling protocol to eval/val_1step; the only thing that
+  varies across rows is which retrained single-frame checkpoint is loaded
+  (gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step100000). Single- vs multi-frame LiDAR
+  is baked into the checkpoint at train time (force_single_frame_lidar), so no
+  eval-side flag is required here. Run one row at a time via
+  `python scripts/eval.py eval/data_scaling_sf --checkpoint <row-checkpoint>`.
+split: val
+sequences: "08"
+correction_steps: 1
+tta: none

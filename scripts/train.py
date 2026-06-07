@@ -5,24 +5,27 @@ in the paper has a corresponding YAML under ``configs/train/``.
 
 Examples
 --------
+The config name is a positional argument (the on-disk YAML stem under
+``configs/``, e.g. ``train/31k_mf`` -> ``configs/train/31k_mf.yaml``).
+
 Reproduce the headline 31K-MF run that yields 38.54% val mIoU and 39.2% test
 mIoU (with D4 TTA at inference)::
 
-    python scripts/train.py +config=train/31k_mf
+    python scripts/train.py train/31k_mf
 
 Single-frame retrains (Tab. VII data-scaling row)::
 
-    python scripts/train.py +config=train/0K_sf
-    python scripts/train.py +config=train/10K_sf
-    python scripts/train.py +config=train/20K_sf
-    python scripts/train.py +config=train/31K_sf
-    python scripts/train.py +config=train/57K_sf
+    python scripts/train.py train/0K_sf
+    python scripts/train.py train/10K_sf
+    python scripts/train.py train/20K_sf
+    python scripts/train.py train/31k_sf
+    python scripts/train.py train/57K_sf
 
 Training-timestep ablation rows (Tab. XII)::
 
-    python scripts/train.py +config=train/T10
-    python scripts/train.py +config=train/T50
-    python scripts/train.py +config=train/T100skewed
+    python scripts/train.py train/T10
+    python scripts/train.py train/T50
+    python scripts/train.py train/T100skewed
 """
 from __future__ import annotations
 

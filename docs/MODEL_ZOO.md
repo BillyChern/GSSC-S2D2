@@ -1,7 +1,9 @@
 # Model Zoo
 
-All checkpoints are released under Apache-2.0. Hosted on Hugging Face Hub at
-`[CHECKPOINTS_URL]` (downloaded by `scripts/download_assets.py --checkpoints`).
+All checkpoints are released under Apache-2.0. The Hugging Face Hub mirror
+(`scripts/download_assets.py --checkpoints`) is released upon paper
+publication; until then the download command exits with the manual-download
+instructions in `docs/DATASET.md`.
 
 ## Layout (since v1.1.0)
 
@@ -29,7 +31,7 @@ convention, kept as-is).
 | `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 39.0 (N=4 plain) / 39.2 (+D4 TTA) / 38.8 (N=1 real-time) | `configs/train/31k_mf.yaml` | ~265 MB |
 | `gssc_mf/gssc_57k_mf_step40000/` | Tab. V (negative result) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
 
-## Cross-base portability (paper Tab. III rows 90-91)
+## Cross-base portability (paper Tab. III, three frozen-base rows)
 
 The same recipe and hyperparameters applied to three structurally different
 frozen base models lifts every one of them. LMSCNet and JS3C-Net ship as
@@ -45,20 +47,23 @@ released checkpoints; SCPNet uses the same training recipe with
 Each cross-base checkpoint is ~265 MB. Evaluators differ across rows: the
 LMSCNet and JS3C-Net deltas are measured under the official
 `semantic-kitti-api`; the SCPNet delta uses our internal `SSCMetrics`
-evaluator (+0.31 pp internal/official gap, documented in
-supp tab:supp_b6_val). The JS3C-Net row also has a derived-BEV
-deploy-protocol number (**24.32**) under
+evaluator (+0.31 pp internal/official gap, documented in the paper's
+supplementary validation-protocol table). The JS3C-Net row also has a
+derived-BEV deploy-protocol number (**24.32**) under
 `eval/js3c_val_realistic.yaml`:
 - `eval/js3c_val_paper.yaml` reproduces the **26.72%** number by loading
-  preprocessed GT BEV via `--bev_source gt`. The paper used the internal
-  SSCMetrics evaluator; GSSC-S2D2 reports the same protocol via the official
-  semantic-kitti-api, which differs by the +0.31 pp internal/official gap
-  documented in supp tab:supp_b6_val (so the released number lands near the
-  paper claim once that delta is applied).
+  preprocessed GT BEV via the config key `bev_source: gt` (set in
+  `configs/eval/js3c_val_paper.yaml`; it is a YAML key, not a CLI flag). The
+  paper used the internal SSCMetrics evaluator; GSSC-S2D2 reports the same
+  protocol via the official semantic-kitti-api, which differs by the +0.31 pp
+  internal/official gap documented in the paper's supplementary
+  validation-protocol table (so the released number lands near the paper claim
+  once that delta is applied).
 - `eval/js3c_val_realistic.yaml` uses derived BEV (topmost-non-empty class
-  from JS3C-Net's 3D prediction) — the honest deploy-time number. The
-  released JS3C+S²D² model was trained with derived BEV, so this protocol
-  matches its training distribution.
+  from JS3C-Net's 3D prediction, selected via the config key
+  `bev_source: derived`) — the honest deploy-time number. The released
+  JS3C+S²D² model was trained with derived BEV, so this protocol matches its
+  training distribution.
 
 Reproduction requires `data/js3cnet_predictions/` (54 GB; download via
 `scripts/download_assets.py --js3c-predictions` or dump locally via
@@ -71,7 +76,7 @@ Reproduction requires `data/js3cnet_predictions/` (54 GB; download via
 | `gssc_sf/gssc_0K_sf_step100000/`  | None (real only)         | 38.18 / 38.46 (N=5)  | `configs/train/0K_sf.yaml`  |
 | `gssc_sf/gssc_10K_sf_step100000/` | 10K synthetic            | 38.06 / 38.50 (N=10) | `configs/train/10K_sf.yaml` |
 | `gssc_sf/gssc_20K_sf_step100000/` | 20K synthetic            | 38.14 / 38.49 (N=5)  | `configs/train/20K_sf.yaml` |
-| `gssc_sf/gssc_31K_sf_step100000/` | 31K synthetic (headline) | 38.42 / 38.49 (N=2-5)| `configs/train/31K_sf.yaml` |
+| `gssc_sf/gssc_31K_sf_step100000/` | 31K synthetic (headline) | 38.42 / 38.49 (N=2-5)| `configs/train/31k_sf.yaml` |
 | `gssc_sf/gssc_57K_sf_step100000/` | 57K synthetic            | 37.66 / 38.05 (N=5)  | `configs/train/57K_sf.yaml` |
 
 ## Training-timestep ablations (Tab. XII)
@@ -106,18 +111,48 @@ Pyramid checkpoints do not use EMA; each subdir ships
 |---|---|---|
 | `scpnet_v2_port.pth` | SCPNet pretrained weights, ported to spconv v2.3 with kernel-shape patches. | Loads via `gssc.models.scpnet_base`. Third-party flat `.pth` (not converted). |
 
+## Architecture note (released checkpoint vs. paper)
+
+The released denoiser class is `SceneCompletionUNetSparse`, but the **denoiser
+body is a dense 3D U-Net built from `nn.Conv3d` / `nn.ConvTranspose3d`** with
+additive L/B conditioning and time-AdaGN at every level. The word "Sparse" in
+the class name refers only to the **auxiliary LiDAR encoder**
+(`SparseLiDAREncoder`, which uses spconv), **not** to the denoiser. The
+denoiser does not use sparse convolutions.
+
+This released checkpoint is a simplified **dense Conv3d / ~35M-parameter
+reproduction**. The paper's reported model is the sparse SubMConv3d + FiLM
+**~58M-parameter** variant (paper Fig. 3 / App. I); the released code does not
+ship that variant. When comparing against the paper, treat the released
+checkpoint as the dense reproduction, not as the paper's headline architecture.
+
 ## How to use
+
+There is no `from_config` classmethod and no `configs/model/` directory; the
+model is instantiated directly with the same constructor arguments the eval
+path uses (see `src/gssc/inference/generate_predictions.py`):
 
 ```python
 from pathlib import Path
 from safetensors.torch import load_file
 from gssc.models.s2d2_unet import SceneCompletionUNetSparse
 
-# Deployment uses model_ema.safetensors (EMA weights; paper convention)
+# Deployment uses model_ema.safetensors (EMA weights; paper convention).
 ckpt_dir = Path("data/checkpoints/gssc_mf/gssc_31k_mf_step40000")
 state = load_file(ckpt_dir / "model_ema.safetensors")
-model = SceneCompletionUNetSparse.from_config("configs/model/s2d2_unet.yaml")
-model.load_state_dict(state)
+
+# Same constructor the inference pipeline uses for the released checkpoints.
+# "Sparse" names the LiDAR encoder; the denoiser itself is dense Conv3d.
+model = SceneCompletionUNetSparse(
+    num_classes=20,
+    base_channels=32,
+    time_emb_dim=128,
+    lidar_base_channels=16,
+    lidar_out_channels=32,
+    lidar_in_channels=1,
+    ssc_cond_channels=20,
+)
+model.load_state_dict(state, strict=False)
 model.train(False)
 ```
 

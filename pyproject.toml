@@ -4,12 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gssc"
-version = "2.0.0"
+version = "2.1.0"
 description = "Official PyTorch implementation of S2D2 (Structured Source Discrete Diffusion) -- 'Generative Semantic Scene Completion' (TPAMI 2026)."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10,<3.13"
-authors = []
+authors = [
+    { name = "Shi Chen" },
+    { name = "Weifeng Ge" },
+]
 keywords = [
     "semantic-scene-completion",
     "discrete-diffusion",
@@ -70,13 +73,17 @@ wandb = [
 [project.urls]
 "Homepage" = "https://github.com/BillyChern/GSSC-S2D2"
 "Issues" = "https://github.com/BillyChern/GSSC-S2D2/issues"
-"Paper" = "https://arxiv.org/abs/TBD"
+"Project page" = "https://billychern.github.io/GSSC-project-page/"
+# Paper link added on acceptance (under review at TPAMI).
 
-[project.scripts]
-gssc-train = "gssc.cli.train:main"
-gssc-eval = "gssc.cli.eval:main"
-gssc-infer = "gssc.cli.infer:main"
-gssc-download = "gssc.cli.download:main"
+# No console-script entry points: the repository is driven through the
+# self-contained driver scripts in ``scripts/`` (see README), e.g.
+#   python scripts/train.py train/31k_mf
+#   python scripts/eval.py  eval/val_1step --checkpoint <ckpt>
+#   python scripts/infer.py infer/test_d4tta --checkpoint <ckpt> --output preds/
+#   python scripts/download_assets.py --checkpoints
+# Those scripts resolve the repo root relative to their own location, so they
+# are not packaged as installed console entry points.
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gssc"]
