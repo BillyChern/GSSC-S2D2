@@ -64,6 +64,24 @@ def main() -> None:
         parser.print_help()
         sys.exit(0)
 
+    # Validate that the hosting URLs for every requested asset group are
+    # configured BEFORE attempting the huggingface_hub import, so a user
+    # probing the script in a bare (pre-`uv sync`) environment gets the
+    # documented "see docs/DATASET.md" pointer rather than a misleading
+    # "Install huggingface_hub" message.
+    if args.checkpoints or args.all:
+        _ensure_url_configured(HF_REPO_MODELS, "Checkpoints")
+    if args.predictions or args.all:
+        _ensure_url_configured(HF_REPO_DATA, "Datasets (predictions)")
+    if args.js3c_predictions or args.all:
+        _ensure_url_configured(HF_REPO_DATA, "Datasets (JS3C-Net predictions)")
+    if args.lmscnet_predictions or args.all:
+        _ensure_url_configured(HF_REPO_DATA, "Datasets (LMSCNet predictions)")
+    if args.object_bank or args.all:
+        _ensure_url_configured(HF_REPO_DATA, "Datasets (object bank)")
+    if args.synthetic_pool:
+        _ensure_url_configured(DATAPORT_URL, "Synthetic pool (IEEE DataPort)")
+
     try:
         from huggingface_hub import snapshot_download
     except ImportError:
@@ -75,35 +93,29 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="[%(name)s] %(message)s")
 
     if args.checkpoints or args.all:
-        _ensure_url_configured(HF_REPO_MODELS, "Checkpoints")
         logger.info("Downloading checkpoints from %s ...", HF_REPO_MODELS)
         snapshot_download(repo_id=HF_REPO_MODELS, local_dir=root / "checkpoints", local_dir_use_symlinks=False)
     if args.predictions or args.all:
-        _ensure_url_configured(HF_REPO_DATA, "Datasets (predictions)")
         logger.info("Downloading SCPNet predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["scpnet_predictions/*"],
                           local_dir=root / "scpnet_predictions", local_dir_use_symlinks=False)
     if args.js3c_predictions or args.all:
-        _ensure_url_configured(HF_REPO_DATA, "Datasets (JS3C-Net predictions)")
         logger.info("Downloading JS3C-Net predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["js3cnet_predictions/*"],
                           local_dir=root / "js3cnet_predictions", local_dir_use_symlinks=False)
     if args.lmscnet_predictions or args.all:
-        _ensure_url_configured(HF_REPO_DATA, "Datasets (LMSCNet predictions)")
         logger.info("Downloading LMSCNet predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["lmscnet_predictions/*"],
                           local_dir=root / "lmscnet_predictions", local_dir_use_symlinks=False)
     if args.object_bank or args.all:
-        _ensure_url_configured(HF_REPO_DATA, "Datasets (object bank)")
         logger.info("Downloading object bank from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["object_bank/*"],
                           local_dir=root / "object_bank", local_dir_use_symlinks=False)
     if args.synthetic_pool:
-        _ensure_url_configured(DATAPORT_URL, "Synthetic pool (IEEE DataPort)")
         logger.info("Synthetic pool '%s' is hosted on IEEE DataPort.", args.synthetic_pool)
         logger.info("  -> %s", DATAPORT_URL)
         logger.info(

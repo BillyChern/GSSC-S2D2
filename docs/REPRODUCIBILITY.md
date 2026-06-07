@@ -114,11 +114,22 @@ matches SCPNet's published 36.7% test mIoU exactly.
 
 ## Random seeds and retrain variance
 
-The headline run uses **seed 42** for both data shuffling and parameter
-initialization. The seed is passed via `--seed 42` (default in
-`scripts/train.py`).
+**Seed 42 is the verified reproducible recipe for a from-scratch retrain, not
+a property of the released headline checkpoint.** The released 38.54% val
+checkpoint was trained on the original repository **without seeding** and is
+therefore **not bit-reproducible by design**. A from-scratch retrain on the
+published codebase with `--seed 42` (the default in `scripts/train.py` and
+`src/gssc/training/train_scene_completion.py`, applied to Python `random`,
+`numpy`, and `torch` via `torch.manual_seed(args.seed)`) lands at **38.05% val
+1-step mIoU**, within the expected variance band of the release (see *Expected
+retrain variance* below). Reproduce the headline result via the **per-class
+delta of S²D² over the SCPNet base under the same spconv build**, not the
+absolute number. The headline configuration `configs/train/31k_mf.yaml` sets
+`batch_size: 4`; the original 38.54%/39.2% trajectory used `batch_size=2`
+unseeded, so its exact trajectory cannot be replayed, but `batch_size=4` with a
+fixed seed converges in distribution to the paper number.
 
-We use a single seed throughout the paper. **This matches the prevailing
+We use a single seed for the published retrain recipe. **This matches the prevailing
 SemanticKITTI SSC reporting convention** — every method in the paper's main
 hidden-test results table (LMSCNet, SSA-SC, JS3C-Net, SCPNet, TALoS) likewise
 reports a single

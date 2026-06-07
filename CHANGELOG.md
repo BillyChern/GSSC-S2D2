@@ -91,9 +91,8 @@ always a **MAJOR** bump, even if the API is identical.
   — sibling training configs at `batch_size: 2` so both BEV-source
   protocols can be retrained simultaneously on a shared GPU0 for
   end-to-end codebase validation.
-- `scripts/dump_js3c_predictions.py` — ported from internal
-  `tools/dump_alt_base/dump_js3c_xsrc.py`; `--js3c-repo PATH` is now a
-  CLI argument (no hardcoded path).
+- `scripts/dump_js3c_predictions.py` — `--js3c-repo PATH` is a CLI
+  argument (no hardcoded path).
 - `tests/test_js3c_base.py` — four tests covering predictions reader,
   D4 TTA symmetry on JS3C inputs, cold-diffusion forward determinism,
   and the `scpnet_pred_dir` deprecation alias.

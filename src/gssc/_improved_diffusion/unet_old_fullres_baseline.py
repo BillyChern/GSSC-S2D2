@@ -1,3 +1,21 @@
+"""
+Old full-resolution baseline 3D U-Net (legacy/dead — NOT the released architecture).
+
+DEPRECATED RESEARCH VARIANT — kept only for research reference.
+The S2D2 denoiser described in the paper is a DENSE ``Conv3d`` 3D U-Net with
+additive conditioning + AdaGN, implemented in ``src/gssc/models/s2d2_unet.py``
+(``SceneCompletionUNetSparse``; the ``sparse_full`` model_type). This module is
+an early full-resolution baseline prototype reached only through the unused
+``old`` branch of ``script_util.py``; it is not wired to any shipped config and
+does not correspond to the paper's method.
+
+NOTE: This baseline originally depended on a private ``autoencoder.simpleAE``
+package that is not part of the public release. The import is guarded below so
+the module stays parse-/import-clean like the other retained V2/V3 prototypes;
+the ``encoder_config`` branch that needs ``Encoder`` is unreachable from any
+shipped path and will raise a clear error if exercised without that package.
+"""
+
 import math
 from abc import abstractmethod
 
@@ -5,7 +23,12 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from autoencoder.simpleAE import Encoder
+
+try:  # Legacy private dependency, absent from the public release.
+    from autoencoder.simpleAE import Encoder
+except ImportError:  # pragma: no cover - dead research-baseline path
+    Encoder = None
+
 from spconv.pytorch.conv import SparseConv3d, SubMConv3d
 from spconv.pytorch.core import SparseConvTensor
 from spconv.pytorch.modules import SparseSequential
