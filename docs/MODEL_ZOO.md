@@ -56,14 +56,26 @@ released checkpoints; SCPNet uses the same training recipe with
 | `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.73 | **26.72** | **+3.99** | `configs/train/js3c_real.yaml`    |
 | (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.37** | `configs/train/31k_mf.yaml`       |
 
+> **Note on the "Architecture family" column.** This column describes the
+> **frozen base model** (the predictor S²D² corrects), not the S²D² denoiser
+> itself. The S²D² denoiser is a **dense `Conv3d` U-Net for every row**
+> regardless of the base's architecture (see the "Architecture note" section
+> below). So "Sparse 3D CNN" / "2D CNN (dense)" / "Point + voxel hybrid" refer
+> to LMSCNet / JS3C-Net / SCPNet, not to the released checkpoint's denoiser.
+
 Each cross-base checkpoint subdir is ~265 MB total (~140 MB for the single
-`model_ema.safetensors` alone). Evaluators differ across rows: the
-LMSCNet and JS3C-Net deltas are measured under the official
-`semantic-kitti-api`; the SCPNet delta uses our internal `SSCMetrics`
-evaluator (+0.31 pp internal/official gap, documented in the paper's
-supplementary validation-protocol table). The JS3C-Net row also has a
-derived-BEV deploy-protocol number (**24.32**) under
-`eval/js3c_val_realistic.yaml`:
+`model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.37) and LMSCNet
+(12.10 → 16.59, +4.49) deltas in the table are measured end-to-end under the
+official `semantic-kitti-api`. The JS3C-Net table number (22.73 → **26.72**,
++3.99) is the **paper protocol** (preprocessed GT BEV fed to S²D², scored with
+the paper's internal `SSCMetrics` evaluator); the honest derived-BEV
+deploy-protocol number under the official `semantic-kitti-api` is **24.32**
+(see below). The +0.31 pp internal/official evaluator gap documented in the
+paper's supplementary validation-protocol table applies to that JS3C paper row
+(internal vs official scoring of the same GT-BEV protocol), not to SCPNet —
+SCPNet's 38.54 is an official `semantic-kitti-api` number everywhere it
+appears. The JS3C-Net derived-BEV deploy-protocol number (**24.32**) is
+produced by `eval/js3c_val_realistic.yaml`:
 - `eval/js3c_val_paper.yaml` reproduces the **26.72%** number by loading
   preprocessed GT BEV via the config key `bev_source: gt` (set in
   `configs/eval/js3c_val_paper.yaml`; it is a YAML key, not a CLI flag). The

@@ -168,5 +168,6 @@ python scripts/download_assets.py --checkpoints
 | Synthetic pool 57K (Tab. V) | `data/synthetic_pool_57K/` | ~220 GB (approx.) |
 | Pretrained checkpoints | `data/checkpoints/` | ~4 GB |
 | **Total (eval-only, SCPNet headline)** | | **~135 GB** |
-| **Total (eval-only, +cross-base JS3C)** | | **~189 GB** |
+| **Total (eval-only, +cross-base JS3C)** | | **~189 GB** (135 GB SCPNet subset + 54 GB JS3C-Net) |
+| **Total (eval-only, +cross-base LMSCNet)** | | **~175 GB** (135 GB SCPNet subset + 40 GB LMSCNet real-only) |
 | **Total (full retrain, 31K)** | | **~375 GB** |

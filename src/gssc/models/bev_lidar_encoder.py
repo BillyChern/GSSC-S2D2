@@ -102,7 +102,12 @@ class SparseDownBlock(nn.Module):
 
 class SparseLiDAREncoder(nn.Module):
     """
-    Sparse 3D U-Net Encoder for LiDAR to BEV projection.
+    Sparse SubMConv3d LiDAR-to-BEV encoder for the BEV secondary task.
+
+    This is the genuinely-sparse (spconv) auxiliary encoder used by the BEV
+    refinement task — distinct from the dense ``Conv3d`` S²D² scene-completion
+    denoiser. The "Sparse" here refers to this encoder only, not the denoiser
+    body (see the file header).
 
     Takes sparse voxel grid (256×256×32) and outputs dense BEV features (256×256×C).
 

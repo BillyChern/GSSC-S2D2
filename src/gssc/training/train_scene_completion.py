@@ -3116,7 +3116,9 @@ def main():
                                  'v2_full', 'v2_lite', 'v3_full', 'v3_ablation',
                                  'v3_coarse2fine', 'v3_c2f_ablation',
                                  'v4_continuous', 'v4_factored', 'v5_ve'],
-                        help='exp_1: full/lite (dense Conv3d), exp_2: sparse_full/sparse_lite (spconv), '
+                        help='exp_1: full/lite (dense Conv3d), '
+                             'exp_2: sparse_full/sparse_lite (dense Conv3d denoiser + spconv auxiliary LiDAR encoder; '
+                             '"sparse" names the aux LiDAR encoder, NOT the denoiser body), '
                              'S4: mimo_full/mimo_lite (PaSCo-style MIMO with N decoder heads), '
                              'V2: v2_full/v2_lite (FiLM conditioning + multi-scale aux BEV, no cascade), '
                              'V3: v3_full (internal BEV + sparse FiLM), v3_ablation (internal BEV only), '

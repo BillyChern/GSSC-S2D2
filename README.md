@@ -112,6 +112,7 @@ On full SemanticKITTI **val** seq 08 (note: val numbers below, distinct from the
 git clone https://github.com/BillyChern/GSSC-S2D2.git && cd GSSC-S2D2
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
+#    ^ CUDA 11.8 users: use spconv-cu118==2.3.8 instead (see the spconv note below)
 
 # 2. Pull pretrained checkpoint + SCPNet predictions
 #    URLs come online on paper acceptance; until then the script prints
@@ -152,6 +153,11 @@ Once the released assets are in place, that is the whole pipeline. Expected outp
   ...
 ============================================================
 ```
+
+<sub>The per-class lines above are an abbreviated, illustrative excerpt; the
+**38.54 % val mIoU** is the anchor number to check against. The eval script
+prints the full 19-class table at runtime, so the exact log format may evolve
+across releases — match on the mIoU value, not the verbatim layout.</sub>
 
 <sub>Note: the `IoU_cmpl` 52.66 % here is on **val** seq 08, distinct from the 58.8–59.0 % `IoU<sub>cmpl</sub>` reported on the **hidden test** in the headline table above — the same val-vs-test split flagged for the mIoU column.</sub>
 

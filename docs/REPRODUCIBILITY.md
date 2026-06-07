@@ -37,8 +37,7 @@ filesystem (`/`) is a 30 GB Docker overlay, eval will crash with
 `OSError: 0 written` around frame 1 000.
 
 **Mitigation:** point `--data-root` at a path on a large persistent
-volume (typical `/mnt/data`, `/data`, or `/home/<user>/datasets`),
-not on the overlay-fs root. The tooling persists predictions under
+volume (typically `/mnt/data` or `/data`), not on the overlay-fs root. The tooling persists predictions under
 `<data-root>/predictions/<config-name>/`, so this directory must have
 ~50 GB free for D4 TTA and ~10 GB free for the 1-step path.
 

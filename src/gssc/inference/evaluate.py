@@ -93,6 +93,80 @@ def _resolve_config(config: str) -> dict:
     return yaml.safe_load(cfg_path.read_text())
 
 
+def _run_step_sweep(
+    checkpoint: str,
+    config: str,
+    data_root: str,
+    step_values: list[int],
+    output: str | None = None,
+    gpu: str = "0",
+    tta: str | None = None,
+    metrics: list[str] | None = None,
+    keep_predictions: bool = False,
+) -> dict:
+    """Run :func:`run_evaluation` once per N and aggregate per-N mIoU.
+
+    Drives the list-valued ``correction_steps`` step sweep (e.g.
+    ``eval/step_sweep`` -> tab:step_reduction). Each N reuses the full
+    single-N pipeline via a recursive :func:`run_evaluation` call with an
+    explicit ``steps=N`` override, so the generate + scoring logic is not
+    duplicated.
+
+    Args:
+        step_values: Correction-step counts to sweep, in run order.
+        output: If set, the aggregated sweep JSON is written here; per-N JSON
+            dumps are skipped (only the summary is persisted).
+        (other args mirror :func:`run_evaluation`.)
+
+    Returns:
+        Mapping with a ``"sweep"`` key (``{N: per-N metric dict}``), a
+        ``"mIoU_by_steps"`` convenience map (``{N: mIoU}``), plus the metrics
+        of the best-mIoU N hoisted to the top level for downstream consumers.
+    """
+    logger.info("Step sweep over correction_steps=%s", step_values)
+    sweep: dict[int, dict] = {}
+    miou_by_steps: dict[int, float] = {}
+    for n in step_values:
+        logger.info("=== Step sweep: N=%d ===", n)
+        per_n = run_evaluation(
+            checkpoint=checkpoint,
+            config=config,
+            data_root=data_root,
+            output=None,  # avoid clobbering the aggregate JSON per-N
+            gpu=gpu,
+            steps=n,
+            tta=tta,
+            metrics=metrics,
+            keep_predictions=keep_predictions,
+        )
+        sweep[n] = per_n
+        if "mIoU" in per_n:
+            miou_by_steps[n] = per_n["mIoU"]
+
+    logger.info("Step sweep summary (correction_steps -> mIoU):")
+    for n in step_values:
+        if n in miou_by_steps:
+            logger.info("  N=%-4d %6.2f %%", n, miou_by_steps[n])
+
+    # Hoist the best-mIoU run's metrics to the top level so callers that read
+    # ``metrics["mIoU"]`` (e.g. scripts/eval.py) still get a sensible scalar.
+    result: dict = {}
+    if miou_by_steps:
+        best_n = max(miou_by_steps, key=miou_by_steps.get)
+        result.update(sweep[best_n])
+        result["best_steps"] = best_n
+    result["sweep"] = sweep
+    result["mIoU_by_steps"] = miou_by_steps
+
+    if output:
+        out_path = Path(output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(result, indent=2, default=str))
+        logger.info("Wrote step-sweep metrics to %s", out_path)
+
+    return result
+
+
 def run_evaluation(
     checkpoint: str,
     config: str,
@@ -122,7 +196,12 @@ def run_evaluation(
 
     Returns:
         Mapping from metric name (``"mIoU"``, ``"IoU_cmpl"``, per-class
-        ``"IoU_<class>"``) to percentage value.
+        ``"IoU_<class>"``) to percentage value. When the config sets
+        ``correction_steps`` to a *list* (and no ``--steps`` override is
+        given), the pipeline runs once per N and returns the step-sweep
+        mapping from :func:`_run_step_sweep` instead: a ``"sweep"`` key
+        (``{N: per-N metrics}``), a ``"mIoU_by_steps"`` map, and the
+        best-mIoU run's metrics hoisted to the top level.
 
     Raises:
         FileNotFoundError: If the checkpoint or data root is missing.
@@ -138,9 +217,27 @@ def run_evaluation(
 
     cfg = _resolve_config(config)
     sequences = str(cfg.get("sequences", "08"))
-    n_steps = steps if steps is not None else int(
-        cfg.get("correction_steps", cfg.get("algo2_steps", 1))
-    )
+
+    # Step-sweep support: a config may set ``correction_steps`` to a *list* of
+    # N values (e.g. eval/step_sweep.yaml reproduces tab:step_reduction). When
+    # no explicit ``--steps`` override is given, run the full pipeline once per
+    # N, aggregate the per-N mIoU, and return a sweep mapping. A scalar config
+    # (or any ``--steps`` override) keeps the single-N path below.
+    cfg_steps = cfg.get("correction_steps", cfg.get("algo2_steps", 1))
+    if steps is None and isinstance(cfg_steps, (list, tuple)):
+        return _run_step_sweep(
+            checkpoint=checkpoint,
+            config=config,
+            data_root=data_root,
+            step_values=[int(n) for n in cfg_steps],
+            output=output,
+            gpu=gpu,
+            tta=tta,
+            metrics=metrics,
+            keep_predictions=keep_predictions,
+        )
+
+    n_steps = steps if steps is not None else int(cfg_steps)
     tta_mode = tta if tta is not None else str(cfg.get("tta", "none"))
 
     logger.info("Eval config: %s", config)
