@@ -7,7 +7,7 @@ Users who want to regenerate predictions from scratch can run
 ``scripts/dump_js3c_predictions.py`` (which depends on a local clone of the
 upstream JS3C-Net repo).
 
-The reader API mirrors :mod:`gssc.models.scpnet_base` for consistency: a
+The reader API mirrors the sibling :mod:`gssc.models.lmscnet_base` reader: a
 small free function that reads a per-frame ``.npy`` file and returns a
 ``(256, 256, 32)`` ``int64`` array of 20-class semantic labels.
 

@@ -12,7 +12,7 @@ Architecture:
 - 3D U-Net with residual blocks
 - BEV conditioning: expanded along Z axis and embedded
 - LiDAR conditioning: sparse binary voxels embedded
-- Time conditioning: FiLM (scale + shift) after GroupNorm
+- Time conditioning: AdaGN-style affine after GroupNorm (FiLM-on-GroupNorm; matches the paper's AdaGN)
 """
 
 import math

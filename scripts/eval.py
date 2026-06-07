@@ -50,7 +50,7 @@ def main() -> None:
         "--metrics",
         nargs="+",
         default=["miou", "completion_iou", "per_class"],
-        help="Metric set: miou, completion_iou, per_class, safety, dwiou",
+        help="Metric set: miou, completion_iou, per_class",
     )
     parser.add_argument(
         "--keep-predictions",

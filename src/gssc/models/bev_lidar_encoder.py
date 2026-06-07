@@ -1,5 +1,7 @@
 """
 Sparse 3D U-Net LiDAR Encoder for BEV Feature Extraction
+(BEV second-task encoder; genuinely sparse SubMConv3d -- distinct from the
+dense Conv3d + additive/AdaGN S2D2 scene-completion denoiser in s2d2_unet.py)
 
 Uses Submanifold Sparse Convolutions (spconv) to efficiently process
 sparse LiDAR voxel grids and project to BEV features.

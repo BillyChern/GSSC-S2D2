@@ -141,7 +141,7 @@ Once the released assets are in place, that is the whole pipeline. Expected outp
  GSSC-S2D2 evaluation: eval/val_1step
 ============================================================
   mIoU       : 38.54 %
-  Completion : 52.66 %
+  Completion : 52.66 %   (val seq 08)
 ------------------------------------------------------------
  Per-class IoU:
   bicycle               24.30 %

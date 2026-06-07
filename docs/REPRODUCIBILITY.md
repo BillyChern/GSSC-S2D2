@@ -64,7 +64,7 @@ uv pip install spconv-cu126==2.3.8
 
 The frozen SCPNet base shipped with this repo was originally trained with
 `spconv 1.0`, which has been removed from PyPI and does not build on modern
-CUDA. We pin `spconv-cu126==2.3.8` (v2) and apply kernel-shape patches so the
+CUDA. We pin `spconv-cu126==2.3.8` (cu126 wheel is forward-compatible with the CUDA 12.8 runtime) (v2) and apply kernel-shape patches so the
 v1 weights load correctly:
 
 * In `spconv 1.0`, layers that share an `indice_key` reuse the FIRST layer's

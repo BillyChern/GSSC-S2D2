@@ -102,7 +102,6 @@ The qualitative panels in Fig. 4 of the paper were produced from an internal
 DDIM sampling, logit-domain semantic encoding). That reimplementation lives
 in our internal development codebase and is intentionally out of scope for
 this release: it is not part of any reported leaderboard number, depends on
-private utility code we cannot ship, and it would distract from the three
-pillars the released codebase already supports. We do **not** report DiffSSC
+private utility code we cannot ship, and it would distract from the parts of the framework this release actually ships. We do **not** report DiffSSC
 numbers in the leaderboard table because the original authors did not submit;
 the reimplementation served visualization only.

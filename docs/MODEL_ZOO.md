@@ -165,7 +165,7 @@ model = SceneCompletionUNetSparse(
     lidar_in_channels=1,
     ssc_cond_channels=20,
 )
-model.load_state_dict(state, strict=False)
+model.load_state_dict(state, strict=False)  # EMA files omit some buffers; for exact reproduction prefer scripts/eval.py
 model.train(False)
 ```
 

@@ -28,6 +28,8 @@ class BEVDiffusionModel(nn.Module):
 
     Combines:
         - Sparse 3D U-Net for LiDAR → BEV feature extraction
+          (BEV second-task aux encoder; genuinely sparse SubMConv3d -- NOT the dense
+          Conv3d + additive/AdaGN S2D2 denoiser in s2d2_unet.py)
         - D3PM discrete diffusion process
         - 2D U-Net denoiser with self-conditioning
 
