@@ -44,7 +44,7 @@ instructions. Layout matches the JS3C-Net dataset described below
 
 Precomputed for val seq 08 + train seqs 00-07, 09, 10 + test 11-21 + the 31K
 and 57K synthetic pools. Required to reproduce the v1.1.0 cross-base headline
-(paper Tab. III cross-base rows, +3.99 pp val mIoU)::
+(paper tab:portable_s2d2 cross-base rows, +3.99 pp val mIoU)::
 
     python scripts/download_assets.py --js3c-predictions
 
@@ -68,7 +68,7 @@ paper's supplementary validation-protocol table and future use.
 Alternatively, dump locally from your own JS3C-Net clone:
 
 ```bash
-git clone --depth 1 https://github.com/yangyangyang127/JS3C-Net external/JS3C-Net
+git clone --depth 1 https://github.com/yanx27/JS3C-Net external/JS3C-Net
 bash external/JS3C-Net/download_pretrained.sh
 python scripts/dump_js3c_predictions.py \
     --js3c-repo external/JS3C-Net \
@@ -81,9 +81,9 @@ See `docs/REPRODUCIBILITY.md` for the full cross-base protocol.
 
 ## LMSCNet predictions (required for the LMSCNet cross-base row, ~40 GB)
 
-LMSCNet (Roldão et al., 2020) is the third structurally different frozen base
+LMSCNet (Roldão et al., 3DV 2020) is the third structurally different frozen base
 (a ~0.4M-param 2D-CNN SSC model) used for the cross-base demonstration in
-paper Tab. III. The LMSCNet+S²D² row lifts val mIoU **12.10 → 16.59 (+4.49 pp)**
+paper tab:portable_s2d2. The LMSCNet+S²D² row lifts val mIoU **12.10 → 16.59 (+4.49 pp)**
 and is trained on **real frames only** (sequences 00-07, 09, 10 + val 08).
 
 Hosted predictions are released upon paper publication. Until then, dump them
@@ -97,10 +97,12 @@ git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet
 # 2. Dump per-frame base predictions. Real-only reproduction needs the
 #    train split + val 08; the hidden test (11-21) is optional.
 python scripts/dump_lmscnet_predictions.py \
-    --weights external/LMSCNet/pretrained_models/LMSCNet.pth \
+    --lmscnet-repo external/LMSCNet \
+    --checkpoint external/LMSCNet/pretrained_models/LMSCNet.pth \
     --semantickitti_root data/SemanticKITTI \
     --output_dir data/lmscnet_predictions \
     --sequences 00 01 02 03 04 05 06 07 08 09 10
+#   (--weights is accepted as an alias for --checkpoint.)
 ```
 
 Once the mirror is live, the same predictions can be fetched with:

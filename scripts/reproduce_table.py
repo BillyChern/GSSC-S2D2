@@ -14,7 +14,7 @@ Examples::
     python scripts/reproduce_table.py tab:perclass
     python scripts/reproduce_table.py tab:main_results
     python scripts/reproduce_table.py tab:cross_base_js3c   # cross-base v1.1.0
-    python scripts/reproduce_table.py tab:cross_base_lmsc   # cross-base v1.2.0
+    python scripts/reproduce_table.py tab:cross_base_lmsc   # cross-base v2.1.0
     python scripts/reproduce_table.py tab:bev_results
 """
 
@@ -60,7 +60,7 @@ BASE_DUMPER_INFO: dict[str, dict[str, str]] = {
         "name": "JS3C-Net",
         "dumper": "scripts/dump_js3c_predictions.py",
         "extra_setup": (
-            "   git clone --depth 1 https://github.com/yangyangyang127/JS3C-Net external/JS3C-Net\n"
+            "   git clone --depth 1 https://github.com/yanx27/JS3C-Net external/JS3C-Net\n"
             "   bash external/JS3C-Net/download_pretrained.sh"
         ),
         "args_hint": "--js3c-repo external/JS3C-Net",

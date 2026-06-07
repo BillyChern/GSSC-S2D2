@@ -39,7 +39,7 @@ convention, kept as-is).
 | `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 39.0 (N=4 plain) / 39.2 (+D4 TTA) / 38.8 (N=1 real-time) | `configs/train/31k_mf.yaml` | ~265 MB |
 | `gssc_mf/gssc_57k_mf_step40000/` | Tab. V (negative result) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
 
-## Cross-base portability (paper Tab. III, three frozen-base rows)
+## Cross-base portability (paper tab:portable_s2d2, three frozen-base rows)
 
 The same recipe and hyperparameters applied to three structurally different
 frozen base models lifts every one of them. LMSCNet and JS3C-Net ship as
@@ -107,7 +107,7 @@ Reproduction requires `data/js3cnet_predictions/` (54 GB; download via
 Pyramid checkpoints do not use EMA; each subdir ships
 `model.safetensors` + `config.json` only.
 
-## BEV second task (Tab. XV)
+## BEV second task (tab:bev_results)
 
 | Subdir | Task | Pipeline mIoU | Config |
 |---|---|---|---|
@@ -134,13 +134,10 @@ in the class name refers only to the **auxiliary LiDAR encoder**
 (`SparseLiDAREncoder`, which uses spconv), **not** to the denoiser body. The
 denoiser does not use sparse convolutions.
 
-> Note for authors: the GSSC paper's supplementary architecture-ablation table
-> contains a self-contradicting row that labels the headline denoiser "Sparse
-> 3D U-Net". That row is inconsistent with the paper's own Method section and
-> supplementary hyperparameter table (both dense Conv3d, ~35M) and should be
-> corrected in GSSC-paper. The released code is authoritative here and matches
-> the dense Conv3d specification; it does not ship any sparse-SubMConv3d
-> denoiser variant.
+The released code matches the paper's Method section and Fig. 3 caption exactly:
+a dense `Conv3d` denoiser (~35M parameters) with additive L/B conditioning and
+AdaGN-style time conditioning at every level. No sparse-SubMConv3d denoiser
+variant is shipped.
 
 ## How to use
 

@@ -129,7 +129,7 @@ quantity that should reproduce cleanly across retrains is therefore the
 **per-class delta of S²D² over the SCPNet base under the same spconv build**,
 not the absolute mIoU.
 
-Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step):
+Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step; this retrain's own measurements, which differ slightly from the released checkpoint's paper tab:perclass):
 car +1.6, motorcycle +4.7, truck +5.9, other-veh +6.4, person +1.6,
 bicyclist +4.2, motorcyclist +4.4, road +1.3, parking +1.1, traffic-sign −0.2;
 **overall +2.37%**. Per-class behavior is preserved against SCPNet base, and
@@ -190,7 +190,7 @@ All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already e
 ## JS3C-Net cross-base reproduction (paper Tab. III, cross-base rows)
 
 Stacking S²D² on the older point-voxel hybrid base JS3C-Net (Yan et al.,
-ICCV 2021) lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the
+AAAI 2021) lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the
 official `semantic-kitti-api` evaluator. This row is independent of the
 SCPNet base port; the only spconv-version concern is matching JS3C-Net's
 own published recipe, which the dump script handles for you.
@@ -199,7 +199,7 @@ own published recipe, which the dump script handles for you.
 
 ```bash
 # Tested at commit 7df4d0c66 on the public master branch.
-git clone --depth 1 https://github.com/yangyangyang127/JS3C-Net external/JS3C-Net
+git clone --depth 1 https://github.com/yanx27/JS3C-Net external/JS3C-Net
 # Follow JS3C-Net's README to download log/JS3C-Net-kitti/model_*.pth + args.txt
 bash external/JS3C-Net/download_pretrained.sh
 ```
@@ -268,7 +268,7 @@ source for new synth-augmented experiments.
 
 ## LMSCNet cross-base reproduction (paper Tab. III, third base; v2.1.0)
 
-LMSCNet (Roldão et al., CVPRW 2020) is the third structurally different
+LMSCNet (Roldão et al., 3DV 2020) is the third structurally different
 frozen base alongside SCPNet (sparse 3D CNN) and JS3C-Net (point-voxel
 hybrid); it is a lightweight (~0.4M-param) dense 2D-CNN that treats the
 Z=32 axis as input channels. Stacking S²D² on it lifts val mIoU
@@ -295,6 +295,7 @@ python scripts/dump_lmscnet_predictions.py \
     --semantickitti_root data/SemanticKITTI \
     --output_dir data/lmscnet_predictions \
     --sequences 00 01 02 03 04 05 06 07 08 09 10
+#   (--weights is accepted as an alias for --checkpoint.)
 ```
 
 (The dumper reads only `.bin` voxel-occupancy files — no `.label` ground

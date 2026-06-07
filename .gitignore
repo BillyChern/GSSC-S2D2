@@ -75,5 +75,6 @@ assets/*_20[0-9][0-9][0-9][0-9][0-9][0-9]_*.pdf
 
 # External submodule scratch outputs
 external/**/scores.txt
+external/**/imgui.ini
 # Local-only PR description drafts
 .pr_*.md

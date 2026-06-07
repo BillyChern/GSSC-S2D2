@@ -41,7 +41,12 @@ def timestep_embedding(timesteps: torch.Tensor, dim: int, max_period: int = 1000
 
 class ResidualBlock3DSparse(nn.Module):
     """
-    3D Residual Block with FiLM time conditioning.
+    3D Residual Block with AdaGN-style time conditioning.
+
+    The timestep embedding is projected to per-channel (scale, shift) and
+    applied as an affine transform after the second GroupNorm
+    (``h = w * h + b``); this AdaGN form is equivalent to FiLM-on-GroupNorm
+    and matches the paper's "time-AdaGN" terminology (Sec. III.D, Fig. 3).
 
     BEV and LiDAR conditioning are added externally (multi-scale).
     This block only handles the voxel features and time embedding.
@@ -77,7 +82,7 @@ class ResidualBlock3DSparse(nn.Module):
             # Default: Additive conditioning
             self.lidar_proj = nn.Conv3d(cond_channels, out_channels, kernel_size=3, padding=1)
 
-        # Second conv with FiLM
+        # Second conv with AdaGN-style time conditioning (time-AdaGN)
         self.norm2 = nn.GroupNorm(min(num_groups, out_channels), out_channels)
         self.time_fc = nn.Linear(time_emb_dim, out_channels * 2)
         self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1)
@@ -114,7 +119,8 @@ class ResidualBlock3DSparse(nn.Module):
             # Default: Additive — h + proj(lidar)
             h = h + self.lidar_proj(lidar_emb)
 
-        # Second conv with FiLM
+        # AdaGN-style time conditioning: GroupNorm followed by time-derived
+        # per-channel affine (w * h + b). Equivalent to FiLM-on-GroupNorm.
         h = self.norm2(h)
         wb = self.time_fc(t_emb)
         w, b = wb.chunk(2, dim=-1)

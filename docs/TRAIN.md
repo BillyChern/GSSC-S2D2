@@ -45,7 +45,7 @@ python -m gssc.training.train_pyramid_s3 --resolution 256
 
 Stage 1 (32^3) is fast and can be merged into the S2 launcher.
 
-## JS3C-Net cross-base (paper Tab. III rows 90-91; v1.1.0)
+## JS3C-Net cross-base (paper tab:portable_s2d2; v1.1.0)
 
 Requires the JS3C-Net predictions dataset (`docs/REPRODUCIBILITY.md` covers
 the one-time dumper setup):
@@ -58,13 +58,13 @@ python scripts/train.py train/js3c_real --gpu 0,1
   head OOMs on voxel-derived fake point clouds; see paper supp § H).
 * 100K iterations, batch size 4, lr 1e-4, ema_decay 0.9999.
 * `cold_diffusion=true` (REQUIRED for cross-base — deterministic forward).
-* Expected val mIoU at step 100K: **26.72 %** (paper Tab. III row 91, +3.99 pp
+* Expected val mIoU at step 100K: **26.72 %** (paper tab:portable_s2d2, +3.99 pp
   over the JS3C-Net base 22.73 %).
 
 Wall-clock: ~37 hours on 2× H100 80 GB (identical to the headline 31k_mf run).
 Output: `outputs/train_js3c_real/step_{5000,...,100000}.pt`.
 
-## LMSCNet cross-base (paper Tab. III, third base; v2.1.0)
+## LMSCNet cross-base (paper tab:portable_s2d2, third base; v2.1.0)
 
 Requires the LMSCNet predictions dataset (`docs/REPRODUCIBILITY.md` covers
 the one-time dumper setup):
@@ -81,8 +81,8 @@ python scripts/train.py train/lmscnet_real --gpu 0,1
 * `bev_from_base=true` — the seed BEV is height-pooled from LMSCNet's own 3D
   prediction (never GT BEV), so the val number below is already an at-deploy,
   derived-BEV result.
-* Expected val mIoU at step 100K: **16.59 %** (paper Tab. III, +4.49 pp over
-  the LMSCNet base 12.10 %) under the official `semantic-kitti-api` evaluator.
+* Expected val mIoU at step 100K: **16.59 %** (paper tab:portable_s2d2, +4.49 pp
+  over the LMSCNet base 12.10 %) under the official `semantic-kitti-api` evaluator.
 
 Wall-clock: ~37 hours on 2× H100 80 GB (identical to the headline 31k_mf run).
 Output: `outputs/train_lmscnet_real/step_{5000,...,100000}.pt`.

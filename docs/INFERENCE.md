@@ -41,7 +41,7 @@ python scripts/eval.py eval/val_1step \
     --data-root /path/to/your_data
 ```
 
-## JS3C-Net cross-base (paper Tab. III, cross-base rows)
+## JS3C-Net cross-base (paper tab:portable_s2d2, cross-base rows)
 
 ```bash
 # Verify the JS3C predictions are dumped (see docs/REPRODUCIBILITY.md)
@@ -57,7 +57,7 @@ python scripts/eval.py eval/js3c_val_d4tta \
 ```
 
 > **GT BEV vs. derived BEV.** `eval/js3c_val_1step` uses `bev_source: gt`
-> (the paper Tab. III protocol), which conditions on a ground-truth BEV
+> (the paper tab:portable_s2d2 protocol), which conditions on a ground-truth BEV
 > oracle, so its 26.72 % is a paper-protocol number, not an at-deploy result.
 > For the honest deployment number use `eval/js3c_val_realistic`
 > (`bev_source: derived`), which lands at **24.32 %** under the official
@@ -71,7 +71,7 @@ JS3C predictions:
 python scripts/reproduce_table.py tab:cross_base_js3c
 ```
 
-## LMSCNet cross-base (paper Tab. III, third base)
+## LMSCNet cross-base (paper tab:portable_s2d2, third base)
 
 ```bash
 # Verify the LMSCNet predictions are dumped (see docs/REPRODUCIBILITY.md)

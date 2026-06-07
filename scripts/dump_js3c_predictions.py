@@ -11,7 +11,7 @@ Clone the upstream JS3C-Net repo (tested at commit
 ``7df4d0c66`` on the public ``master``) and download the pretrained
 SemanticKITTI checkpoint following its README::
 
-    git clone --depth 1 https://github.com/yangyangyang127/JS3C-Net external/JS3C-Net
+    git clone --depth 1 https://github.com/yanx27/JS3C-Net external/JS3C-Net
     bash external/JS3C-Net/download_pretrained.sh  # populates log/JS3C-Net-kitti/
 
 Then run this script from anywhere inside the GSSC-S2D2 venv::

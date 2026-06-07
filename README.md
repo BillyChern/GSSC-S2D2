@@ -38,9 +38,9 @@ The paper organises the method into three pillars that share one structured-sour
 
 ### What's new
 
-* **2026-05-26** — Release **v2.1.0**: LMSCNet third-base support. Stacked on the lightweight dense-2D-CNN LMSCNet (Roldao et al., CVPRW 2020), one-step S²D² lifts val mIoU **12.10 % → 16.59 % (+4.49 pp)** under the official `semantic-kitti-api` evaluator (paper Tab. III row 90). Together with the v1.1.0 JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point-voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`. Release surface focused: 22 unreferenced development modules removed.
+* **2026-05-26** — Release **v2.1.0**: LMSCNet third-base support. Stacked on the lightweight dense-2D-CNN LMSCNet (Roldao et al., 3DV 2020), one-step S²D² lifts val mIoU **12.10 % → 16.59 % (+4.49 pp)** under the official `semantic-kitti-api` evaluator (paper tab:portable_s2d2). Together with the v1.1.0 JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point-voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`. Release surface focused: 22 unreferenced development modules removed.
 * **2026-05-18** — Release **v2.0.0**: deprecate the `--bev_from_scpnet` flag in favour of `--bev_from_base`. `base_pred_dir` is now the preferred config key (used by the JS3C-Net and LMSCNet bases); `scpnet_pred_dir` is still accepted and remains in the SCPNet configs for backward compatibility. Headline numerical artefacts unchanged.
-* **2026-05-14** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the point-voxel hybrid JS3C-Net (Yan et al., ICCV 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official `semantic-kitti-api` evaluator. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
+* **2026-05-14** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the point-voxel hybrid JS3C-Net (Yan et al., AAAI 2021), one-step S²D² lifts val mIoU **22.73 % → 26.72 % (+3.99 pp)** under the official `semantic-kitti-api` evaluator. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
 * **2026-04** — Public release **v1.0.0**. Headline checkpoint released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU.
 * **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.09 % mIoU.
 * **2026-03** — **39.2 %** mIoU on SemanticKITTI hidden test leaderboard — paper under review.
@@ -69,7 +69,7 @@ The paper organises the method into three pillars that share one structured-sour
 
 | Method | Test mIoU | IoU<sub>cmpl</sub> | Δ over SCPNet | Notes |
 |---|---:|---:|---:|---|
-| LMSCNet | 17.6 | 56.7 | — | CVPRW 2020 |
+| LMSCNet | 17.6 | 56.7 | — | 3DV 2020 |
 | JS3C-Net | 23.8 | 56.6 | — | AAAI 2021 |
 | SSA-SC | 23.5 | 58.8 | — | IROS 2021 |
 | SCPNet (base) | 36.7 | 56.1 | baseline | CVPR 2023 (frozen base) |
@@ -160,7 +160,7 @@ For the full hidden-test leaderboard submission flow (39.2 % via *D*<sub>4</sub>
 S²D² is not specific to 3D scene completion. The same correction-sampling
 mechanism, applied to a 2D BEV diffusion model, refines the SCPNet-derived
 base BEV map and lifts BEV mIoU from **34.27 %** (base-derived) to
-**36.09 %** (S²D²-refined) on val seq 08 — paper Sec. 4 Tab. XV.
+**36.09 %** (S²D²-refined) on val seq 08 — paper tab:bev_results.
 
 ```bash
 # After step 3 above (predictions already downloaded), eval the BEV pipeline:
@@ -228,7 +228,7 @@ The repo ships the exact recipe + checkpoint for every reported number.
 | `tab:step_reduction` (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
 | `tab:data_scaling` (data scaling) | `python scripts/reproduce_table.py tab:data_scaling` | 0K/10K/20K/31K/57K SF retrains |
 | `tab:train_timesteps_curriculum` (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` | T=10/50/100-skewed/100-uniform |
-| `tab:portable_s2d2` (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` | **36.09 %** BEV mIoU |
+| `tab:bev_results` (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` | **36.09 %** BEV mIoU |
 
 Full mapping with anticipated wall-clock and disk requirements: **[docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md)**.
 

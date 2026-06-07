@@ -39,10 +39,10 @@ to test.
 ## JS3C-Net cross-base (added v1.1.0)
 
 The v1.1.0 cross-base reproduction (paper Tab. III rows 90-91, +3.99 pp val
-mIoU) uses JS3C-Net (Yan et al. 2021, ICCV) as a *prediction-only*
+mIoU) uses JS3C-Net (Yan et al. 2021, AAAI) as a *prediction-only*
 alternative base.
 
-* Original: [JS3C-Net](https://github.com/yangyangyang127/JS3C-Net) (ICCV 2021)
+* Original: [JS3C-Net](https://github.com/yanx27/JS3C-Net) (AAAI 2021)
 * Our reader: `src/gssc/models/js3c_base.py` — a thin per-frame `.npy` loader.
   No JS3C model code is shipped because we release the predictions
   themselves as a separate dataset (`data/js3cnet_predictions/`, mirrors
