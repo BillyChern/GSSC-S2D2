@@ -160,7 +160,7 @@ python scripts/download_assets.py --checkpoints
 |---|---|---|
 | SemanticKITTI raw | `data/SemanticKITTI/` | 80 GB |
 | Voxel labels | (inside `data/SemanticKITTI/`) | 1.6 GB |
-| SCPNet predictions | `data/scpnet_predictions/` | 178 GB (real + synth) |
+| SCPNet predictions | `data/scpnet_predictions/` | 178 GB (real + synth; only the val+test subset, ~135 GB, is needed for the eval-only headline below) |
 | JS3C-Net predictions (v1.1.0) | `data/js3cnet_predictions/` | 54 GB |
 | LMSCNet predictions (v2.1.0) | `data/lmscnet_predictions/` | ~40 GB (real-only) |
 | Object bank | `data/object_bank/` | 448 MB |

@@ -47,13 +47,14 @@ def timestep_embedding(timesteps: torch.Tensor, dim: int, max_period: int = 1000
 
 class ResidualBlock3D(nn.Module):
     """
-    3D Residual Block with FiLM time conditioning and additive BEV/LiDAR conditioning.
+    3D Residual Block with AdaGN time conditioning (FiLM-on-GroupNorm; paper
+    time-AdaGN) and additive BEV/LiDAR conditioning.
 
     Architecture (paper Fig. 3):
     1. GroupNorm → SiLU → 3D Conv
     2. + BEV embedding (via 3D conv)
     3. + LiDAR embedding (via 3D conv)
-    4. GroupNorm → FiLM(t) → SiLU → 3D Conv
+    4. GroupNorm → AdaGN(t) [FiLM-on-GroupNorm; paper time-AdaGN] → SiLU → 3D Conv
     5. Residual connection
     """
 
@@ -75,9 +76,9 @@ class ResidualBlock3D(nn.Module):
         self.bev_proj = nn.Conv3d(cond_channels, out_channels, kernel_size=3, padding=1)
         self.lidar_proj = nn.Conv3d(cond_channels, out_channels, kernel_size=3, padding=1)
 
-        # Second half with FiLM
+        # Second half with AdaGN (FiLM-on-GroupNorm; paper time-AdaGN)
         self.norm2 = nn.GroupNorm(min(num_groups, out_channels), out_channels)
-        self.time_fc = nn.Linear(time_emb_dim, out_channels * 2)  # w and b for FiLM
+        self.time_fc = nn.Linear(time_emb_dim, out_channels * 2)  # w and b for AdaGN (FiLM-on-GroupNorm)
         self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size=3, padding=1)
 
         # Skip connection
@@ -103,10 +104,10 @@ class ResidualBlock3D(nn.Module):
         # Add conditioning
         h = h + self.bev_proj(bev_emb) + self.lidar_proj(lidar_emb)
 
-        # Second conv with FiLM
+        # Second conv with AdaGN (FiLM-on-GroupNorm; paper time-AdaGN)
         h = self.norm2(h)
 
-        # FiLM: w * h + b
+        # AdaGN (FiLM-on-GroupNorm): w * h + b
         wb = self.time_fc(t_emb)  # [B, out_channels * 2]
         w, b = wb.chunk(2, dim=-1)  # [B, out_channels] each
         w = w[:, :, None, None, None]  # [B, C, 1, 1, 1]

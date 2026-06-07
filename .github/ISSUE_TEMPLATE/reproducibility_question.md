@@ -14,7 +14,7 @@ assignees: BillyChern
 ```bash
 # Exact command from the README / docs/REPRODUCIBILITY.md you ran:
 python scripts/eval.py eval/val_1step \
-    --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt
+    --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 ```
 
 ## Result you got
@@ -27,7 +27,7 @@ python scripts/eval.py eval/val_1step \
 ## Have you verified the asset hashes?
 
 ```bash
-sha256sum data/checkpoints/gssc_31k_mf_step40000.pt
+sha256sum data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 ```
 
 Expected: see [docs/MODEL_ZOO.md](../docs/MODEL_ZOO.md).

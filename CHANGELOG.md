@@ -188,8 +188,10 @@ always a **MAJOR** bump, even if the API is identical.
   model.
 - `uv.lock` (99 packages) for byte-deterministic visitor installs.
 - Validated per-class IoU table (V4 numbers) inlined in the README.
-- README "Reproduction status" panel showing per-claim verification
-  state (✅ verified / 🟡 in progress / ⏳ asset-blocked).
+- README reproduction-status disclosure: inline "verified end-to-end"
+  labels on the reported numbers plus an "Assets are not yet public"
+  NOTE clarifying that the labels record local maintainer measurements,
+  not what a fresh asset-blocked clone can run today.
 - Disk-layout warning in `docs/REPRODUCIBILITY.md` for visitors on
   Docker hosts with small overlay-fs root volumes.
 

@@ -39,11 +39,15 @@ done
 The pyramid is trained once, offline, before scene-completion training:
 
 ```bash
-python -m gssc.training.train_pyramid_s2 --resolution 64
-python -m gssc.training.train_pyramid_s3 --resolution 256
+python -m gssc.training.train_pyramid_s2
+python -m gssc.training.train_pyramid_s3
 ```
 
-Stage 1 (32^3) is fast and can be merged into the S2 launcher.
+The resolution is fixed per stage (S2 = 64³, S3 = 256³) inside each module, so
+no `--resolution` flag is exposed; both accept only
+`--data-root`/`--output-dir`/`--batch-size`/`--epochs`/`--lr`/`--gpu`/`--resume`/`--num-workers`/`--no-scale-lr`/`--warmup-epochs`
+(S3 uses `--ssc-root`/`--quantized-root` in place of `--data-root`). Stage 1
+(32³) is fast and can be merged into the S2 launcher.
 
 ## JS3C-Net cross-base (paper tab:portable_s2d2; v1.1.0)
 

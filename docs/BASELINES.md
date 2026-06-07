@@ -59,6 +59,15 @@ alternative base.
 * S²D² lift on top: **26.72 %** val mIoU (+3.99 pp), real-frames-only
   training, `cold_diffusion=true` (paper supp § H).
 
+  > **Evaluator note (read before comparing the +3.99 pp delta).** The two
+  > numbers above use *different* evaluators, so the clean delta mixes
+  > protocols: the base **22.73 %** is the official `semantic-kitti-api`,
+  > whereas the lifted **26.72 %** is the paper protocol (GT BEV + internal
+  > `SSCMetrics`). The realistic-deployment, derived-BEV S²D² number under the
+  > official `semantic-kitti-api` is **24.32 %** (+1.59 pp over the 22.73 %
+  > base). The internal/official gap is +0.31 pp; see `docs/MODEL_ZOO.md` and
+  > `docs/REPRODUCIBILITY.md` for the full disclosure.
+
 Reproduction protocol: `docs/REPRODUCIBILITY.md`, section "JS3C-Net
 cross-base reproduction".
 

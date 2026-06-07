@@ -52,9 +52,9 @@ representable in `weights_only=True` mode. **Only load checkpoints from
 sources you trust** -- running an attacker-supplied `.pt` file is
 equivalent to running attacker-supplied code.
 
-Our published checkpoints are signed via SHA256 hashes documented in
-[docs/MODEL_ZOO.md](docs/MODEL_ZOO.md). Verify before loading:
+Published checkpoints will ship with SHA256 hashes documented in
+[docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) on release. Verify before loading:
 
 ```bash
-sha256sum data/checkpoints/gssc_31k_mf_step40000.pt
+sha256sum data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 ```

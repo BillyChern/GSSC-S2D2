@@ -49,7 +49,7 @@ jobs:
             echo
             echo '```bash'
             echo 'python scripts/eval.py eval/val_1step \'
-            echo '    --checkpoint data/checkpoints/gssc_31k_mf_step40000.pt'
+            echo '    --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors'
             echo '```'
           } > RELEASE_NOTES.md
 
