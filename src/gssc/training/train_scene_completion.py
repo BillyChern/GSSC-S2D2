@@ -2818,7 +2818,8 @@ class SceneCompletionTrainer:
                         # under-trained uncond model produces garbage: guided = uncond + w*(cond-uncond)
                         # amplifies noise when uncond output is random. Non-CFG sampling uses
                         # the conditional model directly, which works immediately.
-                        # TODO: Re-enable CFG after sufficient training (e.g. >50K steps).
+                        # CFG is disabled in this release configuration; conditional
+                        # sampling is the supported eval path (see docs/TRAIN.md).
                         use_cfg_at_eval = False  # Disabled: uncond model under-trained early on
 
                         if is_v5_ve and diffusion_version == 'gaussian_ve':

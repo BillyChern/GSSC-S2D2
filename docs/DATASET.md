@@ -24,14 +24,14 @@ data/SemanticKITTI/
     └── 11..21/  <-- hidden test split (no labels)
 ```
 
-Verify::
+Verify:
 
     python scripts/prepare_data.py --root data/SemanticKITTI
 
 ## SCPNet predictions (required, ~178 GB real + synth)
 
 Precomputed for val seq 08 + test seq 11..21 + the 57K synthetic pool. Lets
-users skip running SCPNet themselves::
+users skip running SCPNet themselves:
 
     python scripts/download_assets.py --predictions
 
@@ -44,7 +44,7 @@ instructions. Layout matches the JS3C-Net dataset described below
 
 Precomputed for val seq 08 + train seqs 00-07, 09, 10 + test 11-21 + the 31K
 and 57K synthetic pools. Required to reproduce the v1.1.0 cross-base headline
-(paper tab:portable_s2d2 cross-base rows, +3.99 pp val mIoU)::
+(paper tab:portable_s2d2 cross-base rows, +3.99 pp val mIoU):
 
     python scripts/download_assets.py --js3c-predictions
 
@@ -72,7 +72,7 @@ git clone --depth 1 https://github.com/yanx27/JS3C-Net external/JS3C-Net
 bash external/JS3C-Net/download_pretrained.sh
 python scripts/dump_js3c_predictions.py \
     --js3c-repo external/JS3C-Net \
-    --semantickitti_root data/SemanticKITTI/dataset \
+    --semantickitti_root data/SemanticKITTI \
     --output_dir data/js3cnet_predictions \
     --sequences 00 01 02 03 04 05 06 07 08 09 10
 ```
@@ -126,7 +126,7 @@ the full cross-base protocol.
 
 ## Object bank (required for training, 448 MB)
 
-57,789 rare-class instances across 8 classes (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk)::
+57,789 rare-class instances across 8 classes (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk):
 
     python scripts/download_assets.py --object-bank
 
@@ -139,7 +139,7 @@ instructions.
 The 31K synthetic (sparse, complete) pairs used by the headline run. Five sizes
 released for the data-scaling ablation. The full pool is mirrored to IEEE
 DataPort upon paper publication; until then the download script exits with the
-manual-download instructions::
+manual-download instructions:
 
     # Via download script (prints the manual-download note until the mirror is live):
     python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB (approx.)

@@ -10,15 +10,17 @@ Pipeline:
 
 Usage:
   # Val set (local evaluation):
-  python tools/generate_official_predictions.py --split valid --output_dir outputs/official_predictions
+  python -m gssc.inference.generate_predictions --split valid --output_dir outputs/official_predictions
 
   # Test set (leaderboard submission):
-  python tools/generate_official_predictions.py --split test --output_dir outputs/official_predictions
+  python -m gssc.inference.generate_predictions --split test --output_dir outputs/official_predictions
 
   # Then evaluate locally (val only):
-  cd semantic-kitti-api
-  python evaluate_completion.py --dataset ../Semantic_Scene_Completion_LiDAR/datasets/dataset_SemanticKITTI_SSC \
-      --predictions ../Semantic_Scene_Completion_LiDAR/outputs/official_predictions --split valid
+  python external/semantic_kitti_api/evaluate_completion.py \
+      --dataset data/SemanticKITTI --predictions outputs/official_predictions --split valid
+
+This module is normally driven through scripts/infer.py and scripts/eval.py
+(see docs/MODEL_ZOO.md); the commands above are the equivalent direct entry points.
 """
 
 import argparse

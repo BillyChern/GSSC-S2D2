@@ -1,6 +1,13 @@
 """
 3D U-Net V3 for Scene Completion: Internal BEV + Sparse 3D FiLM
 
+DEPRECATED RESEARCH VARIANT — NOT the released architecture.
+The S2D2 denoiser described in the paper is a DENSE ``Conv3d`` 3D U-Net with
+additive conditioning + AdaGN, implemented in ``s2d2_unet.py``
+(``SceneCompletionUNetSparse``; the ``sparse_full`` model_type). This V3 module is
+an exploratory FiLM / internal-BEV prototype kept only for research reference; it
+is not used by any shipped config and does not correspond to the paper's method.
+
 Key differences from V2 (scene_unet_v2.py):
 - V2 FAILED because SparseLiDAREncoder outputs are ~99% zeros at level0.
   FiLM conditioning becomes identity at zero voxels → no spatial guidance

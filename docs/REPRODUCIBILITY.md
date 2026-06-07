@@ -37,7 +37,7 @@ filesystem (`/`) is a 30 GB Docker overlay, eval will crash with
 `OSError: 0 written` around frame 1 000.
 
 **Mitigation:** point `--data-root` at a path on a large persistent
-volume (typical `/workspace`, `/mnt/data`, or `/home/<user>/data`),
+volume (typical `/mnt/data`, `/data`, or `/home/<user>/datasets`),
 not on the overlay-fs root. The tooling persists predictions under
 `<data-root>/predictions/<config-name>/`, so this directory must have
 ~50 GB free for D4 TTA and ~10 GB free for the 1-step path.
@@ -200,10 +200,15 @@ paper.
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` | See MODEL_ZOO.md |
-| Tab. VIII (DW-IoU) | `python scripts/eval.py eval/val_1step --checkpoint ... --metrics dwiou` | per-T_w table |
-| Tab. XII (training timesteps) | Per-row checkpoint under `gssc_timesteps/` | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
+| Tab. XII (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` (multi-row; run each `gssc_timesteps/` checkpoint via `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`) | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
 | Tab. XV (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` | 36.09 BEV mIoU |
-| Fig. 4 / Fig. 5 (qualitative) | See `examples/` notebooks | — |
+| Fig. 4 / Fig. 5 (qualitative) | Single-frame qualitative demo: `examples/quickstart.ipynb` | — |
+
+> **Tab. VIII (DW-IoU) is out of scope for this release.** The distance-weighted
+> IoU / safety-metric subset is not shipped with the public evaluator (the
+> `--metrics` argument selects `miou`, `completion_iou`, and `per_class` only);
+> like the SGSC from-noise regime, it is intentionally excluded from the
+> reproducible surface here.
 
 All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`). Cross-base reproduction additionally requires `data/js3cnet_predictions/` (JS3C-Net) or `data/lmscnet_predictions/` (LMSCNet); see the dedicated sections below.
 
@@ -229,7 +234,7 @@ bash external/JS3C-Net/download_pretrained.sh
 ```bash
 python scripts/dump_js3c_predictions.py \
     --js3c-repo external/JS3C-Net \
-    --semantickitti_root data/SemanticKITTI/dataset \
+    --semantickitti_root data/SemanticKITTI \
     --output_dir data/js3cnet_predictions \
     --sequences 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21
 ```

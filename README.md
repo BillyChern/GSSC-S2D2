@@ -28,7 +28,7 @@ The paper organises the method into three pillars that share one structured-sour
 * **S²D²** — *Structured Source Discrete Diffusion*: the one-step deployment regime that refines a frozen base SSC model's prediction — the headline 38.54 % val / 39.2 % test result and the focus of this repository.
 
 > [!IMPORTANT]
-> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100 (the added correction step costs 107 ms; 1000 / 107 ≈ 9.3 FPS), and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5** over the frozen SCPNet base (36.7 → 39.2). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU** over the base-derived BEV: 34.27 % → 36.09 % on val seq 08).
+> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100 (the added correction step costs 107.2 ms; 1000 / 107.2 ≈ 9.33 FPS), and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5** over the frozen SCPNet base (36.7 → 39.2). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.82 BEV mIoU** over the base-derived BEV: 34.27 % → 36.09 % on val seq 08).
 
 > [!TIP]
 > **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for the 3-command reproduction recipe of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once the base predictions are local.
@@ -81,7 +81,7 @@ The paper organises the method into three pillars that share one structured-sour
 <sub><b>Source.</b> The mIoU and IoU<sub>cmpl</sub> values for the baseline rows, and the IoU<sub>cmpl</sub> values for the S²D² <i>N</i>=1 / <i>N</i>=4 rows, are the corresponding entries on the public SemanticKITTI SSC test leaderboard; they are not all reported in our paper. Only the S²D² mIoU column and the headline 39.2 % / 59.0 % <i>D</i><sub>4</sub>-TTA row are paper-reported (supplementary Tab. of test results).</sub>
 
 On full SemanticKITTI **val** seq 08 (note: val numbers below, distinct from the 39.2 % **hidden-test** figure above):
-* **val: 38.54 %** mIoU (single correction step, $N{=}1$)  — verified end-to-end by the maintainers (requires the released assets)
+* **val: 38.54 %** mIoU (single correction step, $N{=}1$) — verified end-to-end by the maintainers (requires the released assets); the *same* $N{=}1$ setting scores **38.8 %** on the hidden test (the 38.54 val / 38.8 test pair in the test table above)
 * **val: 38.73 %** mIoU (4-step correction sampling + *D*<sub>4</sub> TTA) → the same recipe scores **39.2 %** on the hidden test
 * **+2.37** absolute over our SCPNet base (36.17 % val)
 
@@ -305,7 +305,7 @@ Style conventions, commit conventions, and hard requirements: **[CONTRIBUTING.md
 ## FAQ
 
 **Q. Why use this over running SCPNet alone?**
-A. We add **+2.5 absolute mIoU** on the hidden test set with a single extra forward pass (107 ms marginal added-step latency on H100 — the same figure as the 9.33 FPS marginal throughput quoted above, since 1000 / 107 ≈ 9.3), no extra training data beyond what SCPNet was trained on, and no distillation. The gains concentrate on safety-critical rare classes — for the **released checkpoint** these are motorcyclist +8.2, other-vehicle +6.4, truck +5.9, bicyclist +4.2 on val seq 08 (paper `tab:perclass`). (`docs/REPRODUCIBILITY.md` reports a slightly different motorcyclist delta of +4.4 measured on an independent spconv-v2 retrain rather than the released checkpoint; the other three deltas match exactly.)
+A. We add **+2.5 absolute mIoU** on the hidden test set with a single extra forward pass (107.2 ms marginal added-step latency on H100 — the same figure as the 9.33 FPS marginal throughput quoted above, since 1000 / 107.2 ≈ 9.33), no extra training data beyond what SCPNet was trained on, and no distillation. The gains concentrate on safety-critical rare classes — for the **released checkpoint** these are motorcyclist +8.2, other-vehicle +6.4, truck +5.9, bicyclist +4.2 on val seq 08 (paper `tab:perclass`). (`docs/REPRODUCIBILITY.md` reports a slightly different motorcyclist delta of +4.4 measured on an independent spconv-v2 retrain rather than the released checkpoint; the other three deltas match exactly.)
 
 **Q. Can S²D² be applied to a different base SSC network?**
 A. Yes — the framework is base-model-agnostic. We provide a working SCPNet integration; switching to JS3C-Net or any other base requires only providing per-voxel categorical predictions as `x_src`. See [docs/BASELINES.md](docs/BASELINES.md).

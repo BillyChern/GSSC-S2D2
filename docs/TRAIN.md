@@ -95,8 +95,10 @@ python scripts/train.py train/bev_secondary --gpu 0
 
 ## Resume
 
-Every config supports `--resume_from <checkpoint>`:
+The trainer accepts `--resume <checkpoint>` (forwarded through
+`scripts/train.py` to `gssc.training.train_scene_completion`); it restores the
+model, optimizer, scheduler, and step counter:
 
 ```bash
-python scripts/train.py train/31k_mf --resume_from outputs/train_31k_mf/step_50000.pt
+python scripts/train.py train/31k_mf --resume outputs/train_31k_mf/step_50000.pt
 ```

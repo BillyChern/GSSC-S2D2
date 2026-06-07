@@ -1,6 +1,13 @@
 """
 3D U-Net V2 for Scene Completion: FiLM Conditioning + Multi-Scale Auxiliary BEV
 
+DEPRECATED RESEARCH VARIANT — NOT the released architecture.
+The S2D2 denoiser described in the paper is a DENSE ``Conv3d`` 3D U-Net with
+additive conditioning + AdaGN, implemented in ``s2d2_unet.py``
+(``SceneCompletionUNetSparse``; the ``sparse_full`` model_type). This V2 module is
+an exploratory FiLM-conditioning prototype kept only for research reference; it is
+not used by any shipped config and does not correspond to the paper's method.
+
 Key differences from scene_unet_sparse.py (V1):
 - FiLM conditioning (scale + shift) instead of additive dual-projection
   Inspired by DiffSSC's multiplicative conditioning (minkunet.py:420-497)
