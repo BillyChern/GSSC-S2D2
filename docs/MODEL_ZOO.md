@@ -40,7 +40,7 @@ convention, kept as-is).
 
 | Subdir | Paper section | Val mIoU | Test mIoU | Config | Size (full subdir) |
 |---|---|---|---|---|---|
-| `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 39.0 (N=4 plain) / 39.2 (+D4 TTA) / 38.8 (N=1 real-time) | `configs/train/31k_mf.yaml` | ~265 MB |
+| `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 39.0 (N=1, no TTA) / 39.2 (+D4 TTA) | `configs/train/31k_mf.yaml` | ~265 MB |
 | `gssc_mf/gssc_57k_mf_step40000/` | Tab. V (negative result) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
 
 ## Cross-base portability (paper tab:portable_s2d2, three frozen-base rows)
@@ -53,8 +53,16 @@ released checkpoints; SCPNet uses the same training recipe with
 | Subdir | Base | Architecture family | Base mIoU | +S²D² mIoU | Δ | Config |
 |---|---|---|---|---|---|---|
 | `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 12.10 | **16.59** | **+4.49** | `configs/train/lmscnet_real.yaml` |
-| `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.73 | **26.72** | **+3.99** | `configs/train/js3c_real.yaml`    |
+| `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.73 | **26.05** | **+3.32** | `configs/train/js3c_real.yaml`    |
 | (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.37** | `configs/train/31k_mf.yaml`       |
+
+> **JS3C-Net number convention.** The JS3C row leads with the **paper headline
+> 26.05 % (+3.32 pp)** under the official `semantic-kitti-api` with GT BEV. The
+> same GT-BEV protocol scored with the paper's *internal* `SSCMetrics` reads
+> **26.72 % (+3.99 pp)** — a footnote / ship-both number, **not** the headline.
+> The reproducible at-deploy number with derived BEV under the official api is
+> **24.32 % (+1.59 pp)** (what `scripts/reproduce_table.py` yields end-to-end).
+> See the JS3C-Net evaluator notes below.
 
 > **Note on the "Architecture family" column.** This column describes the
 > **frozen base model** (the predictor S²D² corrects), not the S²D² denoiser
@@ -66,29 +74,37 @@ released checkpoints; SCPNet uses the same training recipe with
 Each cross-base checkpoint subdir is ~265 MB total (~140 MB for the single
 `model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.37) and LMSCNet
 (12.10 → 16.59, +4.49) deltas in the table are measured end-to-end under the
-official `semantic-kitti-api`. The JS3C-Net table number (22.73 → **26.72**,
-+3.99) is the **paper protocol** (preprocessed GT BEV fed to S²D², scored with
-the paper's internal `SSCMetrics` evaluator); the honest derived-BEV
-deploy-protocol number under the official `semantic-kitti-api` is **24.32**
-(see below). The +0.31 pp internal/official evaluator gap documented in the
-paper's supplementary validation-protocol table applies to that JS3C paper row
-(internal vs official scoring of the same GT-BEV protocol), not to SCPNet —
+official `semantic-kitti-api`.
+
+The JS3C-Net row carries three numbers; the table leads with the official
+headline:
+
+- **26.05 % (+3.32 pp)** — **paper headline**: GT BEV fed to S²D², scored under
+  the official `semantic-kitti-api`. This is the canonical JS3C cross-base
+  number.
+- **26.72 % (+3.99 pp)** — the *same* GT-BEV protocol scored with the paper's
+  **internal `SSCMetrics`** evaluator. This is a supplementary / ship-both
+  footnote number, **not** the headline; it differs from the 26.05 % official
+  figure by the internal/official evaluator gap documented in the paper's
+  supplementary validation-protocol table.
+- **24.32 % (+1.59 pp)** — the reproducible **at-deploy** number with derived
+  BEV under the official `semantic-kitti-api`. This is what
+  `scripts/reproduce_table.py` yields end-to-end and the most honest
+  deploy-time figure.
+
 SCPNet's 38.54 is an official `semantic-kitti-api` number everywhere it
-appears. The JS3C-Net derived-BEV deploy-protocol number (**24.32**) is
-produced by `eval/js3c_val_realistic.yaml`:
-- `eval/js3c_val_paper.yaml` reproduces the **26.72%** number by loading
+appears. The JS3C-Net derived-BEV deploy number (**24.32**) is produced by
+`eval/js3c_val_realistic.yaml`:
+- `eval/js3c_val_paper.yaml` reproduces the GT-BEV protocol by loading
   preprocessed GT BEV via the config key `bev_source: gt` (set in
-  `configs/eval/js3c_val_paper.yaml`; it is a YAML key, not a CLI flag). The
-  paper used the internal SSCMetrics evaluator; GSSC-S2D2 reports the same
-  protocol via the official semantic-kitti-api, which differs by the +0.31 pp
-  internal/official gap documented in the paper's supplementary
-  validation-protocol table (so the released number lands near the paper claim
-  once that delta is applied).
+  `configs/eval/js3c_val_paper.yaml`; it is a YAML key, not a CLI flag). Under
+  the official `semantic-kitti-api` this lands at the **26.05 %** headline; the
+  paper's internal SSCMetrics on the identical protocol reads **26.72 %**.
 - `eval/js3c_val_realistic.yaml` uses derived BEV (topmost-non-empty class
   from JS3C-Net's 3D prediction, selected via the config key
-  `bev_source: derived`) — the honest deploy-time number. The released
-  JS3C+S²D² model was trained with derived BEV, so this protocol matches its
-  training distribution.
+  `bev_source: derived`) — the honest deploy-time number (**24.32 %**). The
+  released JS3C+S²D² model was trained with derived BEV, so this protocol
+  matches its training distribution.
 
 Reproduction requires `data/js3cnet_predictions/` (54 GB; download via
 `scripts/download_assets.py --js3c-predictions` or dump locally via
@@ -124,7 +140,7 @@ Reproduction requires `data/js3cnet_predictions/` (54 GB; download via
 |---|---|---|
 | `pyramid/pyramid_s1/` | 32×32×4    | Coarse scene generator |
 | `pyramid/pyramid_s2/` | 64×64×8    | Mid-resolution refiner |
-| `pyramid/pyramid_s3/` | 256×256×32 | Final-resolution generator (used to produce the 31K synthetic pool) |
+| `pyramid/pyramid_s3/` | 256×256×32 | Final-resolution generator (used to produce the 32,039-frame synthetic pool; `31K` is the historical `synthetic_pool_31K` dir label) |
 
 Pyramid checkpoints do not use EMA; each subdir ships
 `model.safetensors` + `config.json` only.
@@ -202,7 +218,8 @@ Or via the eval entry point::
 python scripts/eval.py eval/val_1step \
     --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
-# JS3C-Net cross-base (26.72% val, +3.99 pp)
+# JS3C-Net cross-base (26.05% val official-api GT-BEV headline, +3.32 pp;
+# 26.72% internal SSCMetrics footnote; 24.32% at-deploy derived BEV)
 python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 
@@ -215,6 +232,6 @@ Or reproduce a specific paper table with the all-in-one driver::
 
 ```bash
 python scripts/reproduce_table.py tab:perclass             # 38.54% val
-python scripts/reproduce_table.py tab:cross_base_js3c      # 26.72% val
+python scripts/reproduce_table.py tab:cross_base_js3c      # 26.05% val (official-api GT-BEV headline)
 python scripts/reproduce_table.py tab:bev_results          # 36.09% BEV
 ```

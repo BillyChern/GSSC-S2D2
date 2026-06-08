@@ -39,9 +39,9 @@ to test.
 
 ## JS3C-Net cross-base (added v1.1.0)
 
-The v1.1.0 cross-base reproduction (paper tab:portable_s2d2, +3.99 pp val
-mIoU) uses JS3C-Net (Yan et al. 2021, AAAI) as a *prediction-only*
-alternative base.
+The v1.1.0 cross-base reproduction (paper tab:portable_s2d2, +3.32 pp val
+mIoU under the official `semantic-kitti-api` with GT BEV) uses JS3C-Net
+(Yan et al. 2021, AAAI) as a *prediction-only* alternative base.
 
 * Original: [JS3C-Net](https://github.com/yanx27/JS3C-Net) (AAAI 2021)
 * Our reader: `src/gssc/models/js3c_base.py` — a thin per-frame `.npy` loader.
@@ -56,17 +56,24 @@ alternative base.
   unlike SCPNet, JS3C-Net's own upstream codebase loads cleanly under its
   published spconv 1.x stack, so we run the dumper against an unmodified clone
   rather than bundling any base-model dependency in this release).
-* S²D² lift on top: **26.72 %** val mIoU (+3.99 pp), real-frames-only
-  training, `cold_diffusion=true` (paper supp § H).
+* S²D² lift on top (paper headline): **26.05 %** val mIoU (+3.32 pp) under the
+  official `semantic-kitti-api` with GT BEV, real-frames-only training,
+  `cold_diffusion=true` (paper supp § H).
 
-  > **Evaluator note (read before comparing the +3.99 pp delta).** The two
-  > numbers above use *different* evaluators, so the clean delta mixes
-  > protocols: the base **22.73 %** is the official `semantic-kitti-api`,
-  > whereas the lifted **26.72 %** is the paper protocol (GT BEV + internal
-  > `SSCMetrics`). The realistic-deployment, derived-BEV S²D² number under the
-  > official `semantic-kitti-api` is **24.32 %** (+1.59 pp over the 22.73 %
-  > base). The internal/official gap is +0.31 pp; see `docs/MODEL_ZOO.md` and
-  > `docs/REPRODUCIBILITY.md` for the full disclosure.
+  > **Three JS3C numbers (read before comparing any delta).** The JS3C-Net
+  > cross-base result carries three figures:
+  > - **26.05 % (+3.32 pp)** — **paper headline**: GT BEV scored under the
+  >   official `semantic-kitti-api` (the base 22.73 % is the same official
+  >   evaluator, so this delta is protocol-consistent).
+  > - **26.72 % (+3.99 pp)** — the *same* GT-BEV protocol scored with the
+  >   paper's **internal `SSCMetrics`**. A footnote / ship-both number, **not**
+  >   the headline.
+  > - **24.32 % (+1.59 pp)** — the reproducible **at-deploy** number with
+  >   derived BEV under the official `semantic-kitti-api` (what
+  >   `scripts/reproduce_table.py` yields).
+  >
+  > See `docs/MODEL_ZOO.md` and `docs/REPRODUCIBILITY.md` for the full
+  > disclosure.
 
 Reproduction protocol: `docs/REPRODUCIBILITY.md`, section "JS3C-Net
 cross-base reproduction".

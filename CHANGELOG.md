@@ -31,6 +31,21 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+### Docs — JS3C-Net cross-base number reconciliation
+- Aligned every JS3C-Net cross-base figure across README, docs, MODEL_ZOO,
+  REPRODUCIBILITY, BASELINES, TRAIN, INFERENCE, and the release-asset MANIFEST
+  to the canonical three-number scheme:
+  - **26.05 % (+3.32 pp)** — paper headline, GT BEV + official `semantic-kitti-api`.
+  - **26.72 % (+3.99 pp)** — same GT-BEV protocol under the paper's internal
+    SSCMetrics; demoted to a footnote / ship-both number (it was previously
+    mislabelled as the official-evaluator headline in several places).
+  - **24.32 % (+1.59 pp)** — reproducible at-deploy number, derived BEV +
+    official `semantic-kitti-api` (what `scripts/reproduce_table.py` yields).
+- NOTE [USER: confirm which JS3C number leads the public headline — paper uses
+  official+GT-BEV 26.05]. The docs now lead every JS3C row with 26.05 to match
+  the paper canonical; flip to 24.32 if the public headline should instead lead
+  with the at-deploy derived-BEV figure.
+
 ## [2.1.0] — 2026-05-26
 
 ### Added — LMSCNet third-base support
@@ -51,7 +66,7 @@ always a **MAJOR** bump, even if the API is identical.
 
 ### Migration guide (v1.x → v2.0.0)
 - Replace every occurrence of `--bev_from_scpnet` (CLI) and `bev_from_scpnet:` (YAML) with `--bev_from_base` / `bev_from_base:`. The semantic is identical; only the name changed (see v1.1.1 entry below for the rename rationale).
-- The headline numerical artefacts are unaffected: this is a CLI/API surface cleanup, not a model or recipe change. `38.54 % val mIoU` (SCPNet headline) and `26.72 % val mIoU` (JS3C-Net cross-base) reproduce byte-identically from the same checkpoints.
+- The headline numerical artefacts are unaffected: this is a CLI/API surface cleanup, not a model or recipe change. `38.54 % val mIoU` (SCPNet headline) and the JS3C-Net cross-base result (`26.05 %` paper headline under the official `semantic-kitti-api` with GT BEV; `26.72 %` internal SSCMetrics footnote; `24.32 %` at-deploy derived BEV) reproduce byte-identically from the same checkpoints.
 
 ## [1.1.1] — 2026-05-18
 
@@ -64,11 +79,13 @@ always a **MAJOR** bump, even if the API is identical.
 
 - **Cross-base headline** (paper Tab. III rows 90–91): stacking S²D² on
   the older point-voxel hybrid base JS3C-Net (Yan et al. 2021) lifts val
-  mIoU **22.73 % → 26.72 % (+3.99 pp)** under the paper protocol (GT BEV
-  + internal SSCMetrics, see supp tab:supp_b6_val), or **22.73 % →
-  24.32 % (+1.59 pp)** under the realistic-deployment protocol (derived
-  BEV + official `semantic-kitti-api`). Both paths reproduce end-to-end
-  from the released checkpoint:
+  mIoU **22.73 % → 26.05 % (+3.32 pp)** under the paper headline protocol
+  (GT BEV + official `semantic-kitti-api`). The same GT-BEV protocol scored
+  with the paper's internal SSCMetrics reads **26.72 % (+3.99 pp)** (a
+  footnote ship-both number, see supp tab:supp_b6_val), and the reproducible
+  at-deploy number under the realistic-deployment protocol (derived BEV +
+  official `semantic-kitti-api`) is **22.73 % → 24.32 % (+1.59 pp)**. All
+  three paths reproduce end-to-end from the released checkpoint:
   ```
   python scripts/dump_js3c_predictions.py --js3c-repo external/JS3C-Net …
   python scripts/eval.py eval/js3c_val_paper     …  # paper protocol  → ~26.7 %

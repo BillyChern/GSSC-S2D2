@@ -43,8 +43,10 @@ instructions. Layout matches the JS3C-Net dataset described below
 ## JS3C-Net predictions (required for cross-base reproduction, ~54 GB)
 
 Precomputed for val seq 08 + train seqs 00-07, 09, 10 + test 11-21 + the 31K
-and 57K synthetic pools. Required to reproduce the v1.1.0 cross-base headline
-(paper tab:portable_s2d2 cross-base rows, +3.99 pp val mIoU):
+and 57K synthetic pools (the `31K` pool is the 32,039-frame `synthetic_31k`
+dir). Required to reproduce the v1.1.0 cross-base headline (paper
+tab:portable_s2d2 cross-base rows; official `semantic-kitti-api` headline
+22.73 → 26.05, +3.32 pp val mIoU):
 
     python scripts/download_assets.py --js3c-predictions
 
@@ -61,9 +63,11 @@ data/js3cnet_predictions/
 └── README.md
 ```
 
-The cross-base headline (26.72 % val mIoU) is trained on real frames only;
-the synth subdirs are shipped for the synth-augmentation analysis in the
-paper's supplementary validation-protocol table and future use.
+The cross-base headline (26.05 % val mIoU under the official `semantic-kitti-api`
+with GT BEV; 26.72 % under the paper's internal SSCMetrics on the same protocol;
+24.32 % at-deploy with derived BEV) is trained on real frames only; the synth
+subdirs are shipped for the synth-augmentation analysis in the paper's
+supplementary validation-protocol table and future use.
 
 Alternatively, dump locally from your own JS3C-Net clone:
 
@@ -136,10 +140,14 @@ instructions.
 
 ## Synthetic pool (optional, 120-220 GB)
 
-The 31K synthetic (sparse, complete) pairs used by the headline run. Five sizes
-released for the data-scaling ablation. The full pool is mirrored to IEEE
-DataPort upon paper publication; until then the download script exits with the
-manual-download instructions:
+The headline synthetic pool holds **32,039** synthetic (sparse, complete) pairs.
+Pooled with the **19,130** real SemanticKITTI training frames this gives a
+**51,169-frame** total training set — a **2.67× expansion** over the real-only
+split. (The `31K` shorthand in the variant/directory names below is the
+historical config-dir label `synthetic_pool_31K` / `--synthetic-pool 31K`; the
+actual frame count is 32,039.) Five sizes are released for the data-scaling
+ablation. The full pool is mirrored to IEEE DataPort upon paper publication;
+until then the download script exits with the manual-download instructions:
 
     # Via download script (prints the manual-download note until the mirror is live):
     python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB (approx.)

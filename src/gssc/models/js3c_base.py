@@ -11,7 +11,9 @@ The reader API mirrors the sibling :mod:`gssc.models.lmscnet_base` reader: a
 small free function that reads a per-frame ``.npy`` file and returns a
 ``(256, 256, 32)`` ``int64`` array of 20-class semantic labels.
 
-Reproducing paper Tab. III row 91 (26.72 % val mIoU)::
+Reproducing paper Tab. III row 91 (26.05 % val mIoU, official
+``semantic-kitti-api`` with GT BEV; 26.72 % under the paper's internal
+SSCMetrics; 24.32 % at-deploy with derived BEV)::
 
     python scripts/dump_js3c_predictions.py --js3c-repo external/JS3C-Net \
         --semantickitti_root data/SemanticKITTI/dataset \

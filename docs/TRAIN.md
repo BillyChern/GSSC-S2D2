@@ -64,10 +64,11 @@ python scripts/train.py train/js3c_real --gpu 0,1
   synthetic pool" section in `docs/REPRODUCIBILITY.md`).
 * 100K iterations, batch size 4, lr 1e-4, ema_decay 0.9999.
 * `cold_diffusion=true` (REQUIRED for cross-base — deterministic forward).
-* Expected val mIoU at step 100K: **26.72 %** (paper tab:portable_s2d2, +3.99 pp
-  over the JS3C-Net base 22.73 %, paper protocol: GT BEV + internal SSCMetrics;
-  realistic-deploy derived-BEV number is 24.32 % under the official
-  `semantic-kitti-api`).
+* Expected val mIoU at step 100K: **26.05 %** (paper tab:portable_s2d2 headline,
+  +3.32 pp over the JS3C-Net base 22.73 %, official `semantic-kitti-api` with
+  GT BEV). The same GT-BEV protocol under the paper's internal SSCMetrics reads
+  26.72 % (+3.99 pp, footnote); the reproducible at-deploy derived-BEV number is
+  24.32 % (+1.59 pp) under the official `semantic-kitti-api`.
 
 Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock; identical to the headline 31k_mf run).
 Output: `outputs/train_js3c_real/step_{5000,...,100000}.pt`.

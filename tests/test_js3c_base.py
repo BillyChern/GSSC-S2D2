@@ -71,8 +71,9 @@ def test_d4_tta_symmetry_on_js3c_predictions() -> None:
     """``invert_d4 . apply_d4`` is the identity on every D4 element.
 
     Critical for the v1.1.0 cross-base reproduction: the same D4 pipeline
-    must round-trip JS3C predictions losslessly, otherwise the +3.99 pp val
-    delta is contaminated by TTA-noise rather than the correction signal.
+    must round-trip JS3C predictions losslessly, otherwise the +3.32 pp val
+    delta (official semantic-kitti-api headline) is contaminated by TTA-noise
+    rather than the correction signal.
     """
     lidar = torch.rand(1, 1, 256, 256, 32)
     base = torch.from_numpy(_make_synth_pred()).unsqueeze(0)

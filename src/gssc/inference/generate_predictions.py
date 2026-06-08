@@ -124,8 +124,10 @@ def main() -> None:
                               '3D prediction (matches `--bev_from_base` training-time '
                               'override). '
                               "'gt': load preprocessed GT BEV from `<voxel_root>/<seq>/<frame>_bev.npy`. "
-                              'Used to reproduce the paper supp tab:supp_b6_val protocol '
-                              '(JS3C-Net + S²D² val mIoU 26.72%, GT-BEV-conditioned upper bound).'))
+                              'Used to reproduce the paper GT-BEV-conditioned protocol '
+                              '(JS3C-Net + S²D² val mIoU 26.05% under the official '
+                              'semantic-kitti-api headline; 26.72% under the paper internal '
+                              'SSCMetrics, supp tab:supp_b6_val footnote).'))
     parser.add_argument('--bev_root', type=str, default=None,
                         help=('Root for GT BEV files when `--bev_source gt`. Defaults to '
                               '`<data_root>/../SemanticKITTI_3D/256` (mirrors the internal '
