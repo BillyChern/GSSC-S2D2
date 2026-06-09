@@ -66,8 +66,8 @@ mIoU under the official `semantic-kitti-api` with GT BEV) uses JS3C-Net
   >   official `semantic-kitti-api` (the base 22.73 % is the same official
   >   evaluator, so this delta is protocol-consistent).
   > - **26.72 % (+3.99 pp)** — the *same* GT-BEV protocol scored with the
-  >   paper's **internal `SSCMetrics`**. A footnote / ship-both number, **not**
-  >   the headline.
+  >   paper's **internal training-time evaluator** (`SSCMetrics`). A continuity
+  >   row in the paper, **not** the headline.
   > - **24.32 % (+1.59 pp)** — the reproducible **at-deploy** number with
   >   derived BEV under the official `semantic-kitti-api` (what
   >   `scripts/reproduce_table.py` yields).
@@ -84,7 +84,7 @@ LMSCNet (Roldão et al. 2020, 3DV) is the third structurally different frozen
 base alongside SCPNet (sparse 3D CNN) and JS3C-Net (point-voxel hybrid): a
 lightweight (~0.4M-param) dense 2D-CNN that treats the Z=32 axis as input
 channels. The v2.1.0 cross-base reproduction (paper tab:portable_s2d2, third
-base, +4.49 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
+base, +1.8 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
 
 * Original: [LMSCNet](https://github.com/cv-rits/LMSCNet) (3DV 2020)
 * Our reader: `src/gssc/models/lmscnet_base.py` — a thin per-frame `.npy`
@@ -94,12 +94,15 @@ base, +4.49 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
 * Dumper: `scripts/dump_lmscnet_predictions.py` — depends on a local clone of
   the upstream LMSCNet repo (CLI argument `--lmscnet-repo`, no hardcoded path;
   `--weights` is accepted as an alias for `--checkpoint`).
-* Released base reproduction: **12.10 %** val mIoU (paper tab:portable_s2d2,
-  base row) under the official `semantic-kitti-api` evaluator. No spconv
-  kernel-shape patches are required (LMSCNet is a plain dense 2D CNN, so there
-  is no spconv v1 → v2 weight-loading concern as with SCPNet).
-* S²D² lift on top: **16.59 %** val mIoU (+4.49 pp), real-frames-only
-  training, `cold_diffusion=true`.
+* Released base reproduction: **14.76 %** val mIoU (paper tab:portable_s2d2,
+  base row; **14.8 %** rounded), re-scored from on-disk predictions through the
+  official `semantic-kitti-api` evaluator — this supersedes the earlier 12.10 %
+  summary (on-disk artifacts are authoritative). No spconv kernel-shape patches
+  are required (LMSCNet is a plain dense 2D CNN, so there is no spconv
+  v1 → v2 weight-loading concern as with SCPNet).
+* S²D² lift on top: **16.59 %** val mIoU (paper rounds to **16.6 %**; **+1.8 pp**
+  over the 14.76 % on-disk-rescored base), real-frames-only training,
+  `cold_diffusion=true`.
 * Unlike the JS3C-Net row, LMSCNet has no GT-BEV vs. derived-BEV split: the
   seed BEV is always height-pooled from LMSCNet's own 3D prediction
   (`bev_from_base: true`, never GT BEV), so 16.59 % is already the at-deploy

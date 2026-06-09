@@ -40,7 +40,7 @@ convention, kept as-is).
 
 | Subdir | Paper section | Val mIoU | Test mIoU | Config | Size (full subdir) |
 |---|---|---|---|---|---|
-| `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 39.0 (N=1, no TTA) / 39.2 (+D4 TTA) | `configs/train/31k_mf.yaml` | ~265 MB |
+| `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 38.8 (N=1, no TTA) / 39.2 (+D4 TTA) | `configs/train/31k_mf.yaml` | ~265 MB |
 | `gssc_mf/gssc_57k_mf_step40000/` | Tab. V (negative result) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
 
 ## Cross-base portability (paper tab:portable_s2d2, three frozen-base rows)
@@ -52,16 +52,17 @@ released checkpoints; SCPNet uses the same training recipe with
 
 | Subdir | Base | Architecture family | Base mIoU | +S²D² mIoU | Δ | Config |
 |---|---|---|---|---|---|---|
-| `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 12.10 | **16.59** | **+4.49** | `configs/train/lmscnet_real.yaml` |
-| `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.73 | **26.05** | **+3.32** | `configs/train/js3c_real.yaml`    |
+| `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 14.8 | **16.6** | **+1.8** | `configs/train/lmscnet_real.yaml` |
+| `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.7 | **26.1** | **+3.3** | `configs/train/js3c_real.yaml`    |
 | (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.37** | `configs/train/31k_mf.yaml`       |
 
 > **JS3C-Net number convention.** The JS3C row leads with the **paper headline
-> 26.05 % (+3.32 pp)** under the official `semantic-kitti-api` with GT BEV. The
-> same GT-BEV protocol scored with the paper's *internal* `SSCMetrics` reads
-> **26.72 % (+3.99 pp)** — a footnote / ship-both number, **not** the headline.
+> 26.1 % (+3.3 pp)** under the official `semantic-kitti-api` (the precise eval
+> output is 26.05 %, which the paper rounds to 26.1). The same protocol scored
+> with the paper's *internal* training-time evaluator (`SSCMetrics`) reads
+> **26.7 % (+4.0 pp)** — a continuity row in the paper, **not** the headline.
 > The reproducible at-deploy number with derived BEV under the official api is
-> **24.32 % (+1.59 pp)** (what `scripts/reproduce_table.py` yields end-to-end).
+> **24.3 % (+1.6 pp)** (what `scripts/reproduce_table.py` yields end-to-end).
 > See the JS3C-Net evaluator notes below.
 
 > **Note on the "Architecture family" column.** This column describes the
@@ -73,20 +74,22 @@ released checkpoints; SCPNet uses the same training recipe with
 
 Each cross-base checkpoint subdir is ~265 MB total (~140 MB for the single
 `model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.37) and LMSCNet
-(12.10 → 16.59, +4.49) deltas in the table are measured end-to-end under the
-official `semantic-kitti-api`.
+(14.8 → 16.6, +1.8; LMSCNet base re-scored from on-disk predictions, superseding
+the earlier 12.10 → 16.59 / +4.49 summary) deltas in the table are measured
+end-to-end under the official `semantic-kitti-api`.
 
 The JS3C-Net row carries three numbers; the table leads with the official
 headline:
 
-- **26.05 % (+3.32 pp)** — **paper headline**: GT BEV fed to S²D², scored under
-  the official `semantic-kitti-api`. This is the canonical JS3C cross-base
+- **26.05 % (+3.32 pp)** — **paper headline** (the paper rounds this to
+  26.1 % / +3.3 pp): GT BEV fed to S²D², scored under the official
+  `semantic-kitti-api`. This is the canonical JS3C cross-base
   number.
-- **26.72 % (+3.99 pp)** — the *same* GT-BEV protocol scored with the paper's
-  **internal `SSCMetrics`** evaluator. This is a supplementary / ship-both
-  footnote number, **not** the headline; it differs from the 26.05 % official
-  figure by the internal/official evaluator gap documented in the paper's
-  supplementary validation-protocol table.
+- **26.72 % (+3.99 pp)** — the *same* protocol scored with the paper's
+  **internal training-time evaluator** (`SSCMetrics`). This is a continuity row
+  in the paper (rounds to 26.7 %), **not** the headline; it differs from the
+  26.05 % official figure by the internal/official evaluator gap documented in
+  the paper's supplementary validation-protocol table.
 - **24.32 % (+1.59 pp)** — the reproducible **at-deploy** number with derived
   BEV under the official `semantic-kitti-api`. This is what
   `scripts/reproduce_table.py` yields end-to-end and the most honest
@@ -149,7 +152,7 @@ Pyramid checkpoints do not use EMA; each subdir ships
 
 | Subdir | Task | Pipeline mIoU | Config |
 |---|---|---|---|
-| `bev/bev_perception_net/` | LiDAR-only BEV refinement (S²D² applied to BEV) | **36.09** (34.27 base + 1.82 refinement) | `configs/train/bev_secondary.yaml` |
+| `bev/bev_perception_net/` | LiDAR-only BEV refinement (S²D² applied to BEV) | **36.1** (34.3 base + 1.8 refinement) | `configs/train/bev_secondary.yaml` |
 | `bev/bev_direct_l3_deeper/` | Supp BEV ablation (deeper 3D-direct baseline) | n/a (ablation only) | one-off internal ablation; recipe not released (no shipped config) |
 
 ## SCPNet base (frozen)
@@ -218,12 +221,12 @@ Or via the eval entry point::
 python scripts/eval.py eval/val_1step \
     --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
-# JS3C-Net cross-base (26.05% val official-api GT-BEV headline, +3.32 pp;
-# 26.72% internal SSCMetrics footnote; 24.32% at-deploy derived BEV)
+# JS3C-Net cross-base (26.05% val official-api headline, paper rounds to 26.1/+3.3;
+# 26.72% internal training-time evaluator continuity row; 24.32% at-deploy derived BEV)
 python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 
-# LMSCNet cross-base (16.59% val, +4.49 pp)
+# LMSCNet cross-base (16.59% val, paper rounds to 16.6; +1.8 pp over the 14.76% on-disk-rescored base)
 python scripts/eval.py eval/lmscnet_val_1step \
     --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 ```
@@ -232,6 +235,6 @@ Or reproduce a specific paper table with the all-in-one driver::
 
 ```bash
 python scripts/reproduce_table.py tab:perclass             # 38.54% val
-python scripts/reproduce_table.py tab:cross_base_js3c      # 26.05% val (official-api GT-BEV headline)
-python scripts/reproduce_table.py tab:bev_results          # 36.09% BEV
+python scripts/reproduce_table.py tab:cross_base_js3c      # 26.05% val (official-api headline; paper 26.1)
+python scripts/reproduce_table.py tab:bev_results          # 36.1% BEV
 ```

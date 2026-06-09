@@ -7,8 +7,8 @@ python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc
 ```
 
 Returns 38.54% val mIoU on SemanticKITTI seq 08. The same N=1 no-TTA setting
-scores **39.0 % on the hidden test** — the first single-frame single-sample
-advance over TALoS (37.9) as of mid-2026.
+scores **38.8 % on the hidden test** — to our knowledge the best single-frame
+single-sample result on the leaderboard to date (+0.9 over TALoS 37.9).
 
 ## Multi-step S²D² correction sampling (peak quality)
 
@@ -18,7 +18,7 @@ python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gss
 
 Returns the full sweep: 38.54 (N=1), 38.59 (N=2), 38.65 (N=4 peak), 38.16 (N=100).
 
-## D4 TTA (test-server best, 39.2% test; N=1 no-TTA already reaches 39.0)
+## D4 TTA (test-server best, 39.2% test; N=1 no-TTA already reaches 38.8)
 
 ```bash
 # Generate .label files
@@ -84,7 +84,9 @@ python scripts/reproduce_table.py tab:cross_base_js3c
 # Verify the LMSCNet predictions are dumped (see docs/REPRODUCIBILITY.md)
 ls data/lmscnet_predictions/08 | head
 
-# N=1, no TTA — expect 16.59 % val mIoU (+4.49 pp over LMSCNet base 12.10 %)
+# N=1, no TTA — expect 16.59 % val mIoU (paper rounds to 16.6; +1.8 pp over the
+# LMSCNet base 14.76 %, re-scored from on-disk predictions through the official
+# semantic-kitti-api — this supersedes the earlier 12.10 base/+4.49 summary)
 python scripts/eval.py eval/lmscnet_val_1step \
     --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 ```

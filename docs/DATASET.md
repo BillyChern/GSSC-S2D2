@@ -46,7 +46,7 @@ Precomputed for val seq 08 + train seqs 00-07, 09, 10 + test 11-21 + the 31K
 and 57K synthetic pools (the `31K` pool is the 32,039-frame `synthetic_31k`
 dir). Required to reproduce the v1.1.0 cross-base headline (paper
 tab:portable_s2d2 cross-base rows; official `semantic-kitti-api` headline
-22.73 → 26.05, +3.32 pp val mIoU):
+22.7 → 26.1, +3.3 pp val mIoU):
 
     python scripts/download_assets.py --js3c-predictions
 
@@ -63,9 +63,9 @@ data/js3cnet_predictions/
 └── README.md
 ```
 
-The cross-base headline (26.05 % val mIoU under the official `semantic-kitti-api`
-with GT BEV; 26.72 % under the paper's internal SSCMetrics on the same protocol;
-24.32 % at-deploy with derived BEV) is trained on real frames only; the synth
+The cross-base headline (26.1 % val mIoU under the official `semantic-kitti-api`;
+26.7 % under the paper's internal training-time evaluator, a continuity row;
+24.3 % at-deploy with derived BEV) is trained on real frames only; the synth
 subdirs are shipped for the synth-augmentation analysis in the paper's
 supplementary validation-protocol table and future use.
 
@@ -87,7 +87,9 @@ See `docs/REPRODUCIBILITY.md` for the full cross-base protocol.
 
 LMSCNet (Roldão et al., 3DV 2020) is the third structurally different frozen base
 (a ~0.4M-param 2D-CNN SSC model) used for the cross-base demonstration in
-paper tab:portable_s2d2. The LMSCNet+S²D² row lifts val mIoU **12.10 → 16.59 (+4.49 pp)**
+paper tab:portable_s2d2. The LMSCNet+S²D² row lifts val mIoU **14.8 → 16.6 (+1.8 pp)**
+(the LMSCNet base is re-scored from on-disk predictions through the official
+`semantic-kitti-api`, superseding the earlier 12.10 → 16.59 / +4.49 summary)
 and is trained on **real frames only** (sequences 00-07, 09, 10 + val 08).
 
 Hosted predictions are released upon paper publication. Until then, dump them

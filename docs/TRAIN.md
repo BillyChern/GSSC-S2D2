@@ -64,11 +64,12 @@ python scripts/train.py train/js3c_real --gpu 0,1
   synthetic pool" section in `docs/REPRODUCIBILITY.md`).
 * 100K iterations, batch size 4, lr 1e-4, ema_decay 0.9999.
 * `cold_diffusion=true` (REQUIRED for cross-base — deterministic forward).
-* Expected val mIoU at step 100K: **26.05 %** (paper tab:portable_s2d2 headline,
-  +3.32 pp over the JS3C-Net base 22.73 %, official `semantic-kitti-api` with
-  GT BEV). The same GT-BEV protocol under the paper's internal SSCMetrics reads
-  26.72 % (+3.99 pp, footnote); the reproducible at-deploy derived-BEV number is
-  24.32 % (+1.59 pp) under the official `semantic-kitti-api`.
+* Expected val mIoU at step 100K: **26.05 %** (paper rounds to 26.1; paper
+  tab:portable_s2d2 headline, +3.3 pp over the JS3C-Net base 22.7 %, official
+  `semantic-kitti-api`). The same protocol under the paper's internal
+  training-time evaluator reads 26.72 % (+3.99 pp, a continuity row); the
+  reproducible at-deploy derived-BEV number is 24.32 % (+1.59 pp) under the
+  official `semantic-kitti-api`.
 
 Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock; identical to the headline 31k_mf run).
 Output: `outputs/train_js3c_real/step_{5000,...,100000}.pt`.
@@ -90,8 +91,10 @@ python scripts/train.py train/lmscnet_real --gpu 0,1
 * `bev_from_base=true` — the seed BEV is height-pooled from LMSCNet's own 3D
   prediction (never GT BEV), so the val number below is already an at-deploy,
   derived-BEV result.
-* Expected val mIoU at step 100K: **16.59 %** (paper tab:portable_s2d2, +4.49 pp
-  over the LMSCNet base 12.10 %) under the official `semantic-kitti-api` evaluator.
+* Expected val mIoU at step 100K: **16.59 %** (paper rounds to 16.6; paper
+  tab:portable_s2d2, +1.8 pp over the LMSCNet base 14.76 %, re-scored from
+  on-disk predictions, superseding the earlier 12.10 base) under the official
+  `semantic-kitti-api` evaluator.
 
 Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock; identical to the headline 31k_mf run).
 Output: `outputs/train_lmscnet_real/step_{5000,...,100000}.pt`.

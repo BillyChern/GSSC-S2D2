@@ -49,7 +49,7 @@ always a **MAJOR** bump, even if the API is identical.
 ## [2.1.0] — 2026-05-26
 
 ### Added — LMSCNet third-base support
-- **`scripts/dump_lmscnet_predictions.py`**, **`src/gssc/models/lmscnet_base.py`** (`.npy` reader), **`configs/train/lmscnet_real.yaml`**, **`configs/eval/lmscnet_val_1step.yaml`** — together they let any visitor reproduce the paper's third cross-base result, **LMSCNet → +S²D² = 16.59 % val mIoU (+4.49 pp over LMSCNet 12.10 %)**, under the official `semantic-kitti-api` evaluator.
+- **`scripts/dump_lmscnet_predictions.py`**, **`src/gssc/models/lmscnet_base.py`** (`.npy` reader), **`configs/train/lmscnet_real.yaml`**, **`configs/eval/lmscnet_val_1step.yaml`** — together they let any visitor reproduce the paper's third cross-base result, **LMSCNet → +S²D² = 16.6 % val mIoU (+1.8 pp over the 14.8 % LMSCNet base)**, under the official `semantic-kitti-api` evaluator (the LMSCNet base is re-scored from on-disk predictions, superseding the earlier 12.10 % summary).
 - **`base_kind` Literal** in `src/gssc/data/semantickitti.py` now accepts `'lmscnet'` alongside `'scpnet'` and `'js3c'`.
 - **`tests/test_lmscnet_base.py`** — 4 unit tests (shape/dtype loading, error paths for shape mismatch / out-of-range / missing-file, uint8 → int64 upcast, base_kind Literal regression guard).
 - **`scripts/reproduce_table.py tab:cross_base_lmsc`** — one-command repro for the LMSCNet+S²D² row; generalises `_check_js3c_predictions` to `_check_base_predictions(dir, base_kind)` driven by a new `BASE_DUMPER_INFO` table so adding future cross-bases needs only a config + a dict row.
