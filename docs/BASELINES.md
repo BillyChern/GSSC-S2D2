@@ -56,15 +56,17 @@ mIoU under the official `semantic-kitti-api` with GT BEV) uses JS3C-Net
   unlike SCPNet, JS3C-Net's own upstream codebase loads cleanly under its
   published spconv 1.x stack, so we run the dumper against an unmodified clone
   rather than bundling any base-model dependency in this release).
-* S²D² lift on top (paper headline): **26.05 %** val mIoU (+3.32 pp) under the
+* S²D² lift on top (paper headline): **22.7 → 26.1 % (+3.3 pp)** val mIoU under the
   official `semantic-kitti-api` with GT BEV, real-frames-only training,
-  `cold_diffusion=true` (paper supp § H).
+  `cold_diffusion=true` (paper supp § H). The precise eval output is **26.05 %**
+  (the number the paper rounds to 26.1).
 
   > **Three JS3C numbers (read before comparing any delta).** The JS3C-Net
   > cross-base result carries three figures:
-  > - **26.05 % (+3.32 pp)** — **paper headline**: GT BEV scored under the
-  >   official `semantic-kitti-api` (the base 22.73 % is the same official
-  >   evaluator, so this delta is protocol-consistent).
+  > - **22.7 → 26.1 % (+3.3 pp)** — **paper headline**: GT BEV scored under the
+  >   official `semantic-kitti-api` (the base 22.7 % is the same official
+  >   evaluator, so this delta is protocol-consistent). The precise eval output
+  >   is **26.05 % (+3.32 pp)** — the number the paper rounds to 26.1.
   > - **26.72 % (+3.99 pp)** — the *same* GT-BEV protocol scored with the
   >   paper's **internal training-time evaluator** (`SSCMetrics`). A continuity
   >   row in the paper, **not** the headline.

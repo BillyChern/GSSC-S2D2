@@ -41,10 +41,6 @@ always a **MAJOR** bump, even if the API is identical.
     mislabelled as the official-evaluator headline in several places).
   - **24.32 % (+1.59 pp)** — reproducible at-deploy number, derived BEV +
     official `semantic-kitti-api` (what `scripts/reproduce_table.py` yields).
-- NOTE [USER: confirm which JS3C number leads the public headline — paper uses
-  official+GT-BEV 26.05]. The docs now lead every JS3C row with 26.05 to match
-  the paper canonical; flip to 24.32 if the public headline should instead lead
-  with the at-deploy derived-BEV figure.
 
 ## [2.1.0] — 2026-05-26
 

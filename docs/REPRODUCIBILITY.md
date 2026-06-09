@@ -171,12 +171,12 @@ and varies S²D²'s sampler:
 | S²D² sampler | Val seq 08 mIoU | Test mIoU | Δ vs. base (val) | Δ vs. base (test) |
 |---|---|---|---|---|
 | N=1 (no TTA, real-time) | 38.54 | 38.8 | **+2.37** | **+2.1** |
-| N=4 + D4 TTA (headline) | 38.73 | 39.2 | **+2.56** | **+2.5** |
+| N=1 + D4 TTA (headline) | 38.73 | 39.2 | **+2.56** | **+2.5** |
 
 Two facts hold across both rows. First, the val and test deltas track
 each other to within ~0.3 mIoU at every sampler setting, so the lift is not
 a val-only artifact. Second, both deltas grow monotonically with sampler
-strength (N=1 no-TTA → N=4 + D4 TTA), so the qualitative ordering of
+strength (N=1 no-TTA → N=1 + D4 TTA), so the qualitative ordering of
 samplers is preserved across splits. Either fact, on its own, is a stronger
 reproduction signal than any single absolute mIoU number, because the
 absolute number carries the fixed v1 → v2 SCPNet port offset on val.

@@ -15,7 +15,7 @@ Reproduce the headline 38.54% val mIoU (single correction step, N=1)::
     python scripts/eval.py eval/val_1step \
         --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
-Reproduce the 38.73% val mIoU under D4 TTA::
+Reproduce the 38.73% val mIoU under N=1 + D4 TTA::
 
     python scripts/eval.py eval/val_d4tta \
         --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors

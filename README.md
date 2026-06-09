@@ -81,7 +81,7 @@ The paper organises the method into three pillars that share one structured-sour
 
 On full SemanticKITTI **val** seq 08 (note: val numbers below, distinct from the 39.2 % **hidden-test** figure above):
 * **val: 38.54 %** mIoU (single correction step, $N{=}1$, no TTA) — verified end-to-end by the maintainers (requires the released assets); the *same* $N{=}1$ no-TTA setting scores **38.8 %** on the hidden test (the 38.54 val / 38.8 test pair in the test table above) — to our knowledge the best single-frame single-sample result on the leaderboard to date (+0.9 over TALoS 37.9)
-* **val: 38.73 %** mIoU (4-step correction sampling + *D*<sub>4</sub> TTA) → the same recipe scores **39.2 %** on the hidden test
+* **val: 38.73 %** mIoU (N=1 correction step + *D*<sub>4</sub> TTA) → the same recipe scores **39.2 %** on the hidden test
 * **+2.37** absolute over our SCPNet base (36.17 % val)
 
 <p align="center">

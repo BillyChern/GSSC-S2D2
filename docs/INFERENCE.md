@@ -49,9 +49,10 @@ python scripts/eval.py eval/val_1step \
 # Verify the JS3C predictions are dumped (see docs/REPRODUCIBILITY.md)
 ls data/js3cnet_predictions/08 | head
 
-# N=1, no TTA — expect 26.05 % val mIoU under the official semantic-kitti-api
-# with GT BEV (paper headline, +3.32 pp over JS3C-Net base 22.73 %; 26.72 %
-# under the paper's internal SSCMetrics footnote)
+# N=1, no TTA — expect the paper headline 22.7 -> 26.1 % val mIoU (+3.3 pp)
+# under the official semantic-kitti-api with GT BEV (precise eval output 26.05 %,
+# the number the paper rounds to 26.1; 26.72 % under the paper's internal
+# SSCMetrics footnote)
 python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 
@@ -62,8 +63,9 @@ python scripts/eval.py eval/js3c_val_d4tta \
 
 > **GT BEV vs. derived BEV.** `eval/js3c_val_1step` uses `bev_source: gt`
 > (the paper tab:portable_s2d2 protocol), which conditions on a ground-truth BEV
-> oracle: its headline value is **26.05 %** under the official
-> `semantic-kitti-api` (**26.72 %** under the paper's internal SSCMetrics, a
+> oracle: its headline value is the paper's **22.7 → 26.1 % (+3.3 pp)** under the
+> official `semantic-kitti-api` (precise eval output **26.05 %**, the number the
+> paper rounds to 26.1; **26.72 %** under the paper's internal SSCMetrics, a
 > footnote ship-both number) — a paper-protocol number, not an at-deploy result.
 > For the honest deployment number use `eval/js3c_val_realistic`
 > (`bev_source: derived`), which lands at **24.32 %** under the official
