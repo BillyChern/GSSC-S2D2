@@ -1,0 +1,109 @@
+# This file is covered by the LICENSE file in the root of this project.
+# SemanticPOSS datacfg for the official completion scorer
+# (external/semantic_kitti_api/evaluate_completion.py), used by the TALoS-style
+# zero-shot SemanticKITTI->SemanticPOSS seq-02 eval.
+#
+# The scorer reads BOTH GT and prediction .label files (POSS ORIGINAL labels,
+# 0-255), remaps them through `learning_map` to the 11-class POSS learning space,
+# then scores cIoU (completion IoU, occupancy) + mIoU over classes 1..11
+# (class 0 ignored). `labels`/`learning_map`/`learning_map_inv`/`learning_ignore`
+# mirror the official JS3C-Net SemanticPOSS.yaml (== TALoS semantic-poss-multiscan).
+labels:
+  0: "unlabeled"
+  4: "1 person"
+  5: "2+ person"
+  6: "rider"
+  7: "car"
+  8: "trunk"
+  9: "plants"
+  10: "traffic sign 1"
+  11: "traffic sign 2"
+  12: "traffic sign 3"
+  13: "pole"
+  14: "trashcan"
+  15: "building"
+  16: "cone/stone"
+  17: "fence"
+  21: "bike"
+  22: "ground"
+
+color_map: # bgr
+  0:  [0, 0, 0]
+  4:  [30, 30, 255]
+  5:  [30, 30, 255]
+  6:  [200, 40, 255]
+  7:  [245, 150, 100]
+  8:  [0, 60, 135]
+  9:  [0, 175, 0]
+  10: [0, 0, 255]
+  11: [0, 0, 255]
+  12: [0, 0, 255]
+  13: [150, 240, 255]
+  14: [0, 255, 125]
+  15: [0, 200, 255]
+  16: [255, 255, 50]
+  17: [50, 120, 255]
+  21: [245, 230, 100]
+  22: [128, 128, 128]
+
+# POSS raw (low-16-bit) original label -> 11-class learning id.
+learning_map:
+  0: 0    # unlabeled
+  4: 1    # 1 person  -> people
+  5: 1    # 2+ person -> people
+  6: 2    # rider
+  7: 3    # car
+  8: 4    # trunk
+  9: 5    # plants
+  10: 6   # traffic sign 1 -> traffic-sign
+  11: 6   # traffic sign 2 -> traffic-sign
+  12: 6   # traffic sign 3 -> traffic-sign
+  13: 7   # pole
+  14: 0   # trashcan   -> unlabeled
+  15: 8   # building
+  16: 0   # cone/stone -> unlabeled
+  17: 9   # fence
+  21: 10  # bike
+  22: 11  # ground
+
+# 11-class learning id -> a representative POSS original label (for class names
+# in the scorer's per-class report). Mirrors gssc.data.poss_class_map.
+learning_map_inv:
+  0: 0    # unlabeled
+  1: 4    # people
+  2: 6    # rider
+  3: 7    # car
+  4: 8    # trunk
+  5: 9    # plants
+  6: 10   # traffic-sign
+  7: 13   # pole
+  8: 15   # building
+  9: 17   # fence
+  10: 21  # bike
+  11: 22  # ground
+
+learning_ignore:
+  0: True    # unlabeled / empty (ignored in mIoU + cIoU)
+  1: False   # people
+  2: False   # rider
+  3: False   # car
+  4: False   # trunk
+  5: False   # plants
+  6: False   # traffic-sign
+  7: False   # pole
+  8: False   # building
+  9: False   # fence
+  10: False  # bike
+  11: False  # ground
+
+split: # sequence numbers (SemanticPOSS val/test = seq 02, per TALoS + JS3C-Net)
+  train:
+    - 0
+    - 1
+    - 3
+    - 4
+    - 5
+  valid:
+    - 2
+  test:
+    - 2

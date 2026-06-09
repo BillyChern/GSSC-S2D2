@@ -1,0 +1,39 @@
+# Zero-shot SSCBench-KITTI360 val eval.
+#
+# Runs the SemanticKITTI-trained SCPNet+S²D² headline pipeline zero-shot on
+# SSCBench-KITTI360 val (scene 06, 1,812 frames) and scores against KITTI-360
+# 19-class voxel GT under the 16-shared-class intersection protocol.
+#
+# This config is consumed by scripts/eval_kitti360.py (NOT the SemanticKITTI
+# scripts/eval.py, which is hardcoded to seq 08 + the SemanticKITTI learning_map).
+_paper_table: "tbd (2nd-dataset zero-shot row)"
+_description: >
+  Zero-shot SCPNet (SemanticKITTI-trained) -> S²D² (gssc_31K_sf) on
+  SSCBench-KITTI360 val. SCPNet predictions are remapped SemanticKITTI->KITTI360
+  train space; other-structure/other-object (k360 17/18) are structurally 0
+  (the SemanticKITTI model cannot emit them). Expected scorable classes: the 16
+  shared SemanticKITTI∩KITTI360 classes.
+
+dataset: kitti360
+split: val                      # -> sequence 2013_05_28_drive_0006_sync
+sequences: "2013_05_28_drive_0006_sync"
+correction_steps: 1             # N=1 headline (S²D² single correction step)
+tta: none
+bev_source: derived             # topmost-non-empty BEV from the (remapped) base 3D pred
+bev_from_base: true
+
+# --- Paths (repo-relative; see docs/DATASET.md for provisioning) ---
+# SSCBench-KITTI360 layout root (contains data_3d_raw/ + data_2d_raw/<seq>/voxels/).
+# Relative paths resolve under --data-root (default: <repo>/data); an absolute
+# path is honoured as-is (see scripts/eval_kitti360.py).
+kitti360_root: data/SSCBench-KITTI360/sscbench-kitti
+# Frame-id <-> raw-velodyne-id match table (provenance only; this release's
+# velodyne scans are renamed to 6-digit ids that align 1:1 with the voxel frames,
+# so the loader indexes velodyne directly by frame_id — see gssc.data.kitti360).
+match_table: data/SSCBench-KITTI360/kitti_360_match.txt
+# Where the SemanticKITTI-trained SCPNet zero-shot 3D predictions are dumped
+# (<seq>/<frame>_pred.npy, values 0-19 SemanticKITTI train space).
+base_pred_dir: data/scpnet_kitti360_predictions
+
+# S²D² checkpoint: the released single-frame headline (cold_diffusion + bev_from_scpnet).
+# checkpoint: data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors

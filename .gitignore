@@ -76,5 +76,9 @@ assets/*_20[0-9][0-9][0-9][0-9][0-9][0-9]_*.pdf
 # External submodule scratch outputs
 external/**/scores.txt
 external/**/imgui.ini
+
+# Official-scorer eval output artifacts (regenerated; codalab scores dump)
+scores.txt
+detailed_results.html
 # Local-only PR description drafts
 .pr_*.md

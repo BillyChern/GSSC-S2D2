@@ -1,0 +1,53 @@
+# Zero-shot SemanticKITTI->SemanticPOSS val eval.
+#
+# Replicates the TALoS (jang2024talos, NeurIPS 2024) Table 4 cross-dataset
+# protocol: SCPNet pre-trained on SemanticKITTI, evaluated ZERO-SHOT on
+# SemanticPOSS VALIDATION SEQUENCE 02 ONLY, voxelized to 256x256x32 (the
+# SCPNet/SemanticKITTI SSC grid), with the SemanticKITTI->SemanticPOSS class
+# mapping (TALoS Table A.1), reporting cIoU (completion IoU) + mIoU.
+#
+#   TALoS Table 4 reference numbers (for the row we sit next to):
+#     Baseline (SCPNet)  mIoU 7.6   cIoU 25.2
+#     TALoS              mIoU 9.6   cIoU 36.2
+#   OUR row: SCPNet (SemanticKITTI port) zero-shot on POSS seq 02 -> x_src
+#            -> S²D² refine (gssc_31K_sf, cold_diffusion + bev_from_scpnet, N=1)
+#            -> cIoU + mIoU vs the voxelized POSS seq-02 GT.  (SGSC row = \tbd:
+#            SGSC headline checkpoint is not on disk per the release README.)
+#
+# Consumed by scripts/eval_semanticposs.py (NOT scripts/eval.py, which is
+# hardcoded to seq 08 + the SemanticKITTI learning_map).
+_paper_table: "tbd (TALoS Tab.4 cross-dataset row: Ours = SCPNet+S2D2)"
+_description: >
+  Zero-shot SCPNet (SemanticKITTI-trained) -> S²D² (gssc_31K_sf) on SemanticPOSS
+  val seq 02. SCPNet predictions (SemanticKITTI train space 0-19) are projected
+  to SemanticPOSS train space via TALoS Table A.1
+  (gssc.data.poss_class_map.remap_scpnet_to_poss); SemanticKITTI classes with no
+  POSS counterpart (motorcycle, truck, other-vehicle, motorcyclist, parking,
+  other-ground, terrain) fold to empty. All 11 POSS classes are scorable.
+
+dataset: semanticposs
+split: val                      # -> sequence 02 (the only POSS eval sequence)
+sequences: "02"
+correction_steps: 1             # N=1 headline (S²D² single correction step)
+tta: none
+bev_source: derived             # topmost-non-empty BEV from the (SemanticKITTI-space) base 3D pred
+bev_from_base: true
+
+# --- Paths (fill after provisioning the raw SemanticPOSS release) ---
+# Raw SemanticPOSS layout root: contains sequences/02/{velodyne,labels}.
+# SemanticPOSS does NOT ship a voxelized voxels/ SSC GT; eval_semanticposs.py
+# materialises it (single-scan 256x256x32, majority-vote + ray-cast .invalid)
+# into <voxel_gt_root>/sequences/02/voxels before scoring.
+poss_root: data/SemanticPOSS
+voxel_gt_root: data/SemanticPOSS_voxel_gt
+
+# Where the SemanticKITTI-trained SCPNet zero-shot 3D predictions are dumped
+# (<seq>/<frame>_pred.npy, values 0-19 SemanticKITTI train space).
+base_pred_dir: data/scpnet_poss_predictions
+
+# S²D² checkpoint: the released single-frame headline (cold_diffusion + bev_from_scpnet).
+# checkpoint: data/checkpoints/gssc_31K_sf_best.pt
+# (or data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors)
+
+# POSS datacfg for the official scorer (11-class learning_map + valid:[2]).
+datacfg: external/semantic_kitti_api/config/semantic-poss.yaml
