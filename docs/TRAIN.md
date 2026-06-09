@@ -95,6 +95,9 @@ python scripts/train.py train/lmscnet_real --gpu 0,1
   tab:portable_s2d2, +1.8 pp over the LMSCNet base 14.76 %, re-scored from
   on-disk predictions, superseding the earlier 12.10 base) under the official
   `semantic-kitti-api` evaluator.
+* NOTE: the released LMSCNet `model_ema.safetensors` is missing its BN buffers
+  (scores 11.04 under `strict=False`); load the full-state checkpoint to reach
+  16.59 — see the LMSCNet known-issue in `docs/MODEL_ZOO.md`.
 
 Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock; identical to the headline 31k_mf run).
 Output: `outputs/train_lmscnet_real/step_{5000,...,100000}.pt`.

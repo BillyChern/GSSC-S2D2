@@ -159,10 +159,11 @@ quantity that should reproduce cleanly across retrains is therefore the
 **per-class delta of S²D² over the SCPNet base under the same spconv build**,
 not the absolute mIoU.
 
-Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step; this retrain's own measurements, which differ slightly from the released checkpoint's paper tab:perclass):
-car +1.6, motorcycle +4.7, truck +5.9, other-veh +6.4, person +1.6,
-bicyclist +4.2, motorcyclist +4.4, road +1.3, parking +1.1, traffic-sign −0.2;
-**overall +2.37%**. Per-class behavior is preserved against SCPNet base, and
+Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step; this retrain's own measurements, which preserve the released checkpoint's per-class delta structure except for the one seed-sensitive class, motorcyclist — paper supp tab:supp_retrain_deltas):
+car +1.1, motorcycle −0.1, truck +5.4, other-veh +2.5, person +1.2,
+bicyclist +5.3, motorcyclist +4.4, road +4.6, parking +2.3, traffic-sign +4.2;
+**overall +1.9%** (vs. the released checkpoint's +2.4%, the gap being motorcyclist's
++4.4 retrain vs. +8.2 released). Per-class behavior is preserved against SCPNet base, and
 this delta-style improvement carries to the SemanticKITTI test server under
 matched samplers. SCPNet base is sampler-free, so the row-wise comparison
 holds the base fixed (val: 36.17 under our v2 port; test: 36.7 published)
@@ -171,7 +172,7 @@ and varies S²D²'s sampler:
 | S²D² sampler | Val seq 08 mIoU | Test mIoU | Δ vs. base (val) | Δ vs. base (test) |
 |---|---|---|---|---|
 | N=1 (no TTA, real-time) | 38.54 | 38.8 | **+2.37** | **+2.1** |
-| N=1 + D4 TTA (headline) | 38.73 | 39.2 | **+2.56** | **+2.5** |
+| N=1 + D4 TTA (headline) | 38.73 | 39.2 | **+2.6** | **+2.5** |
 
 Two facts hold across both rows. First, the val and test deltas track
 each other to within ~0.3 mIoU at every sampler setting, so the lift is not
@@ -205,7 +206,7 @@ paper.
 | Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --metrics miou per_class` | 38.54 mIoU |
 | Tab. III (tab:portable_s2d2, cross-base JS3C, paper headline)   | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.05 mIoU (official semantic-kitti-api, +3.32 pp; paper rounds to 26.1 / +3.3). Internal training-time evaluator on the same protocol = 26.72 mIoU (+3.99 pp), a continuity row |
 | Tab. III (tab:portable_s2d2, cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api, +1.59 pp) |
-| Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10) |
+| Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10). NOTE: the released LMSCNet `model_ema.safetensors` is missing its BN buffers (scores 11.04 under `strict=False`); load the full-state checkpoint to reach 16.59 — see the LMSCNet known-issue in `docs/MODEL_ZOO.md` |
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/data_scaling_sf --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` (canonical per-row config; identical N=1 protocol to `eval/val_1step`) | See MODEL_ZOO.md |
@@ -322,7 +323,7 @@ per-base tuning.
 ### One-time setup (clone LMSCNet externally)
 
 ```bash
-git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet
+git clone --depth 1 https://github.com/astra-vision/LMSCNet external/LMSCNet
 # Download LMSCNet.pth from the upstream Google Drive folder linked in the
 # LMSCNet README into external/LMSCNet/pretrained_models/
 ```
@@ -353,6 +354,9 @@ python scripts/train.py train/lmscnet_real
 python scripts/eval.py eval/lmscnet_val_1step \
     --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 # → expect 16.59 % val mIoU under the official semantic-kitti-api scorer.
+# NOTE: the released LMSCNet model_ema.safetensors is missing its BN buffers
+# (scores 11.04 under strict=False); load the full-state checkpoint to reach
+# 16.59 — see the LMSCNet known-issue in docs/MODEL_ZOO.md.
 ```
 
 Unlike the JS3C-Net row, LMSCNet has no GT-BEV vs. derived-BEV split: the

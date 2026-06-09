@@ -12,10 +12,17 @@ spconv v1 behavior:
 Weight loading reshapes kernel dimensions to match, preserving flat element ordering
 (weight[i] -> pair[i]) which is how v1 applies weights to shared pair data.
 
+The upstream SCPNet network code is not vendored in this release. Clone it from
+https://github.com/SCPNet/Codes-for-SCPNet and point this script at the checkout
+either with the --scpnet-repo flag or the $SCPNET_REPO environment variable. The
+default location is the repo-relative path 'external/Codes-for-SCPNet'.
+
 Usage:
     python tools/run_scpnet_inference.py --sequences 08 --eval --max_frames 10
     python tools/run_scpnet_inference.py --sequences 08 --eval
     python tools/run_scpnet_inference.py --sequences all
+    SCPNET_REPO=/path/to/Codes-for-SCPNet python tools/run_scpnet_inference.py --sequences 08
+    python tools/run_scpnet_inference.py --scpnet-repo /path/to/Codes-for-SCPNet --sequences 08
 """
 
 import os
@@ -52,7 +59,11 @@ sys.modules['spconv'] = _spconv_pytorch
 # Imports (after spconv patches)
 # =====================================================================
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SCPNET_ROOT = 'reference/Codes-for-SCPNet'
+
+# Path to the upstream SCPNet checkout (https://github.com/SCPNet/Codes-for-SCPNet).
+# Configurable via $SCPNET_REPO; defaults to the repo-relative 'external/Codes-for-SCPNet'.
+# The --scpnet-repo CLI flag (see main()) overrides this at runtime.
+SCPNET_ROOT = os.environ.get('SCPNET_REPO', 'external/Codes-for-SCPNet')
 sys.path.insert(0, SCPNET_ROOT)
 
 import argparse
@@ -383,10 +394,16 @@ def unpack(compressed):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--checkpoint', type=str,
-                        default='reference/Codes-for-SCPNet/model_load_dir/pretrained.pth')
-    parser.add_argument('--config', type=str,
-                        default='reference/Codes-for-SCPNet/config/semantickitti-multiscan.yaml')
+    parser.add_argument('--scpnet-repo', type=str, default=None,
+                        help='Path to the upstream SCPNet checkout '
+                             '(https://github.com/SCPNet/Codes-for-SCPNet). '
+                             'Overrides $SCPNET_REPO; default: external/Codes-for-SCPNet')
+    parser.add_argument('--checkpoint', type=str, default=None,
+                        help='SCPNet checkpoint (.pth); '
+                             'default: <scpnet-repo>/model_load_dir/pretrained.pth')
+    parser.add_argument('--config', type=str, default=None,
+                        help='SCPNet config yaml; '
+                             'default: <scpnet-repo>/config/semantickitti-multiscan.yaml')
     parser.add_argument('--data_root', type=str,
                         default='datasets/dataset_SemanticKITTI_SSC')
     parser.add_argument('--output_dir', type=str,
@@ -400,6 +417,17 @@ def main():
     parser.add_argument('--force', action='store_true',
                         help='Regenerate even if predictions exist')
     args = parser.parse_args()
+
+    # Resolve the SCPNet checkout root: CLI flag > $SCPNET_REPO (already captured in
+    # the module-level default) > repo-relative 'external/Codes-for-SCPNet'.
+    global SCPNET_ROOT
+    if args.scpnet_repo is not None:
+        SCPNET_ROOT = args.scpnet_repo
+        sys.path.insert(0, SCPNET_ROOT)
+    if args.checkpoint is None:
+        args.checkpoint = os.path.join(SCPNET_ROOT, 'model_load_dir', 'pretrained.pth')
+    if args.config is None:
+        args.config = os.path.join(SCPNET_ROOT, 'config', 'semantickitti-multiscan.yaml')
 
     device = torch.device(f'cuda:{args.gpu}')
 

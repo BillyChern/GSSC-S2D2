@@ -107,9 +107,10 @@ def test_resolve_config_loads_eval_val_1step() -> None:
 
 
 def test_resolve_config_loads_eval_d4tta() -> None:
-    """D4 TTA config matches the paper Tab. I 39.2% leaderboard row."""
+    """eval/val_d4tta is the val N=1 + D4 TTA row (38.73% val mIoU); the 39.2%
+    test row is configs/infer/test_d4tta.yaml (N=4)."""
     cfg = _resolve_config("eval/val_d4tta")
-    assert cfg["correction_steps"] == 4
+    assert cfg["correction_steps"] == 1
     assert cfg["tta"] == "d4"
 
 

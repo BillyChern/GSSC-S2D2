@@ -263,39 +263,6 @@ class SceneCompletionUNetSparse(nn.Module):
         self.use_lifted_features = False
         self.lifted_embed = None
 
-        # Dense 3D bottleneck support (for S5)
-        self.use_dense3d_bottleneck = False
-        self.dense3d_bottleneck = None
-
-    def enable_dense3d_bottleneck(self, dropout: float = 0.1) -> None:
-        """
-        Enable PaSCo's SPCDense3Dv2 at the bottleneck for dense hallucination.
-
-        This helps complete occluded regions that sparse convolutions can't reach.
-        Reference: PaSCo (CVPR 2024) - reference/PaSCo/pasco/models/layers.py
-
-        Args:
-            dropout: Dropout probability for dense3d (PaSCo default: 0.1)
-        """
-        from gssc.models.dense_3d_cnn import SPCDense3Dv2
-
-        bottleneck_channels = self.base_channels * 8  # 256 for base=32
-
-        self.dense3d_bottleneck = nn.Sequential(
-            SPCDense3Dv2(init_size=bottleneck_channels),
-            nn.Dropout3d(dropout),
-        )
-        self.use_dense3d_bottleneck = True
-
-        # Move to same device as model
-        device = next(self.parameters()).device
-        self.dense3d_bottleneck = self.dense3d_bottleneck.to(device)
-
-        logger.debug(
-            "SceneCompletionUNetSparse: SPCDense3Dv2 bottleneck enabled "
-            "(channels=%d, dropout=%g)", bottleneck_channels, dropout,
-        )
-
     def enable_lifted_features(self, feature_dim: int = 64) -> None:
         """Enable lifted features conditioning for CFG."""
         self.use_lifted_features = True
@@ -402,10 +369,6 @@ class SceneCompletionUNetSparse(nn.Module):
         # ============ Bottleneck ============
         x = self.mid0(x, t_emb, bev_emb4, lidar_feats['level4'])
         x = self.mid1(x, t_emb, bev_emb4, lidar_feats['level4'])
-
-        # Apply dense 3D bottleneck if enabled (S5)
-        if self.use_dense3d_bottleneck and self.dense3d_bottleneck is not None:
-            x = self.dense3d_bottleneck(x)
 
         # ============ Decoder ============
         x = self.up3(x)
@@ -530,10 +493,6 @@ class SceneCompletionUNetSparse(nn.Module):
         x = self.mid0(x, t_emb, bev_emb4, lidar_feats['level4'])
         x = self.mid1(x, t_emb, bev_emb4, lidar_feats['level4'])
 
-        # Apply dense 3D bottleneck if enabled (S5)
-        if self.use_dense3d_bottleneck and self.dense3d_bottleneck is not None:
-            x = self.dense3d_bottleneck(x)
-
         # ============ Decoder ============
         x = self.up3(x)
         x = torch.cat([x, e3], dim=1)
@@ -640,29 +599,6 @@ class SceneCompletionUNetSparseLite(nn.Module):
         self.use_lifted_features = False
         self.lifted_embed = None
 
-        # Dense 3D bottleneck support (for S5)
-        self.use_dense3d_bottleneck = False
-        self.dense3d_bottleneck = None
-
-    def enable_dense3d_bottleneck(self, dropout: float = 0.1) -> None:
-        """Enable PaSCo's SPCDense3Dv2 at the bottleneck."""
-        from gssc.models.dense_3d_cnn import SPCDense3Dv2
-
-        bottleneck_channels = self.base_channels * 8  # 128 for base=16
-
-        self.dense3d_bottleneck = nn.Sequential(
-            SPCDense3Dv2(init_size=bottleneck_channels),
-            nn.Dropout3d(dropout),
-        )
-        self.use_dense3d_bottleneck = True
-
-        device = next(self.parameters()).device
-        self.dense3d_bottleneck = self.dense3d_bottleneck.to(device)
-        logger.debug(
-            "SceneCompletionUNetSparseLite: SPCDense3Dv2 bottleneck enabled "
-            "(channels=%d, dropout=%g)", bottleneck_channels, dropout,
-        )
-
     def enable_lifted_features(self, feature_dim: int = 64) -> None:
         """Enable lifted features conditioning for CFG."""
         self.use_lifted_features = True
@@ -717,10 +653,6 @@ class SceneCompletionUNetSparseLite(nn.Module):
         # Bottleneck
         x = self.mid0(x, t_emb, bev_emb4, lidar_feats['level4'])
         x = self.mid1(x, t_emb, bev_emb4, lidar_feats['level4'])
-
-        # Apply dense 3D bottleneck if enabled (S5)
-        if self.use_dense3d_bottleneck and self.dense3d_bottleneck is not None:
-            x = self.dense3d_bottleneck(x)
 
         # Decoder
         x = self.up3(x)
@@ -785,9 +717,6 @@ class SceneCompletionUNetSparseLite(nn.Module):
         # Bottleneck
         x = self.mid0(x, t_emb, bev_emb4, lidar_feats['level4'])
         x = self.mid1(x, t_emb, bev_emb4, lidar_feats['level4'])
-
-        if self.use_dense3d_bottleneck and self.dense3d_bottleneck is not None:
-            x = self.dense3d_bottleneck(x)
 
         # Decoder
         x = self.up3(x)

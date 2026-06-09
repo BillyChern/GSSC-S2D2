@@ -679,24 +679,6 @@ class SceneCompletionTrainer:
         # Create EMA
         self.ema = MultinomialDiffusion3DEMA(self.model, decay=config.get('ema_decay', 0.9999))
 
-        # S5: Enable PaSCo's SPCDense3Dv2 at UNet bottleneck
-        # Reference: PaSCo (CVPR 2024) applies Dense3D at bottleneck for hallucination
-        # This integrates SPCDense3Dv2 INTO the model (not as post-processing)
-        self.use_dense_3d = config.get('use_dense_3d', False)
-        if self.use_dense_3d:
-            # Check if model supports dense3d bottleneck
-            if hasattr(self.model, 'enable_dense3d_bottleneck'):
-                dense3d_dropout = config.get('dense_3d_dropout', 0.1)
-                self.model.enable_dense3d_bottleneck(dropout=dense3d_dropout)
-                self.logger.info("S5: Enabled PaSCo's SPCDense3Dv2 at UNet bottleneck")
-                self.logger.info(f"    Dropout: {dense3d_dropout}")
-                self.logger.info("    Applied at 1:16 resolution (16×16×2 for 256×256×32)")
-                # Reinitialize EMA to include newly added dense3d_bottleneck parameters
-                self.ema = MultinomialDiffusion3DEMA(self.model, decay=config.get('ema_decay', 0.9999))
-                self.logger.info("    EMA reinitialized to include dense3d_bottleneck parameters")
-            else:
-                self.logger.warning(f"S5: Model {type(self.model).__name__} doesn't support dense3d bottleneck")
-
         # V2: Initialize auxiliary BEV loss components (FiLM + multi-scale aux BEV)
         self.use_aux_bev = config.get('aux_bev', False) and config.get('model_type', 'full') in ('v2_full', 'v2_lite', 'v3_full', 'v3_ablation', 'v3_coarse2fine', 'v3_c2f_ablation', 'v4_continuous', 'v4_factored', 'v5_ve')
         self.aux_focal = None
@@ -813,7 +795,7 @@ class SceneCompletionTrainer:
             self.logger.warning("--soft_bev/--use_e2e_bev requires --use_lsk3d (20ch features). "
                                 "BEV model loaded but will NOT be used with 1ch binary lidar!")
 
-        # Create optimizer (all model params including dense3d if enabled)
+        # Create optimizer (all model params)
         params_to_optimize = list(self.model.parameters())
 
         if self.use_e2e_bev and self.bev_model is not None:
@@ -3398,12 +3380,6 @@ def main():
     parser.add_argument('--mimo_use_training_mode', action='store_true',
                         help='Use PaSCo-style dataset-level MIMO for training (different samples per subnet)')
 
-    # S5: PaSCo's SPCDense3Dv2 at UNet bottleneck
-    parser.add_argument('--use_dense_3d', action='store_true',
-                        help='S5: Enable PaSCo SPCDense3Dv2 at bottleneck for dense hallucination')
-    parser.add_argument('--dense_3d_dropout', type=float, default=0.1,
-                        help='Dropout for SPCDense3Dv2 bottleneck (default: 0.1)')
-
     # S25-S27: Sparse conditioning densification
     parser.add_argument('--densify_nn', action='store_true',
                         help='S25: NN densification — fill zero voxels with nearest-neighbor features')
@@ -3590,10 +3566,6 @@ def main():
         'mimo_scale_range': args.mimo_scale_range,  # PaSCo default: 0 (disabled)
         'mimo_max_angle': args.mimo_max_angle,  # PaSCo paper: 30 degrees
         'mimo_use_training_mode': args.mimo_use_training_mode,  # Dataset-level MIMO
-
-        # S5: PaSCo's SPCDense3Dv2 at bottleneck
-        'use_dense_3d': args.use_dense_3d,
-        'dense_3d_dropout': args.dense_3d_dropout,
 
         # S17: Logit-space VE Gaussian diffusion
         'sigma_min': args.sigma_min,

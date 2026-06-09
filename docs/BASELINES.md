@@ -88,7 +88,7 @@ lightweight (~0.4M-param) dense 2D-CNN that treats the Z=32 axis as input
 channels. The v2.1.0 cross-base reproduction (paper tab:portable_s2d2, third
 base, +1.8 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
 
-* Original: [LMSCNet](https://github.com/cv-rits/LMSCNet) (3DV 2020)
+* Original: [LMSCNet](https://github.com/astra-vision/LMSCNet) (3DV 2020)
 * Our reader: `src/gssc/models/lmscnet_base.py` — a thin per-frame `.npy`
   loader. No LMSCNet model code is shipped because we release the predictions
   themselves as a separate dataset (`data/lmscnet_predictions/`, mirrors
@@ -104,7 +104,10 @@ base, +1.8 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
   v1 → v2 weight-loading concern as with SCPNet).
 * S²D² lift on top: **16.59 %** val mIoU (paper rounds to **16.6 %**; **+1.8 pp**
   over the 14.76 % on-disk-rescored base), real-frames-only training,
-  `cold_diffusion=true`.
+  `cold_diffusion=true`. NOTE: the released LMSCNet `model_ema.safetensors` is
+  missing its BN buffers (scores 11.04 under `strict=False`); load the
+  full-state checkpoint to reach 16.59 — see the LMSCNet known-issue in
+  `docs/MODEL_ZOO.md`.
 * Unlike the JS3C-Net row, LMSCNet has no GT-BEV vs. derived-BEV split: the
   seed BEV is always height-pooled from LMSCNet's own 3D prediction
   (`bev_from_base: true`, never GT BEV), so 16.59 % is already the at-deploy
@@ -122,7 +125,7 @@ The qualitative panels in Fig. 4 of the paper were produced from an internal
 (3+C)-channel reimplementation (anisotropic additive forward process, custom
 DDIM sampling, logit-domain semantic encoding). That reimplementation lives
 in our internal development codebase and is intentionally out of scope for
-this release: it is not part of any reported leaderboard number, depends on
-private utility code we cannot ship, and it would distract from the parts of the framework this release actually ships. We do **not** report DiffSSC
+this release: it is not part of any reported leaderboard number and depends on
+private utility code we cannot ship. We do **not** report DiffSSC
 numbers in the leaderboard table because the original authors did not submit;
 the reimplementation served visualization only.

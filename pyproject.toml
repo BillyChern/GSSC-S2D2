@@ -87,6 +87,10 @@ wandb = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gssc"]
+# Hatch packages only *.py under src/gssc by default, so the third-party
+# license NOTICE for the vendored improved-diffusion fork would be dropped
+# from the wheel. Force-include it to keep the attribution shipping.
+force-include = { "src/gssc/_improved_diffusion/NOTICE" = "gssc/_improved_diffusion/NOTICE" }
 
 [tool.ruff]
 line-length = 100

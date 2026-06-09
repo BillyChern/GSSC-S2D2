@@ -200,11 +200,6 @@ class SceneCompletionUNet(nn.Module):
         self.mid0 = ResidualBlock3D(channels[3], channels[3], time_emb_dim, base_channels, num_groups)
         self.mid1 = ResidualBlock3D(channels[3], channels[3], time_emb_dim, base_channels, num_groups)
 
-        # Optional: PaSCo's SPCDense3Dv2 for dense hallucination at bottleneck
-        # This helps complete occluded regions that sparse convs can't reach
-        self.use_dense3d_bottleneck = False
-        self.dense3d_bottleneck = None
-
         # S1/S2: Optional lifted features embedding (from 2D→3D lifting)
         # Will be initialized when enable_lifted_features() is called
         self.use_lifted_features = False
@@ -233,32 +228,6 @@ class SceneCompletionUNet(nn.Module):
             nn.SiLU(),
             nn.Conv3d(channels[0], num_classes, kernel_size=3, padding=1),
         )
-
-    def enable_dense3d_bottleneck(self, dropout: float = 0.1):
-        """
-        Enable PaSCo's SPCDense3Dv2 at the bottleneck for dense hallucination.
-
-        This helps complete occluded regions that sparse convolutions can't reach.
-        Reference: PaSCo (CVPR 2024) - <paco-reference>/pasco/models/layers.py
-
-        Args:
-            dropout: Dropout probability for dense3d (PaSCo default: 0.1)
-        """
-        from gssc.models.dense_3d_cnn import SPCDense3Dv2
-
-        bottleneck_channels = self.base_channels * 8  # 256 for base=32
-
-        self.dense3d_bottleneck = nn.Sequential(
-            SPCDense3Dv2(init_size=bottleneck_channels),
-            nn.Dropout3d(dropout),
-        )
-        self.use_dense3d_bottleneck = True
-
-        # Move to same device as model
-        device = next(self.parameters()).device
-        self.dense3d_bottleneck = self.dense3d_bottleneck.to(device)
-
-        print(f"[SceneCompletionUNet] Enabled SPCDense3Dv2 bottleneck (channels={bottleneck_channels}, dropout={dropout})")
 
     def enable_lifted_features(self, feature_dim: int = 64):
         """
@@ -355,11 +324,6 @@ class SceneCompletionUNet(nn.Module):
         # 16×16×2
         x = self.mid0(x, t_emb, bev_emb, lidar_emb)
         x = self.mid1(x, t_emb, bev_emb, lidar_emb)
-
-        # Optional: PaSCo's SPCDense3Dv2 for dense hallucination
-        # This allows completing occluded regions that sparse convs can't reach
-        if self.use_dense3d_bottleneck and self.dense3d_bottleneck is not None:
-            x = self.dense3d_bottleneck(x)
 
         # ============ Decoder ============
         # Upsample conditioning back
@@ -467,12 +431,8 @@ class SceneCompletionUNet(nn.Module):
         x = self.mid0(x, t_emb, bev_emb, lidar_emb)
         x = self.mid1(x, t_emb, bev_emb, lidar_emb)
 
-        # Save bottleneck features for DSKD (before dense3d transform)
+        # Save bottleneck features for DSKD
         bottleneck_features = x.clone()  # [B, 256, 16, 16, 2]
-
-        # Optional: PaSCo's SPCDense3Dv2 for dense hallucination
-        if self.use_dense3d_bottleneck and self.dense3d_bottleneck is not None:
-            x = self.dense3d_bottleneck(x)
 
         # ============ Decoder ============
         bev_emb = F.interpolate(bev_emb, scale_factor=2, mode='trilinear', align_corners=False)

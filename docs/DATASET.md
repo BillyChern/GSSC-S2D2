@@ -98,7 +98,7 @@ locally from the publicly released multiscale LMSCNet checkpoint:
 ```bash
 # 1. Clone LMSCNet and fetch its pretrained multiscale checkpoint
 #    (Google Drive link in the official LMSCNet README).
-git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet
+git clone --depth 1 https://github.com/astra-vision/LMSCNet external/LMSCNet
 
 # 2. Dump per-frame base predictions. Real-only reproduction needs the
 #    train split + val 08; the hidden test (11-21) is optional.
@@ -129,6 +129,46 @@ Each frame is ~2.1 MB (uint8, 256×256×32); the real-only set (~19K frames) is
 ~40 GB. `configs/{train,eval}/lmscnet_*.yaml` read this directory via
 `base_pred_dir: data/lmscnet_predictions`. See `docs/REPRODUCIBILITY.md` for
 the full cross-base protocol.
+
+## Cross-dataset zero-shot data (KITTI-360, SemanticPOSS)
+
+Two evaluation-only domains for the cross-dataset zero-shot rows. The frozen
+SemanticKITTI checkpoint is applied as-is: no fine-tuning, no target labels at
+train time. Provision these only to reproduce the zero-shot table.
+
+**SSCBench-KITTI-360** (val seq 06; same-sensor near-domain). Download from
+[github.com/ai4ce/SSCBench](https://github.com/ai4ce/SSCBench) (SSCBench-KITTI360
+voxel labels and the matching point clouds). Place under
+`data/SSCBench-KITTI360/` so the layout becomes:
+
+```
+data/SSCBench-KITTI360/
+└── sequences/
+    └── 06/                          <-- the only sequence the eval reads
+        └── voxels/
+            ├── {frame_id}.bin       # sparse LiDAR voxel mask
+            └── {frame_id}.label     # GT 256x256x32 voxel grid (16 shared classes)
+```
+
+`scripts/eval_kitti360.py` reads `data/SSCBench-KITTI360/sequences/06/voxels/`.
+
+**SemanticPOSS** (val seq 02; cross-sensor domain). Download from
+[www.poss.pku.edu.cn/semanticposs](http://www.poss.pku.edu.cn/semanticposs.html).
+Place under `data/SemanticPOSS/` so the layout becomes:
+
+```
+data/SemanticPOSS/
+└── sequences/
+    └── 02/                          <-- the only sequence the eval reads
+        ├── velodyne/
+        │   └── {frame_id}.bin       # raw point cloud (voxelized at eval time)
+        └── labels/
+            └── {frame_id}.label     # GT labels (11-class TALoS Tab. 4 map)
+```
+
+`scripts/eval_semanticposs.py` reads `data/SemanticPOSS/sequences/02/`. Both
+runs are evaluation-only: the SemanticKITTI-trained weights are never adapted to
+the target domain.
 
 ## Object bank (required for training, 448 MB)
 
@@ -181,3 +221,18 @@ python scripts/download_assets.py --checkpoints
 | **Total (eval-only, +cross-base JS3C)** | | **~189 GB** (135 GB SCPNet subset + 54 GB JS3C-Net) |
 | **Total (eval-only, +cross-base LMSCNet)** | | **~175 GB** (135 GB SCPNet subset + 40 GB LMSCNet real-only) |
 | **Total (full retrain, 31K)** | | **~375 GB** |
+
+## Licenses & terms
+
+Each dataset is governed by its own license; consult the upstream terms before
+use and before redistributing anything derived from it.
+
+| Dataset | License / terms | Link |
+|---|---|---|
+| SemanticKITTI | CC-BY-NC-SA 4.0 (non-commercial, share-alike) | [semantic-kitti.org/dataset.html](http://www.semantic-kitti.org/dataset.html) |
+| SSCBench-KITTI360 | Governed by its own terms (see the SSCBench repository) | [github.com/ai4ce/SSCBench](https://github.com/ai4ce/SSCBench) |
+| SemanticPOSS | Governed by its own terms (see the SemanticPOSS dataset page) | [www.poss.pku.edu.cn/semanticposs.html](http://www.poss.pku.edu.cn/semanticposs.html) |
+
+The predictions and weights we derive from these datasets inherit any
+restriction of the source data. In particular, anything derived from
+SemanticKITTI is non-commercial under CC-BY-NC-SA 4.0.

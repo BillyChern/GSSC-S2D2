@@ -10,15 +10,15 @@
 #     Baseline (SCPNet)  mIoU 7.6   cIoU 25.2
 #     TALoS              mIoU 9.6   cIoU 36.2
 #   OUR row: SCPNet (SemanticKITTI port) zero-shot on POSS seq 02 -> x_src
-#            -> S²D² refine (gssc_31K_sf, cold_diffusion + bev_from_scpnet, N=1)
+#            -> S²D² refine (gssc_31k_mf_step40000, cold_diffusion + bev_from_base, N=1)
 #            -> cIoU + mIoU vs the voxelized POSS seq-02 GT.  (SGSC row = \tbd:
 #            SGSC headline checkpoint is not on disk per the release README.)
 #
 # Consumed by scripts/eval_semanticposs.py (NOT scripts/eval.py, which is
 # hardcoded to seq 08 + the SemanticKITTI learning_map).
-_paper_table: "tbd (TALoS Tab.4 cross-dataset row: Ours = SCPNet+S2D2)"
+_paper_table: "tab:portable_s2d2 (SemanticPOSS seq-02 zero-shot row, TALoS Tab.4 protocol)"
 _description: >
-  Zero-shot SCPNet (SemanticKITTI-trained) -> S²D² (gssc_31K_sf) on SemanticPOSS
+  Zero-shot SCPNet (SemanticKITTI-trained) -> S²D² (gssc_31k_mf_step40000) on SemanticPOSS
   val seq 02. SCPNet predictions (SemanticKITTI train space 0-19) are projected
   to SemanticPOSS train space via TALoS Table A.1
   (gssc.data.poss_class_map.remap_scpnet_to_poss); SemanticKITTI classes with no
@@ -45,9 +45,8 @@ voxel_gt_root: data/SemanticPOSS_voxel_gt
 # (<seq>/<frame>_pred.npy, values 0-19 SemanticKITTI train space).
 base_pred_dir: data/scpnet_poss_predictions
 
-# S²D² checkpoint: the released single-frame headline (cold_diffusion + bev_from_scpnet).
-# checkpoint: data/checkpoints/gssc_31K_sf_best.pt
-# (or data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors)
+# S²D² checkpoint: the released headline mf-40K (cold_diffusion + bev_from_base).
+# checkpoint: data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
 # POSS datacfg for the official scorer (11-class learning_map + valid:[2]).
 datacfg: external/semantic_kitti_api/config/semantic-poss.yaml

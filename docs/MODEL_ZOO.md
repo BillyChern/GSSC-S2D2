@@ -25,6 +25,20 @@ running_mean / running_var / num_batches_tracked), so loading it requires
 exactly this reason. For exact reproduction prefer `scripts/eval.py`, which wires
 the EMA weights in the same way the paper numbers were produced.
 
+> **Known issue — LMSCNet `model_ema.safetensors` (BN buffers).** For the
+> LMSCNet cross-base checkpoint
+> (`gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors`) the missing buffers
+> are load-bearing: the currently released file ships 233 tensors instead of
+> the full ~278, dropping all 45 BatchNorm `running_mean` / `running_var` /
+> `num_batches_tracked` buffers. Under the `strict=False` load they default to
+> uninitialised values, the base conditioning is corrupted, and the file scores
+> **11.04 val mIoU** rather than the paper's **16.59**. The full-state
+> `.pt`/`model.safetensors` checkpoint reproduces 16.59 byte-for-byte; load it
+> instead until the buffer-complete `model_ema.safetensors` is re-exported. A
+> buffer-complete re-export (via `rebuild_assets`) is a tracked release to-do.
+> SCPNet and JS3C-Net EMA files are unaffected (their bases carry no BN buffers
+> through the EMA path).
+
 **Download/disk sizes.** A single `model_ema.safetensors` (the deployment file
 the quickstart in `README.md` points at) is **~140 MB**. `download_assets.py`
 provisions the **whole per-checkpoint subdir** — `model.safetensors` +
@@ -52,9 +66,15 @@ released checkpoints; SCPNet uses the same training recipe with
 
 | Subdir | Base | Architecture family | Base mIoU | +S²D² mIoU | Δ | Config |
 |---|---|---|---|---|---|---|
-| `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 14.8 | **16.6** | **+1.8** | `configs/train/lmscnet_real.yaml` |
+| `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 14.8 | **16.6** | **+1.8** | `configs/train/lmscnet_real.yaml` ⚠ |
 | `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.7 | **26.1** | **+3.3** | `configs/train/js3c_real.yaml`    |
 | (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.37** | `configs/train/31k_mf.yaml`       |
+
+> ⚠ **LMSCNet row asset caveat.** The 16.6 (true 16.59) value is the paper
+> number and is correct. The *currently released* LMSCNet
+> `model_ema.safetensors` is missing its BatchNorm running buffers and scores
+> 11.04 under `strict=False`; load the full-state checkpoint to reach 16.59. See
+> the "Known issue — LMSCNet `model_ema.safetensors` (BN buffers)" note above.
 
 > **JS3C-Net number convention.** The JS3C row leads with the **paper headline
 > 26.1 % (+3.3 pp)** under the official `semantic-kitti-api` (the precise eval
@@ -76,7 +96,10 @@ Each cross-base checkpoint subdir is ~265 MB total (~140 MB for the single
 `model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.37) and LMSCNet
 (14.8 → 16.6, +1.8; LMSCNet base re-scored from on-disk predictions, superseding
 the earlier 12.10 → 16.59 / +4.49 summary) deltas in the table are measured
-end-to-end under the official `semantic-kitti-api`.
+end-to-end under the official `semantic-kitti-api`. The 16.59 LMSCNet figure
+reproduces only from the full-state checkpoint; the currently released LMSCNet
+`model_ema.safetensors` is missing its BatchNorm running buffers and scores
+11.04 under `strict=False` (see the known-issue note at the top of this doc).
 
 The JS3C-Net row carries three numbers; the table leads with the official
 headline:
@@ -211,6 +234,9 @@ model = SceneCompletionUNetSparse(
     # values for exact reproduction — see below.
 )
 model.load_state_dict(state, strict=False)  # EMA files omit some buffers; for exact reproduction prefer scripts/eval.py
+# NOTE: for the LMSCNet checkpoint the missing buffers are load-bearing — the
+# released model_ema.safetensors lacks its BN running buffers and scores 11.04,
+# not 16.59; load the full-state checkpoint (see the LMSCNet known-issue above).
 model.train(False)
 ```
 
@@ -227,6 +253,9 @@ python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 
 # LMSCNet cross-base (16.59% val, paper rounds to 16.6; +1.8 pp over the 14.76% on-disk-rescored base)
+# NOTE: the released LMSCNet model_ema.safetensors is missing its BN buffers and
+# scores 11.04 under strict=False; load the full-state checkpoint to reach 16.59
+# (see the LMSCNet known-issue at the top of this doc).
 python scripts/eval.py eval/lmscnet_val_1step \
     --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 ```

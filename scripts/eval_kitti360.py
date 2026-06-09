@@ -3,7 +3,7 @@
 
 Single-command orchestrator for the cross-dataset experiment:
 
-    SemanticKITTI-trained SCPNet  --zero-shot-->  S²D² (gssc_31K_sf)  -->  KITTI-360 GT
+    SemanticKITTI-trained SCPNet  --zero-shot-->  S²D² (gssc_31k_mf_step40000)  -->  KITTI-360 GT
 
 Stages
 ------
@@ -13,7 +13,7 @@ Stages
    ``gssc.data.kitti360``). Emits ``<seq>/<frame>_pred.npy`` in SemanticKITTI
    train space (0-19). Skipped per-frame if already present.
 2. **S²D² correction** per frame: ``MultinomialDiffusion3DV2.sample_algo2`` with
-   the released ``gssc_31K_sf`` EMA checkpoint, cold_diffusion + bev_from_scpnet,
+   the released ``gssc_31k_mf_step40000`` EMA checkpoint, cold_diffusion + bev_from_base,
    N=1. Identical call to ``gssc.inference.generate_predictions``.
 3. **Class projection + writeback**: remap SemanticKITTI-train pred -> KITTI-360
    train space (``gssc.data.kitti360_class_map.remap_scpnet_to_kitti360``), then
@@ -289,7 +289,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("config", nargs="?", default="eval/kitti360_zeroshot_1step")
     ap.add_argument("--checkpoint", required=True,
-                    help="S²D² checkpoint, e.g. data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors")
+                    help="S²D² checkpoint, e.g. data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors")
     ap.add_argument("--data-root", default=str(REPO_ROOT / "data"))
     ap.add_argument("--datacfg", default=None,
                     help="KITTI-360 learning_map yaml (SSCBench dataset/configs/kitti360.yaml). "

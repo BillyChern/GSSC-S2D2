@@ -73,7 +73,7 @@ BASE_DUMPER_INFO: dict[str, dict[str, str]] = {
         "name": "LMSCNet",
         "dumper": "scripts/dump_lmscnet_predictions.py",
         "extra_setup": (
-            "   git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet\n"
+            "   git clone --depth 1 https://github.com/astra-vision/LMSCNet external/LMSCNet\n"
             "   # download LMSCNet.pth from the upstream Google Drive folder into external/LMSCNet/pretrained_models/"
         ),
         "args_hint": "--lmscnet-repo external/LMSCNet --checkpoint external/LMSCNet/pretrained_models/LMSCNet.pth",

@@ -17,7 +17,7 @@ Setup
 Clone the upstream LMSCNet repo and place the pretrained checkpoint following
 its README::
 
-    git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet
+    git clone --depth 1 https://github.com/astra-vision/LMSCNet external/LMSCNet
     # download LMSCNet.pth from the upstream Google Drive folder into
     # external/LMSCNet/pretrained_models/
 
@@ -79,7 +79,7 @@ def _import_lmscnet(repo: Path) -> None:
         raise FileNotFoundError(
             f"LMSCNet repo not found at: {repo}\n"
             "Clone it and point --lmscnet-repo (or $LMSCNET_REPO) at the clone, e.g.\n"
-            "   git clone --depth 1 https://github.com/cv-rits/LMSCNet external/LMSCNet"
+            "   git clone --depth 1 https://github.com/astra-vision/LMSCNet external/LMSCNet"
         )
     repo_str = str(repo)
     if repo_str not in sys.path:

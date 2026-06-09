@@ -6,9 +6,9 @@
 #
 # This config is consumed by scripts/eval_kitti360.py (NOT the SemanticKITTI
 # scripts/eval.py, which is hardcoded to seq 08 + the SemanticKITTI learning_map).
-_paper_table: "tbd (2nd-dataset zero-shot row)"
+_paper_table: "tab:portable_s2d2 (SSCBench-KITTI360 zero-shot row)"
 _description: >
-  Zero-shot SCPNet (SemanticKITTI-trained) -> S²D² (gssc_31K_sf) on
+  Zero-shot SCPNet (SemanticKITTI-trained) -> S²D² (gssc_31k_mf_step40000) on
   SSCBench-KITTI360 val. SCPNet predictions are remapped SemanticKITTI->KITTI360
   train space; other-structure/other-object (k360 17/18) are structurally 0
   (the SemanticKITTI model cannot emit them). Expected scorable classes: the 16
@@ -35,5 +35,5 @@ match_table: data/SSCBench-KITTI360/kitti_360_match.txt
 # (<seq>/<frame>_pred.npy, values 0-19 SemanticKITTI train space).
 base_pred_dir: data/scpnet_kitti360_predictions
 
-# S²D² checkpoint: the released single-frame headline (cold_diffusion + bev_from_scpnet).
-# checkpoint: data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors
+# S²D² checkpoint: the released headline mf-40K (cold_diffusion + bev_from_base).
+# checkpoint: data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors

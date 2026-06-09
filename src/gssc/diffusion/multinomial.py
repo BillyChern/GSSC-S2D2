@@ -798,7 +798,7 @@ class MultinomialDiffusion3D(nn.Module):
         - Provides rich semantic priors for scene completion
 
         Reference: PaSCo CVPR 2024, Section 3.2.2 (Inference)
-                   reference/PaSCo/pasco/data/semantic_kitti/kitti_dm.py (val_aug=True)
+                   PaSCo (github.com/astra-vision/PaSCo): pasco/data/semantic_kitti/kitti_dm.py (val_aug=True)
 
         Args:
             model: MIMO model (MIMOSceneCompletionUNet)

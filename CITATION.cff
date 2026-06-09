@@ -14,12 +14,12 @@ version: 2.1.0
 date-released: 2026-05-26
 preferred-citation:
   type: article
-  title: "Generative Semantic Scene Completion"
+  title: "Generative Semantic Scene Completion through Modeling the Underlying Geometry and Semantics in Point Clouds"
   authors:
     - family-names: "Chen"
       given-names: "Shi"
     - family-names: "Ge"
       given-names: "Weifeng"
-  journal: "Submitted to IEEE Transactions on Pattern Analysis and Machine Intelligence"
+  journal: "IEEE Transactions on Pattern Analysis and Machine Intelligence (under review)"
   year: 2026
   # DOI omitted: the paper is under review; a DOI will be added on acceptance.

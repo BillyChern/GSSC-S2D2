@@ -4,7 +4,7 @@
 Single-command orchestrator replicating the TALoS (jang2024talos, NeurIPS 2024)
 Table 4 cross-dataset protocol:
 
-    SemanticKITTI-trained SCPNet  --zero-shot-->  S²D² (gssc_31K_sf)  -->  POSS seq-02 GT
+    SemanticKITTI-trained SCPNet  --zero-shot-->  S²D² (gssc_31k_mf_step40000)  -->  POSS seq-02 GT
 
 Stages
 ------
@@ -19,7 +19,7 @@ Stages
    the SCPNet grid/region are unchanged). Emits ``<seq>/<frame>_pred.npy`` in
    SemanticKITTI train space (0-19). Skipped per-frame if already present.
 2. **S²D² correction** per frame: ``MultinomialDiffusion3DV2.sample_algo2`` with
-   the released ``gssc_31K_sf`` checkpoint, cold_diffusion + bev_from_scpnet,
+   the released ``gssc_31k_mf_step40000`` checkpoint, cold_diffusion + bev_from_base,
    N=1. Identical call to ``gssc.inference.generate_predictions``.
 3. **Class projection + writeback**: SemanticKITTI-train pred -> POSS train space
    (``gssc.data.poss_class_map.remap_scpnet_to_poss``, TALoS Table A.1), then to
@@ -225,7 +225,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("config", nargs="?", default="eval/semanticposs_seq02")
     ap.add_argument("--checkpoint", required=True,
-                    help="S²D² checkpoint, e.g. data/checkpoints/gssc_31K_sf_best.pt")
+                    help="S²D² checkpoint, e.g. data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors")
     ap.add_argument("--data-root", default=str(REPO_ROOT / "data"))
     ap.add_argument("--datacfg", default=None,
                     help="POSS learning_map yaml. Defaults to the config's `datacfg`.")

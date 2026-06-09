@@ -42,7 +42,16 @@ always a **MAJOR** bump, even if the API is identical.
   - **24.32 % (+1.59 pp)** — reproducible at-deploy number, derived BEV +
     official `semantic-kitti-api` (what `scripts/reproduce_table.py` yields).
 
+### Added — zero-shot cross-dataset evaluation (KITTI-360, SemanticPOSS)
+- **`scripts/eval_kitti360.py`**, **`scripts/score_kitti360.py`**, **`scripts/eval_semanticposs.py`**, **`configs/eval/kitti360_zeroshot_1step.yaml`**, **`configs/eval/semanticposs_seq02.yaml`**, and **`src/gssc/data/{kitti360.py, kitti360_class_map.py, semanticposs.py}`** evaluate the frozen SemanticKITTI headline checkpoint (`gssc_31k_mf_step40000`) on two unseen domains, with no fine-tuning and no target labels.
+- Results: **SSCBench-KITTI360** (val seq. 06) 5.8 → 6.2 mIoU (+0.4) / 18.1 → 19.5 CompIoU (+1.4); **SemanticPOSS** (val seq. 02, TALoS Tab. 4 map) 1.0 → 6.6 mIoU (+5.5) / 31.8 → 54.9 CompIoU (+23.1). Provisioning and on-disk layout are in `docs/DATASET.md`; runnable commands in `README.md`.
+
+### Fixed / Known issues — LMSCNet `model_ema.safetensors` BatchNorm buffers
+- The released `gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` ships 233 tensors instead of ~278: it drops all 45 BatchNorm running buffers, so under the documented `strict=False` load it scores **11.04 %** val mIoU rather than the paper's **16.59 %**. Workaround: load the full-state checkpoint, which reproduces 16.59 % byte-for-byte. A buffer-complete re-export of the safetensors is a tracked release to-do (`rebuild_assets`). The SCPNet and JS3C-Net EMA files are unaffected. Details in `docs/MODEL_ZOO.md`.
+
 ## [2.1.0] — 2026-05-26
+
+This is the TPAMI submission snapshot; it also carries the tag `submission-ready-tpami-2026` referenced in the paper supplementary (reproducibility appendix). Its Hydra configs hold the same hyperparameters quoted in the paper.
 
 ### Added — LMSCNet third-base support
 - **`scripts/dump_lmscnet_predictions.py`**, **`src/gssc/models/lmscnet_base.py`** (`.npy` reader), **`configs/train/lmscnet_real.yaml`**, **`configs/eval/lmscnet_val_1step.yaml`** — together they let any visitor reproduce the paper's third cross-base result, **LMSCNet → +S²D² = 16.6 % val mIoU (+1.8 pp over the 14.8 % LMSCNet base)**, under the official `semantic-kitti-api` evaluator (the LMSCNet base is re-scored from on-disk predictions, superseding the earlier 12.10 % summary).
@@ -57,17 +66,17 @@ always a **MAJOR** bump, even if the API is identical.
 ## [2.0.0] — 2026-05-18
 
 ### Removed (BREAKING)
-- **Drop deprecated `--bev_from_scpnet` flag and `gssc.utils.compat.resolve_bev_from_base` shim.** Callers must use `--bev_from_base` (added v1.1.1). YAML key `bev_from_scpnet:` no longer works; use `bev_from_base:`. Deprecation was introduced in v1.1.1 with a `DeprecationWarning`-emitting shim; this removal is the v2.0.0 BREAKING follow-through. The older `--scpnet_pred_dir` / `scpnet_pred_dir:` v1.0.0 alias is unaffected (separate shim, separate removal path).
-- **Drop `tests/test_config_loader.py::test_bool_flags_legacy_alias`** — covered the now-removed `bev_from_scpnet` YAML alias.
+- **Drop the deprecated legacy SCPNet-specific BEV-derivation flag (the pre-v1.1.1 name of `--bev_from_base`) and `gssc.utils.compat.resolve_bev_from_base` shim.** Callers must use `--bev_from_base` (added v1.1.1). The legacy YAML alias no longer works; use `bev_from_base:`. Deprecation was introduced in v1.1.1 with a `DeprecationWarning`-emitting shim; this removal is the v2.0.0 BREAKING follow-through. The older `--scpnet_pred_dir` / `scpnet_pred_dir:` v1.0.0 alias is unaffected (separate shim, separate removal path).
+- **Drop `tests/test_config_loader.py::test_bool_flags_legacy_alias`** — covered the now-removed legacy BEV-derivation YAML alias.
 
 ### Migration guide (v1.x → v2.0.0)
-- Replace every occurrence of `--bev_from_scpnet` (CLI) and `bev_from_scpnet:` (YAML) with `--bev_from_base` / `bev_from_base:`. The semantic is identical; only the name changed (see v1.1.1 entry below for the rename rationale).
+- Replace every occurrence of the legacy SCPNet-specific BEV-derivation flag (CLI and YAML, the pre-v1.1.1 name) with `--bev_from_base` / `bev_from_base:`. The semantic is identical; only the name changed (see v1.1.1 entry below for the rename rationale).
 - The headline numerical artefacts are unaffected: this is a CLI/API surface cleanup, not a model or recipe change. `38.54 % val mIoU` (SCPNet headline) and the JS3C-Net cross-base result (`26.05 %` paper headline under the official `semantic-kitti-api` with GT BEV; `26.72 %` internal SSCMetrics footnote; `24.32 %` at-deploy derived BEV) reproduce byte-identically from the same checkpoints.
 
 ## [1.1.1] — 2026-05-18
 
 ### Changed
-- **Flag rename**: `--bev_from_scpnet` → `--bev_from_base` (training, eval, and inference CLIs; identical YAML key `bev_from_base:`). The semantic was always "derive BEV by height-pooling the base 3D prediction (whichever base is wired in via `--base_pred_dir` / `--base_kind`)"; the SCPNet-specific name predates the JS3C-Net cross-base support. The old flag still works via a `DeprecationWarning`-emitting shim (`gssc.utils.compat.resolve_bev_from_base`) and is slated for removal in v2.0.0. Mirrors the v1.1.0 `scpnet_pred_dir` → `base_pred_dir` migration.
+- **Flag rename**: the legacy SCPNet-specific BEV-derivation flag → `--bev_from_base` (training, eval, and inference CLIs; identical YAML key `bev_from_base:`). The semantic was always "derive BEV by height-pooling the base 3D prediction (whichever base is wired in via `--base_pred_dir` / `--base_kind`)"; the SCPNet-specific name predates the JS3C-Net cross-base support. The old flag still works via a `DeprecationWarning`-emitting shim (`gssc.utils.compat.resolve_bev_from_base`) and is slated for removal in v2.0.0. Mirrors the v1.1.0 `scpnet_pred_dir` → `base_pred_dir` migration.
 
 ## [1.1.0] — 2026-05-14
 

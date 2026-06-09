@@ -2,7 +2,7 @@ _paper_table: "v1.1.0 codebase-validation: JS3C cross-base trained with derived 
 _description: |
   JS3C-Net + S²D² cross-base validation: trains with derived BEV (topmost-
   non-empty class from the JS3C-Net 3D prediction, via the `bev_from_base`
-  override; renamed from `bev_from_scpnet` in v1.1.1). Matches the released
+  override). Matches the released
   `gssc_js3c_s2d2_real` checkpoint's training
   recipe. Pairs with `eval/js3c_val_realistic.yaml` for a train/eval-
   consistent realistic-deployment evaluation.
