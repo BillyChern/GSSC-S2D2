@@ -31,6 +31,8 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.2.0] — 2026-06-10
+
 ### Docs — JS3C-Net cross-base number reconciliation
 - Aligned every JS3C-Net cross-base figure across README, docs, MODEL_ZOO,
   REPRODUCIBILITY, BASELINES, TRAIN, INFERENCE, and the release-asset MANIFEST
