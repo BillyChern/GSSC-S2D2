@@ -286,7 +286,7 @@ python scripts/train.py train/31k_mf --gpu 0,1 --seed 42
 # Logs → outputs/train_31k_mf/{tensorboard,step_*.pt,best.pt}
 ```
 
-Expected best-EMA val mIoU ∈ [38.3 %, 38.7 %] (within seed noise of the 38.54 % headline). See [docs/TRAIN.md](docs/TRAIN.md) for every other recipe (data scaling, timestep ablations, pyramid diffusion, BEV second task).
+A from-scratch seeded retrain lands at ≈ **38.05 % val 1-step mIoU** (success criterion 38.05 % ± 0.3 %, i.e. [37.8 %, 38.4 %]), within seed noise of the 38.54 % released headline checkpoint — reproduce the per-class delta over the SCPNet base, not the absolute (see [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md)). See [docs/TRAIN.md](docs/TRAIN.md) for every other recipe (data scaling, timestep ablations, pyramid diffusion, BEV second task).
 
 ---
 
