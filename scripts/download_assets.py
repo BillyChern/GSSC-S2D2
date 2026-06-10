@@ -85,7 +85,12 @@ def main() -> None:
     try:
         from huggingface_hub import snapshot_download
     except ImportError:
-        sys.exit("Install huggingface_hub: pip install huggingface_hub")
+        sys.exit(
+            "huggingface_hub is required for downloads. Install it with:\n"
+            "  uv pip install huggingface-hub\n"
+            "or install the project with its dependencies:\n"
+            "  pip install -e ."
+        )
 
     root = Path(args.root)
     root.mkdir(parents=True, exist_ok=True)
@@ -95,26 +100,30 @@ def main() -> None:
     if args.checkpoints or args.all:
         logger.info("Downloading checkpoints from %s ...", HF_REPO_MODELS)
         snapshot_download(repo_id=HF_REPO_MODELS, local_dir=root / "checkpoints")
+    # snapshot_download preserves the matched pattern prefix in the output tree,
+    # so the local_dir must be `root` (not `root / "<name>"`) or the files land
+    # at root/<name>/<name>/... (double-nested). The allow_patterns prefix is the
+    # single directory level we want.
     if args.predictions or args.all:
         logger.info("Downloading SCPNet predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["scpnet_predictions/*"],
-                          local_dir=root / "scpnet_predictions")
+                          local_dir=root)
     if args.js3c_predictions or args.all:
         logger.info("Downloading JS3C-Net predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["js3cnet_predictions/*"],
-                          local_dir=root / "js3cnet_predictions")
+                          local_dir=root)
     if args.lmscnet_predictions or args.all:
         logger.info("Downloading LMSCNet predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["lmscnet_predictions/*"],
-                          local_dir=root / "lmscnet_predictions")
+                          local_dir=root)
     if args.object_bank or args.all:
         logger.info("Downloading object bank from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["object_bank/*"],
-                          local_dir=root / "object_bank")
+                          local_dir=root)
     if args.synthetic_pool:
         logger.info("Synthetic pool '%s' is hosted on IEEE DataPort.", args.synthetic_pool)
         logger.info("  -> %s", DATAPORT_URL)

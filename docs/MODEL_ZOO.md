@@ -132,7 +132,7 @@ appears. The JS3C-Net derived-BEV deploy number (**24.32**) is produced by
   released JS3C+S²D² model was trained with derived BEV, so this protocol
   matches its training distribution.
 
-Reproduction requires `data/js3cnet_predictions/` (54 GB; download via
+Reproduction requires `data/js3cnet_predictions/` (190 GB real + synth; download via
 `scripts/download_assets.py --js3c-predictions` or dump locally via
 `scripts/dump_js3c_predictions.py`; see `docs/REPRODUCIBILITY.md`).
 

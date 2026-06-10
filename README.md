@@ -77,7 +77,7 @@ The paper organises the method into three pillars that share one structured-sour
 | **S²D² (Ours, *N* = 1, no TTA, real-time)** | **38.8** | 58.9 | **+2.1** | 9.33 FPS marginal; cheapest deployable. Best single-frame single-sample result on the leaderboard to date (+0.9 over TALoS 37.9) |
 | **S²D² (Ours, *D*<sub>4</sub> TTA)** | **39.2** | 59.0 | **+2.5** | hidden-test best (+1.3 over TALoS); leaderboard row public upon release |
 
-<sub><b>Source.</b> The mIoU and IoU<sub>cmpl</sub> values for the baseline rows, and the IoU<sub>cmpl</sub> values for the S²D² <i>N</i>=1 / <i>N</i>=4 rows, are the corresponding entries on the public SemanticKITTI SSC test leaderboard; they are not all reported in our paper. Only the S²D² mIoU column and the headline 39.2 % / 59.0 % <i>D</i><sub>4</sub>-TTA row are paper-reported (supplementary Tab. of test results).</sub>
+<sub><b>Source.</b> The mIoU and IoU<sub>cmpl</sub> values for the baseline rows, and the IoU<sub>cmpl</sub> values for the S²D² <i>N</i>=1 / <i>D</i><sub>4</sub>-TTA rows, are the corresponding entries on the public SemanticKITTI SSC test leaderboard; they are not all reported in our paper. Only the S²D² mIoU column and the headline 39.2 % / 59.0 % <i>D</i><sub>4</sub>-TTA row are paper-reported (supplementary Tab. of test results).</sub>
 
 On full SemanticKITTI **val** seq 08 (note: val numbers below, distinct from the 39.2 % **hidden-test** figure above):
 * **val: 38.54 %** mIoU (single correction step, $N{=}1$, no TTA) — verified end-to-end by the maintainers (requires the released assets); the *same* $N{=}1$ no-TTA setting scores **38.8 %** on the hidden test (the 38.54 val / 38.8 test pair in the test table above) — to our knowledge the best single-frame single-sample result on the leaderboard to date (+0.9 over TALoS 37.9)
@@ -321,11 +321,11 @@ The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:p
 | What | Where | Size |
 |---|---|---|
 | Pretrained checkpoints (17 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face *(URL added on first upload — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md))* | ≈ 4 GB |
-| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face *(URL pending; meanwhile reproduce locally via `scripts/dump_{js3c,lmscnet}_predictions.py` — see [docs/DATASET.md](docs/DATASET.md))* | ≈ 272 GB total (SCPNet ~178 GB + JS3C-Net ~54 GB + LMSCNet ~40 GB; only ~135 GB needed for the SCPNet eval-only headline) |
+| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face *(URL pending; meanwhile reproduce locally via `scripts/dump_{js3c,lmscnet}_predictions.py` — see [docs/DATASET.md](docs/DATASET.md))* | ≈ 414 GB total (SCPNet ~178 GB + JS3C-Net ~190 GB + LMSCNet ~46 GB; only ~135 GB needed for the SCPNet eval-only headline) |
 | Object bank (57,789 instances, 8 rare classes) | Hugging Face *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 448 MB |
-| Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | ~120 GB (31K) – ~220 GB (57K), approx. |
+| Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | ~128 GB (31K) – ~230 GB (57K), approx. |
 
-All weights and synthetic data are released under Apache-2.0 **upon paper acceptance**; SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). Until the hosting URLs are live, `scripts/download_assets.py` fails loudly with a pointer to `docs/DATASET.md`, which documents manual provisioning; the script will populate every entry automatically once the URLs are wired in.
+These artefacts are released **upon paper acceptance** under two different terms. GSSC-authored code and the GSSC-trained model weights are Apache-2.0. The synthetic pool and object bank are derived from SemanticKITTI, which is distributed under CC-BY-NC-SA 4.0, so they inherit its non-commercial, share-alike restriction; the model weights, although Apache-2.0 as our contribution, were also trained on SemanticKITTI, so downstream use of the weights still carries that non-commercial caveat. SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). Until the hosting URLs are live, `scripts/download_assets.py` fails loudly with a pointer to `docs/DATASET.md`, which documents manual provisioning; the script will populate every entry automatically once the URLs are wired in.
 
 ---
 
@@ -355,7 +355,7 @@ A. We add **+2.5 absolute mIoU** on the hidden test set with a single extra forw
 A. Yes — the framework is base-model-agnostic. We provide a working SCPNet integration; switching to JS3C-Net or any other base requires only providing per-voxel categorical predictions as `x_src`. See [docs/BASELINES.md](docs/BASELINES.md).
 
 **Q. Do we need the synthetic pool to use the released checkpoint?**
-A. **No.** Eval-only deployment uses the released weights + SCPNet predictions only (~135 GB total). The synthetic pool (~120 GB for the 31K headline variant, ~220 GB for the 57K variant) is only needed for retraining from scratch.
+A. **No.** Eval-only deployment uses the released weights + SCPNet predictions only (~135 GB total). The synthetic pool (~128 GB for the 31K headline variant, ~230 GB for the 57K variant) is only needed for retraining from scratch.
 
 **Q. Why does the train script use a YAML "config" rather than direct CLI args?**
 A. Every paper artefact corresponds to a config file. `python scripts/train.py train/31k_mf` runs the exact headline recipe with no chance of accidentally diverging from the paper.
@@ -389,7 +389,10 @@ The TPAMI submission snapshot referenced in the paper supplementary is the **v2.
 
 * **Code, configs, documentation:** [Apache License 2.0](LICENSE).
 * **Released model weights:** the GSSC-authored code and weights are licensed Apache-2.0. The weights were trained on SemanticKITTI, which is distributed under CC-BY-NC-SA 4.0 (non-commercial); downstream use of the weights therefore inherits that dataset's non-commercial restriction, so the Apache-2.0 grant on our contribution does not by itself authorise commercial use of the trained weights.
+* **Synthetic pool + object bank:** derived from SemanticKITTI and therefore distributed under the same CC-BY-NC-SA 4.0 (non-commercial, share-alike) terms; see [semantic-kitti.org/dataset.html](http://www.semantic-kitti.org/dataset.html).
 * **SemanticKITTI raw data:** governed by its own license — see [semantic-kitti.org](http://www.semantic-kitti.org/).
+* **SSCBench-KITTI360 (evaluation-only):** governed by its own terms; see the [SSCBench repository](https://github.com/ai4ce/SSCBench).
+* **SemanticPOSS (evaluation-only):** governed by its own terms; see the [SemanticPOSS dataset page](http://www.poss.pku.edu.cn/semanticposs.html).
 * **Third-party code under `external/`:** retains its original license.
 
 ---

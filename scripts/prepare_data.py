@@ -1,13 +1,15 @@
-"""Prepare SemanticKITTI dataset directory + verify integrity.
+"""Verify the SemanticKITTI dataset directory layout.
 
 After downloading the SemanticKITTI raw data (link in docs/DATASET.md), run::
 
     python scripts/prepare_data.py --root data/SemanticKITTI
 
 This script:
-1. Verifies sequence directory structure (sequences/00..21/voxels/)
-2. Indexes train/val/test splits (00-07,09,10 train / 08 val / 11-21 test)
-3. Optionally precomputes 256x256x32 voxel grids if not already present
+1. Verifies the sequence directory structure (sequences/00, 08, 11 present).
+2. Reports the per-sequence voxel-frame count for every sequence found.
+
+The released 256x256x32 voxel grids are downloaded ready-to-use via
+scripts/download_assets.py; no on-the-fly preprocessing is performed here.
 """
 from __future__ import annotations
 
@@ -19,7 +21,8 @@ from pathlib import Path
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--root", required=True, help="Path to SemanticKITTI dataset root")
-    p.add_argument("--check-only", action="store_true", help="Just verify, do not preprocess")
+    p.add_argument("--check-only", action="store_true",
+                   help="Accepted for forward compatibility; this script only verifies the layout, so it is the default behaviour")
     a = p.parse_args()
 
     root = Path(a.root)
