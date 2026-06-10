@@ -4,11 +4,11 @@ Usage::
 
     python scripts/download_assets.py --checkpoints          # ~4 GB models
     python scripts/download_assets.py --predictions          # ~178 GB SCPNet val/test/synth predictions
-    python scripts/download_assets.py --js3c-predictions     # ~54 GB JS3C-Net cross-base predictions
-    python scripts/download_assets.py --lmscnet-predictions  # ~40 GB LMSCNet cross-base predictions
+    python scripts/download_assets.py --js3c-predictions     # ~190 GB JS3C-Net cross-base predictions
+    python scripts/download_assets.py --lmscnet-predictions  # ~46 GB LMSCNet cross-base predictions
     python scripts/download_assets.py --object-bank          # ~448 MB rare-class object bank
     python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB headline synth pool
-    python scripts/download_assets.py --all                  # everything EXCEPT the synthetic pool (~4 GB models + ~272 GB predictions; see docs/DATASET.md)
+    python scripts/download_assets.py --all                  # everything EXCEPT the synthetic pool (~4 GB models + ~414 GB predictions; see docs/DATASET.md)
 
 The Hugging Face mirrors and the IEEE DataPort synthetic-pool archive come
 online on paper publication. Until then every download flag exits with the
@@ -51,12 +51,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoints", action="store_true", help="Download model checkpoints (~4 GB)")
     parser.add_argument("--predictions", action="store_true", help="Download SCPNet predictions (~178 GB, real + synth)")
-    parser.add_argument("--js3c-predictions", action="store_true", help="Download JS3C-Net predictions (~54 GB, cross-base eval)")
-    parser.add_argument("--lmscnet-predictions", action="store_true", help="Download LMSCNet predictions (~40 GB, cross-base eval)")
+    parser.add_argument("--js3c-predictions", action="store_true", help="Download JS3C-Net predictions (~190 GB, cross-base eval)")
+    parser.add_argument("--lmscnet-predictions", action="store_true", help="Download LMSCNet predictions (~46 GB, cross-base eval)")
     parser.add_argument("--object-bank", action="store_true", help="Download rare-class object bank (~448 MB)")
     parser.add_argument("--synthetic-pool", choices=["0K", "10K", "20K", "31K", "57K"],
                         default=None, help="Download a synthetic pool variant")
-    parser.add_argument("--all", action="store_true", help="Download everything EXCEPT the synthetic pool (~4 GB models + ~272 GB predictions [SCPNet 178 + JS3C 54 + LMSCNet 40]; see docs/DATASET.md disk-space table). The synthetic pool is opt-in via --synthetic-pool because it is only needed to retrain from scratch.")
+    parser.add_argument("--all", action="store_true", help="Download everything EXCEPT the synthetic pool (~4 GB models + ~414 GB predictions [SCPNet 178 + JS3C 190 + LMSCNet 46]; see docs/DATASET.md disk-space table). The synthetic pool is opt-in via --synthetic-pool because it is only needed to retrain from scratch.")
     parser.add_argument("--root", default=str(REPO_ROOT / "data"), help="Where to store downloads")
     args = parser.parse_args()
 
