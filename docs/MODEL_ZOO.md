@@ -19,25 +19,20 @@ data/checkpoints/<group>/<name>/
 
 `model.safetensors` is a complete model state_dict, so
 `load_state_dict(strict=True)` works out of the box on it. `model_ema.safetensors`
-holds the EMA-tracked parameters but omits a few non-EMA buffers (e.g. BatchNorm
-running_mean / running_var / num_batches_tracked), so loading it requires
-`load_state_dict(strict=False)` — the usage snippet below uses `strict=False` for
-exactly this reason. For exact reproduction prefer `scripts/eval.py`, which wires
-the EMA weights in the same way the paper numbers were produced.
+holds the EMA-tracked parameters; the released EMA files ship the full state
+including BatchNorm running buffers (278 tensors, the same key set as
+`model.safetensors`), so they load under `strict=True`, but the usage snippet
+below keeps `strict=False` as a forward-compatible default. For exact
+reproduction prefer `scripts/eval.py`, which wires the EMA weights in the same
+way the paper numbers were produced.
 
-> **Known issue — LMSCNet `model_ema.safetensors` (BN buffers).** For the
-> LMSCNet cross-base checkpoint
-> (`gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors`) the missing buffers
-> are load-bearing: the currently released file ships 233 tensors instead of
-> the full ~278, dropping all 45 BatchNorm `running_mean` / `running_var` /
-> `num_batches_tracked` buffers. Under the `strict=False` load they default to
-> uninitialised values, the base conditioning is corrupted, and the file scores
-> **11.04 val mIoU** rather than the paper's **16.59**. The full-state
-> `.pt`/`model.safetensors` checkpoint reproduces 16.59 byte-for-byte; load it
-> instead until the buffer-complete `model_ema.safetensors` is re-exported. A
-> buffer-complete re-export (via `rebuild_assets`) is a tracked release to-do.
-> SCPNet and JS3C-Net EMA files are unaffected (their bases carry no BN buffers
-> through the EMA path).
+> **Note — LMSCNet `model_ema.safetensors` ships complete.** The LMSCNet
+> cross-base checkpoint
+> (`gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors`) ships the full 278
+> tensors, including all 45 BatchNorm `running_mean` / `running_var` /
+> `num_batches_tracked` buffers, so it loads cleanly and reproduces **16.59 %
+> val mIoU** (+1.8 over the 14.76 % LMSCNet base). No buffer-completion step is
+> needed.
 
 **Download/disk sizes.** A single `model_ema.safetensors` (the deployment file
 the quickstart in `README.md` points at) is **~140 MB**. `download_assets.py`
@@ -52,10 +47,17 @@ convention, kept as-is).
 
 ## Headline scene-completion checkpoints
 
-| Subdir | Paper section | Val mIoU | Test mIoU | Config | Size (full subdir) |
+Each result is keyed by its stable paper `\label` (the rendered Roman table
+numbers drift between revisions; the labels do not).
+
+The `mf` / `sf` tags in the subdir names mark the training regime: **`mf`** =
+multi-frame-trained with single-frame input at inference (the headline regime);
+**`sf`** = the single-frame data-scaling sweep (`tab:data_scaling`).
+
+| Subdir | Paper label | Val mIoU | Test mIoU | Config | Size (full subdir) |
 |---|---|---|---|---|---|
-| `gssc_mf/gssc_31k_mf_step40000/` | **Headline** | 38.54 | 38.8 (N=1, no TTA) / 39.2 (+D4 TTA) | `configs/train/31k_mf.yaml` | ~265 MB |
-| `gssc_mf/gssc_57k_mf_step40000/` | Tab. V (negative result) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
+| `gssc_mf/gssc_31k_mf_step40000/` | **Headline** (`tab:portable_s2d2`) | 38.54 | 38.8 (N=1, no TTA) / 39.2 (+D4 TTA) | `configs/train/31k_mf.yaml` | ~265 MB |
+| `gssc_mf/gssc_57k_mf_step40000/` | internal / unreported (in no paper table; the paper's 57K row is single-frame, `tab:data_scaling` 38.4) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
 
 ## Cross-base portability (paper tab:portable_s2d2, three frozen-base rows)
 
@@ -66,15 +68,9 @@ released checkpoints; SCPNet uses the same training recipe with
 
 | Subdir | Base | Architecture family | Base mIoU | +S²D² mIoU | Δ | Config |
 |---|---|---|---|---|---|---|
-| `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 14.8 | **16.6** | **+1.8** | `configs/train/lmscnet_real.yaml` ⚠ |
+| `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 14.8 | **16.6** | **+1.8** | `configs/train/lmscnet_real.yaml` |
 | `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.7 | **26.1** | **+3.3** | `configs/train/js3c_real.yaml`    |
 | (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.37** | `configs/train/31k_mf.yaml`       |
-
-> ⚠ **LMSCNet row asset caveat.** The 16.6 (true 16.59) value is the paper
-> number and is correct. The *currently released* LMSCNet
-> `model_ema.safetensors` is missing its BatchNorm running buffers and scores
-> 11.04 under `strict=False`; load the full-state checkpoint to reach 16.59. See
-> the "Known issue — LMSCNet `model_ema.safetensors` (BN buffers)" note above.
 
 > **JS3C-Net number convention.** The JS3C row leads with the **paper headline
 > 26.1 % (+3.3 pp)** under the official `semantic-kitti-api` (the precise eval
@@ -96,10 +92,9 @@ Each cross-base checkpoint subdir is ~265 MB total (~140 MB for the single
 `model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.37) and LMSCNet
 (14.8 → 16.6, +1.8; LMSCNet base re-scored from on-disk predictions, superseding
 the earlier 12.10 → 16.59 / +4.49 summary) deltas in the table are measured
-end-to-end under the official `semantic-kitti-api`. The 16.59 LMSCNet figure
-reproduces only from the full-state checkpoint; the currently released LMSCNet
-`model_ema.safetensors` is missing its BatchNorm running buffers and scores
-11.04 under `strict=False` (see the known-issue note at the top of this doc).
+end-to-end under the official `semantic-kitti-api`. The released LMSCNet
+`model_ema.safetensors` ships complete (278 tensors, including all 45 BatchNorm
+running buffers), loads cleanly, and reproduces the 16.59 figure directly.
 
 The JS3C-Net row carries three numbers; the table leads with the official
 headline:
@@ -136,7 +131,7 @@ Reproduction requires `data/js3cnet_predictions/` (190 GB real + synth; download
 `scripts/download_assets.py --js3c-predictions` or dump locally via
 `scripts/dump_js3c_predictions.py`; see `docs/REPRODUCIBILITY.md`).
 
-## Single-frame retrains (Tab. VII data scaling)
+## Single-frame retrains (Supp `tab:data_scaling`)
 
 | Subdir | Synthetic pool | Val mIoU (N=1 / peak) | Config |
 |---|---|---|---|
@@ -152,7 +147,7 @@ Reproduction requires `data/js3cnet_predictions/` (190 GB real + synth; download
 > (the `0K`/`20K`/`57K` configs keep the uppercase `K`). Do not "normalize" the
 > case by analogy or you will hit a missing-file error.
 
-## Training-timestep ablations (Tab. XII)
+## Training-timestep ablations (Supp `tab:train_timesteps_ablation`)
 
 | Subdir | Schedule | Val mIoU | Config |
 |---|---|---|---|
@@ -234,9 +229,6 @@ model = SceneCompletionUNetSparse(
     # values for exact reproduction — see below.
 )
 model.load_state_dict(state, strict=False)  # EMA files omit some buffers; for exact reproduction prefer scripts/eval.py
-# NOTE: for the LMSCNet checkpoint the missing buffers are load-bearing — the
-# released model_ema.safetensors lacks its BN running buffers and scores 11.04,
-# not 16.59; load the full-state checkpoint (see the LMSCNet known-issue above).
 model.train(False)
 ```
 
@@ -253,9 +245,8 @@ python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 
 # LMSCNet cross-base (16.59% val, paper rounds to 16.6; +1.8 pp over the 14.76% on-disk-rescored base)
-# NOTE: the released LMSCNet model_ema.safetensors is missing its BN buffers and
-# scores 11.04 under strict=False; load the full-state checkpoint to reach 16.59
-# (see the LMSCNet known-issue at the top of this doc).
+# The released LMSCNet model_ema.safetensors ships complete (278 tensors, 45 BN
+# buffers) and reproduces 16.59 directly.
 python scripts/eval.py eval/lmscnet_val_1step \
     --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 ```
@@ -263,7 +254,9 @@ python scripts/eval.py eval/lmscnet_val_1step \
 Or reproduce a specific paper table with the all-in-one driver::
 
 ```bash
-python scripts/reproduce_table.py tab:perclass             # 38.54% val
-python scripts/reproduce_table.py tab:cross_base_js3c      # 26.05% val (official-api headline; paper 26.1)
-python scripts/reproduce_table.py tab:bev_results          # 36.1% BEV
+# 38.54% val headline (paper label tab:portable_s2d2); the driver's CLI key for
+# this checkpoint is tab:perclass (an alias of tab:main_results in the paper).
+python scripts/reproduce_table.py tab:perclass             # 38.54% val (paper tab:portable_s2d2)
+python scripts/reproduce_table.py tab:cross_base_js3c      # 26.05% val (official-api headline; paper 26.1, tab:portable_s2d2)
+python scripts/reproduce_table.py tab:bev_results          # 36.1% BEV (paper tab:bev_results)
 ```

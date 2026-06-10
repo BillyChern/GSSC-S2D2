@@ -89,9 +89,9 @@ ls data/lmscnet_predictions/08 | head
 # N=1, no TTA — expect 16.59 % val mIoU (paper rounds to 16.6; +1.8 pp over the
 # LMSCNet base 14.76 %, re-scored from on-disk predictions through the official
 # semantic-kitti-api — this supersedes the earlier 12.10 base/+4.49 summary)
-# NOTE: the released LMSCNet model_ema.safetensors is missing its BN buffers
-# (scores 11.04 under strict=False); load the full-state checkpoint to reach
-# 16.59 — see the LMSCNet known-issue in docs/MODEL_ZOO.md.
+# NOTE: the released LMSCNet model_ema.safetensors ships complete (278 tensors,
+# 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint
+# workaround is needed.
 python scripts/eval.py eval/lmscnet_val_1step \
     --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 ```

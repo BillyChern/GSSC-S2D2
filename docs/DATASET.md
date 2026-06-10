@@ -362,7 +362,7 @@ python scripts/download_assets.py --checkpoints
 | LMSCNet predictions (v2.1.0) | `data/lmscnet_predictions/` | ~46 GB (train+val08) |
 | Object bank | `data/object_bank/` | 448 MB |
 | Synthetic pool 31K | `data/synthetic_pool_31K/` | ~128 GB uncompressed (approx.) |
-| Synthetic pool 57K (Tab. V) | `data/synthetic_pool_57K/` | ~230 GB uncompressed (approx.) |
+| Synthetic pool 57K (`tab:data_scaling` 57K row) | `data/synthetic_pool_57K/` | ~230 GB uncompressed (approx.) |
 | Pretrained checkpoints | `data/checkpoints/` | ~4 GB |
 | **Total (eval-only, SCPNet headline)** | | **~135 GB** |
 | **Total (eval-only, +cross-base JS3C)** | | **~325 GB** (135 GB SCPNet subset + 190 GB JS3C-Net real + synth) |

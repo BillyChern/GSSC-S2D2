@@ -104,10 +104,9 @@ base, +1.8 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
   v1 → v2 weight-loading concern as with SCPNet).
 * S²D² lift on top: **16.59 %** val mIoU (paper rounds to **16.6 %**; **+1.8 pp**
   over the 14.76 % on-disk-rescored base), real-frames-only training,
-  `cold_diffusion=true`. NOTE: the released LMSCNet `model_ema.safetensors` is
-  missing its BN buffers (scores 11.04 under `strict=False`); load the
-  full-state checkpoint to reach 16.59 — see the LMSCNet known-issue in
-  `docs/MODEL_ZOO.md`.
+  `cold_diffusion=true`. NOTE: the released LMSCNet `model_ema.safetensors` ships
+  complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no
+  full-state-checkpoint workaround is needed.
 * Unlike the JS3C-Net row, LMSCNet has no GT-BEV vs. derived-BEV split: the
   seed BEV is always height-pooled from LMSCNet's own 3D prediction
   (`bev_from_base: true`, never GT BEV), so 16.59 % is already the at-deploy

@@ -46,8 +46,8 @@ always a **MAJOR** bump, even if the API is identical.
 - **`scripts/eval_kitti360.py`**, **`scripts/score_kitti360.py`**, **`scripts/eval_semanticposs.py`**, **`configs/eval/kitti360_zeroshot_1step.yaml`**, **`configs/eval/semanticposs_seq02.yaml`**, and **`src/gssc/data/{kitti360.py, kitti360_class_map.py, semanticposs.py}`** evaluate the frozen SemanticKITTI headline checkpoint (`gssc_31k_mf_step40000`) on two unseen domains, with no fine-tuning and no target labels.
 - Results: **SSCBench-KITTI360** (val seq. 06) 5.8 → 6.2 mIoU (+0.4) / 18.1 → 19.5 CompIoU (+1.4); **SemanticPOSS** (val seq. 02, TALoS Tab. 4 map) 1.0 → 6.6 mIoU (+5.5) / 31.8 → 54.9 CompIoU (+23.1). Provisioning and on-disk layout are in `docs/DATASET.md`; runnable commands in `README.md`.
 
-### Fixed / Known issues — LMSCNet `model_ema.safetensors` BatchNorm buffers
-- The released `gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` ships 233 tensors instead of ~278: it drops all 45 BatchNorm running buffers, so under the documented `strict=False` load it scores **11.04 %** val mIoU rather than the paper's **16.59 %**. Workaround: load the full-state checkpoint, which reproduces 16.59 % byte-for-byte. A buffer-complete re-export of the safetensors is a tracked release to-do (`rebuild_assets`). The SCPNet and JS3C-Net EMA files are unaffected. Details in `docs/MODEL_ZOO.md`.
+### Fixed — LMSCNet `model_ema.safetensors` BatchNorm buffers
+- Re-exported `gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` so it ships the full **278 tensors**, including all **45 BatchNorm** running buffers. It now loads cleanly and reproduces the paper's **16.59 %** val mIoU (+1.8 over the 14.76 % LMSCNet base) directly — no full-state-checkpoint workaround needed. The SCPNet and JS3C-Net EMA files were always complete. Details in `docs/MODEL_ZOO.md`.
 
 ## [2.1.0] — 2026-05-26
 
