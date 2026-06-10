@@ -131,14 +131,22 @@ Reproduction requires `data/js3cnet_predictions/` (190 GB real + synth; download
 `scripts/download_assets.py --js3c-predictions` or dump locally via
 `scripts/dump_js3c_predictions.py`; see `docs/REPRODUCIBILITY.md`).
 
-## Single-frame retrains (Supp `tab:data_scaling`)
+## Single-frame data-scaling companion sweep
+
+These are single-frame-**trained** retrains that sweep the synthetic-pool volume.
+They are a companion to — not the source of — the paper's `tab:data_scaling`
+(Supp §E), which reports the **headline** configuration (multi-frame-trained,
+`T=100`-uniform, `N=1` deployment): 0K 37.7 → 10K 38.1 → 20K 38.3 → **32K 38.54
+(headline)** → 57K 38.4, monotonically increasing through 32K. The `N=1` column
+below is each single-frame checkpoint's own measured value, distinct from the
+multi-frame `tab:data_scaling` cells above.
 
 | Subdir | Synthetic pool | Val mIoU (N=1 / peak) | Config |
 |---|---|---|---|
 | `gssc_sf/gssc_0K_sf_step100000/`  | None (real only)         | 38.18 / 38.46 (N=5)  | `configs/train/0K_sf.yaml`  |
 | `gssc_sf/gssc_10K_sf_step100000/` | 10K synthetic            | 38.06 / 38.50 (N=10) | `configs/train/10K_sf.yaml` |
 | `gssc_sf/gssc_20K_sf_step100000/` | 20K synthetic            | 38.14 / 38.49 (N=5)  | `configs/train/20K_sf.yaml` |
-| `gssc_sf/gssc_31K_sf_step100000/` | 31K synthetic (headline) | 38.42 / 38.49 (N=2-5)| `configs/train/31k_sf.yaml` |
+| `gssc_sf/gssc_31K_sf_step100000/` | 31K synthetic            | 38.42 / 38.49 (N=2-5)| `configs/train/31k_sf.yaml` |
 | `gssc_sf/gssc_57K_sf_step100000/` | 57K synthetic            | 37.66 / 38.05 (N=5)  | `configs/train/57K_sf.yaml` |
 
 > **Copy these names verbatim — the casing is intentionally mixed.** The
