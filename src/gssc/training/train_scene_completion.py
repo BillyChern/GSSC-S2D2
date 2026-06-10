@@ -2501,64 +2501,16 @@ class SceneCompletionTrainer:
                 is_mimo_model = model_type in ['mimo_lite', 'mimo_full']
                 is_mimo_batch = batch.get('channel_concatenated', False)
 
-                # S4 MIMO: Use sample_mimo() for MIMO models
+                # S4 MIMO ensembling is a development-only research branch that is NOT
+                # shipped in this release (the MIMO model classes are kept as ``None``
+                # sentinels at module top, so a ``mimo_lite``/``mimo_full`` model can
+                # never be instantiated). The corresponding ``sample_mimo`` sampler was
+                # removed with the rest of the MIMO surface; this branch is therefore
+                # unreachable in practice and raises a clear error if ever forced.
                 if is_mimo_model and is_mimo_batch:
-                    # For MIMO validation, inputs are stacked: lidar [B, N, H, W, D], bev [B, N, H, W]
-                    # gt_scene is [B, N, H, W, D] but all N are same sample, use [:, 0]
-                    n_subnets = batch.get('n_subnets', 3)
-                    gt_scene_single = gt_scene[:, 0]  # [B, H, W, D]
-
-                    # Extract single sample for sampling (all N are same)
-                    lidar_single = lidar[:, 0:1]  # [B, 1, H, W, D]
-                    bev_single = bev[:, 0]  # [B, H, W]
-
-                    B = lidar_single.shape[0]
-                    H, W, D = gt_scene_single.shape[1], gt_scene_single.shape[2], gt_scene_single.shape[3]
-
-                    # Use MIMO sampling - DO NOT use TTA!
-                    # PaSCo reference: validation uses N IDENTICAL copies (not TTA)
-                    # - Training: N different scenes merged (NOT N augmented copies of same scene)
-                    # - Validation: N identical copies, outputs averaged
-                    # Testing confirmed: TTA hurts (80% acc without vs 53% with TTA)
-                    # Get waffleiron for MIMO sampling (required by sample_mimo)
-                    # MIMO dataset returns waffleiron as [B, N, C, H, W] but sample_mimo expects [B, C, H, W]
-                    # For validation, all N subnets have identical waffleiron, so take the first one
-                    waffleiron_sample = batch.get('waffleiron', None)
-                    if waffleiron_sample is not None and isinstance(waffleiron_sample, torch.Tensor):
-                        waffleiron_sample = waffleiron_sample.to(self.device)
-                        # Extract first subnet's waffleiron: [B, N, C, H, W] -> [B, C, H, W]
-                        if waffleiron_sample.dim() == 5:
-                            waffleiron_sample = waffleiron_sample[:, 0]  # Take first subnet
-
-                    # PaSCo MIMO validation: Same scene with N different augmentations
-                    # Each head sees scene from different viewpoint, ensemble averages
-                    # Previous use_tta=False was WRONG - caused train/val mismatch:
-                    # - Training: Each head sees DIFFERENT scene (diverse inputs)
-                    # - Val with use_tta=False: Each head sees IDENTICAL scene (no diversity)
-                    # - Result: Heads specialized for other scenes produce garbage
-                    # Fix: use_tta=True gives each head different viewpoint of same scene
-                    pred_scene = self.diffusion.sample_mimo(
-                        self.model,
-                        bev_single,
-                        lidar_single,
-                        waffleiron=waffleiron_sample,
-                        n_subnets=n_subnets,
-                        shape=(B, H, W, D),
-                        device=self.device,
-                        show_progress=False,
-                        use_tta=True,  # PaSCo-style: N augmentations + inverse transforms + ensemble
-                        use_continuous_tta=True,  # PaSCo uses continuous rotation
-                        tta_max_angle=30.0,  # PaSCo default: ±30°
-                        tta_max_translation=(0.6, 0.6, 0.4),  # PaSCo default
+                    raise NotImplementedError(
+                        "MIMO ensembling is not shipped in this release"
                     )
-
-                    # Update SSC metrics
-                    ssc_metrics.update(
-                        pred_scene.cpu().numpy(),
-                        gt_scene_single.cpu().numpy(),
-                        invalid_mask=inv_mask,
-                    )
-                    miou_sample_count += B
                 else:
                     # Standard (non-MIMO) sampling
                     B = lidar.shape[0]
@@ -3243,9 +3195,9 @@ def main():
                         help='Enable curriculum learning: linearly decrease gt_bev_prob from '
                              'curriculum_start_prob to curriculum_end_prob over first curriculum_warmup_frac of training')
     parser.add_argument('--curriculum_start_prob', type=float, default=1.0,
-                        help='Starting GT BEV probability (default: 1.0 = 100% GT BEV)')
+                        help='Starting GT BEV probability (default: 1.0 = 100%% GT BEV)')
     parser.add_argument('--curriculum_end_prob', type=float, default=0.0,
-                        help='Ending GT BEV probability (default: 0.0 = 100% Pred BEV)')
+                        help='Ending GT BEV probability (default: 0.0 = 100%% Pred BEV)')
     parser.add_argument('--curriculum_warmup_frac', type=float, default=0.6,
                         help='Fraction of total training for curriculum transition (default: 0.6)')
 

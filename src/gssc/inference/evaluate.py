@@ -152,7 +152,7 @@ def _run_step_sweep(
     # ``metrics["mIoU"]`` (e.g. scripts/eval.py) still get a sensible scalar.
     result: dict = {}
     if miou_by_steps:
-        best_n = max(miou_by_steps, key=miou_by_steps.get)
+        best_n = max(miou_by_steps, key=lambda k: miou_by_steps[k])
         result.update(sweep[best_n])
         result["best_steps"] = best_n
     result["sweep"] = sweep

@@ -7,7 +7,7 @@ output_dir: outputs/bev_secondary
 batch_size: 8
 lr: 1.0e-4
 num_iterations: 100000
-correction_eval_steps: 100
+algo2_eval_steps: 100
 save_interval: 5000
 num_classes: 20
 num_timesteps: 100

@@ -174,6 +174,25 @@ def main() -> None:
         return
 
     ckpt_path = _resolve_checkpoint(ckpt_dir, spec["checkpoint"])
+    if spec.get("submit"):
+        # Hidden-test row: the SemanticKITTI test GT is server-side, so we
+        # generate prediction files for leaderboard submission rather than
+        # scoring locally (local scoring would fail — sequences 11-21 have no
+        # public .label GT).
+        out_dir = REPO_ROOT / "outputs" / "test_submission"
+        cmd = [
+            sys.executable, "scripts/infer.py", spec["config"],
+            "--checkpoint", str(ckpt_path),
+            "--output", str(out_dir),
+        ]
+        print(f"$ {' '.join(cmd)}")
+        subprocess.run(cmd, cwd=REPO_ROOT, check=True)
+        print(
+            f"\nTest predictions written under {out_dir}/sequences/<seq>/predictions/.\n"
+            "Zip and submit to the SemanticKITTI SSC leaderboard (Codabench) for the "
+            "hidden-test mIoU (paper: 38.8% at N=1, 39.2% with D4 TTA); see README.md."
+        )
+        return
     cmd = [
         sys.executable, "scripts/eval.py", spec["config"],
         "--checkpoint", str(ckpt_path),

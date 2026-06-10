@@ -429,10 +429,37 @@ if __name__ == '__main__':
     parser.add_argument('--algo2_eval_steps', type=int, default=100)
     parser.add_argument('--miou_interval', type=int, default=5000)
     parser.add_argument('--save_interval', type=int, default=5000)
+    # The following four flags are forwarded by the bev_secondary.yaml recipe
+    # via scripts/train.py. They are accepted (and validated) here so the
+    # documented `python scripts/train.py train/bev_secondary` command parses
+    # cleanly. They are currently informational at the trainer level: the model
+    # is built with the hardcoded values matching these defaults (task='bev',
+    # 20 classes, encoder out=64, UNet model_size='base'), so passing them does
+    # not change the reproduced 36.09% BEV mIoU run.
+    parser.add_argument('--task', type=str, default='bev',
+                        help='Secondary-task discriminant (bev). Used by '
+                             'scripts/train.py for trainer dispatch.')
+    parser.add_argument('--num_classes', type=int, default=20,
+                        help='Number of semantic classes (fixed at 20 for '
+                             'SemanticKITTI; model is built with 20).')
+    parser.add_argument('--base_channels', type=int, default=128,
+                        help='Documented base channel width of the BEV UNet '
+                             '(informational; UNet uses model_size=base).')
+    parser.add_argument('--lidar_channels', type=int, default=128,
+                        help='Documented LiDAR-encoder channel width '
+                             '(informational; encoder out_channels=64).')
     parser.add_argument('--train_sequences', type=str, default=None,
                         help='Comma-separated train sequences (default: 00-10 real only)')
     parser.add_argument('--resume', type=str, default=None,
                         help='Resume from checkpoint path')
+    # scripts/train.py always injects --seed (default 42). The original BEV-A
+    # 36.09% reproduction did no RNG seeding, so this flag is accepted but not
+    # applied to preserve exact reproduction behavior; it is registered here so
+    # the documented `python scripts/train.py train/bev_secondary` parses cleanly
+    # instead of crashing with SystemExit 2 on an unrecognized argument.
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Accepted for CLI compatibility with scripts/train.py; '
+                             'not applied (BEV-A reproduction does no RNG seeding).')
     args = parser.parse_args()
 
     config = vars(args)

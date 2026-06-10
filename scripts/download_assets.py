@@ -94,27 +94,27 @@ def main() -> None:
 
     if args.checkpoints or args.all:
         logger.info("Downloading checkpoints from %s ...", HF_REPO_MODELS)
-        snapshot_download(repo_id=HF_REPO_MODELS, local_dir=root / "checkpoints", local_dir_use_symlinks=False)
+        snapshot_download(repo_id=HF_REPO_MODELS, local_dir=root / "checkpoints")
     if args.predictions or args.all:
         logger.info("Downloading SCPNet predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["scpnet_predictions/*"],
-                          local_dir=root / "scpnet_predictions", local_dir_use_symlinks=False)
+                          local_dir=root / "scpnet_predictions")
     if args.js3c_predictions or args.all:
         logger.info("Downloading JS3C-Net predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["js3cnet_predictions/*"],
-                          local_dir=root / "js3cnet_predictions", local_dir_use_symlinks=False)
+                          local_dir=root / "js3cnet_predictions")
     if args.lmscnet_predictions or args.all:
         logger.info("Downloading LMSCNet predictions from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["lmscnet_predictions/*"],
-                          local_dir=root / "lmscnet_predictions", local_dir_use_symlinks=False)
+                          local_dir=root / "lmscnet_predictions")
     if args.object_bank or args.all:
         logger.info("Downloading object bank from %s ...", HF_REPO_DATA)
         snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
                           allow_patterns=["object_bank/*"],
-                          local_dir=root / "object_bank", local_dir_use_symlinks=False)
+                          local_dir=root / "object_bank")
     if args.synthetic_pool:
         logger.info("Synthetic pool '%s' is hosted on IEEE DataPort.", args.synthetic_pool)
         logger.info("  -> %s", DATAPORT_URL)

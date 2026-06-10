@@ -52,6 +52,7 @@ for k, v in LEARNING_MAP_INV.items():
 
 
 def unpack_voxels(compressed: np.ndarray) -> np.ndarray:
+    """Unpack a bit-packed SemanticKITTI ``.bin`` occupancy array into a flat uint8 voxel array (8 voxels per input byte, MSB first)."""
     u = np.zeros(compressed.shape[0] * 8, dtype=np.uint8)
     u[::8]  = compressed >> 7 & 1
     u[1::8] = compressed >> 6 & 1

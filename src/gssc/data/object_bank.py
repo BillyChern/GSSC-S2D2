@@ -15,12 +15,15 @@ truck, person, etc.) that can be pasted into new scenes for augmentation.
 """
 
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
 from scipy import ndimage
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -192,7 +195,7 @@ class RareObjectExtractor:
                 seq_path = data_root / 'sequences' / seq / 'voxels'
 
             if not seq_path.exists():
-                print(f"Sequence {seq} not found at {seq_path}")
+                logger.warning("Sequence %s not found at %s", seq, seq_path)
                 continue
 
             label_files = sorted(seq_path.glob('*.label'))[:max_scenes_per_seq]

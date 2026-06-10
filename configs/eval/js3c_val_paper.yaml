@@ -10,13 +10,18 @@ _description: |
   internal SSCMetrics evaluator; official semantic-kitti-api on the GT-BEV
   predictions reads slightly higher — the +0.31 pp internal/official gap is
   documented in supplementary tab:supp_b6_val).
+# Consumed by run_evaluation: split, sequences, base_pred_dir, bev_source,
+# bev_root, correction_steps, tta. base_kind / bev_from_base / cold_diffusion
+# document the hardcoded protocol (base selected via base_pred_dir; bev_from_base
+# + cold_diffusion always-on in the Algo2 path) but are NOT read -> underscore-
+# prefixed to preserve provenance while signalling not-consumed.
 split: val
 sequences: "08"
-base_kind: js3c
+_base_kind: js3c
 base_pred_dir: data/js3cnet_predictions
 bev_source: gt
 bev_root: SemanticKITTI_3D/256
-bev_from_base: true
-cold_diffusion: true
+_bev_from_base: true
+_cold_diffusion: true
 correction_steps: 1
 tta: none

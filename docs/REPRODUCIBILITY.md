@@ -12,7 +12,11 @@ two pillars are scoped as follows:
   Jensen–Shannon filter + HDL-64E ray-tracer + rare-class object bank) that
   builds the synthetic (sparse, complete) training pool. Its generator
   checkpoints ship in the model zoo (`pyramid/pyramid_s1|s2|s3`) and the
-  training commands live in `docs/TRAIN.md` ("Pyramid diffusion"); the
+  training commands live in `docs/TRAIN.md` ("Pyramid diffusion"). To
+  regenerate the pool with the PS³ ray-tracer, install the `ps3` extra
+  (`uv pip install numba`) so `src/gssc/data/lidar_resampler_v2.py` uses the
+  Numba-accelerated fast path; without it the resampler silently falls back to
+  a much slower pure-Python loop. The
   synthetic pool itself is consumed by the single-frame data-scaling configs
   (Tab. VII).
 * **SGSC** (*Semantic-guided Generative Scene Completion*, the from-noise

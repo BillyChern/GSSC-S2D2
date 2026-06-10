@@ -1,27 +1,27 @@
-_paper_table: "tab:main_results LMSCNet+S2D2 val mIoU at N=1 no-TTA"
+_paper_table: "tab:main_results / tab:portable_s2d2 (LMSCNet+S2D2 val mIoU at N=1, no TTA)"
 _description: |
   Eval LMSCNet+S2D2 at N=1, no TTA, official semantic-kitti-api evaluator.
-  Mirrors js3c_val_1step.yaml; identical to that pipeline except
-  base_kind + base_pred_dir point at LMSCNet predictions.
+  Mirrors js3c_val_realistic.yaml: identical pipeline except base_pred_dir
+  points at the LMSCNet predictions. The seed BEV is height-pooled from
+  LMSCNet's own 3D prediction (bev_source: derived), so this is the honest
+  at-deploy number — no GT-BEV leakage.
 
-# Cross-base eval configuration
-data_root: data
-base_kind: lmscnet
-base_pred_dir: data/lmscnet_predictions
-bev_from_base: true
-cold_diffusion: true
-force_single_frame_lidar: true
-s3_mode: teacher
+  Expected val mIoU: 16.59% (paper tab:portable_s2d2, +1.8 pp over the LMSCNet
+  base 14.76%; both re-scored through the official semantic-kitti-api on
+  sequence 08, 4071 frames). See docs/TRAIN.md and docs/MODEL_ZOO.md for the
+  released-checkpoint BN-buffer known issue.
 
-# Val (sequence 08, 4071 frames, standard SSC evaluator)
-val_sequences: "08"
-batch_size: 1
-num_workers: 4
+  NOTE (v2.1.0): every key below is read by gssc.inference.evaluate.run_evaluation.
+  The previous revision used inert keys (val_sequences / num_steps / d4_tta /
+  data_root / batch_size / num_workers / num_classes / num_timesteps / beta_max /
+  use_ema / base_kind / bev_from_base / cold_diffusion / force_single_frame_lidar /
+  s3_mode) that run_evaluation never reads, so the config silently did not control
+  the run; it only matched the paper protocol by coinciding with the code defaults.
 
-# Sampler: N=1 (single Euler step), no TTA, EMA weights
-num_classes: 20
-num_timesteps: 100
-beta_max: 0.1
-num_steps: 1
-d4_tta: false
-use_ema: true
+# --- Read by run_evaluation (canonical eval keys) ---
+split: val                       # -> gen_split "valid"; scored on seq 08
+sequences: "08"                  # SemanticKITTI val sequence (4071 frames)
+correction_steps: 1              # N=1 headline (single S2D2 correction / Euler step)
+tta: none                        # no D4 dihedral TTA
+bev_source: derived              # seed BEV height-pooled from LMSCNet's own 3D pred
+base_pred_dir: data/lmscnet_predictions   # <seq>/<frame>_pred.npy, values 0-19

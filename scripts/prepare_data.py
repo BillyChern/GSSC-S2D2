@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--root", required=True, help="Path to SemanticKITTI dataset root")
     p.add_argument("--check-only", action="store_true", help="Just verify, do not preprocess")

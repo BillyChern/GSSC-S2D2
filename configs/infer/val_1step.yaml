@@ -1,5 +1,15 @@
 _paper_table: tab:perclass
+_description: |
+  Single correction-step (N=1) inference on SemanticKITTI val (sequence 08).
+  Writes .label files only; score them with scripts/eval.py or the official
+  semantic_kitti_api. Used to materialise the tab:perclass per-class predictions.
+
+  Consumed by scripts/infer.py: `split: val` -> generator --split valid (seq 08);
+  `correction_steps: 1` -> --cold_steps 1; `tta: none` -> generate_predictions
+  (Algo2 sampler). `sequences` is informational (cross-checked against `split`).
+# --- Read by scripts/infer.py ---
 split: val
-sequences: "08"
 correction_steps: 1
 tta: none
+# --- Informational (cross-checked against `split`, not used to pick sequences) ---
+sequences: "08"

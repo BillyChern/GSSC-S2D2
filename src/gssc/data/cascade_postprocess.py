@@ -29,6 +29,7 @@ Pipeline:
   Clean Scene → LiDAR Simulation → (sparse, complete) pair
 """
 
+import logging
 from dataclasses import dataclass
 
 import numpy as np
@@ -41,6 +42,8 @@ try:
 except ImportError:
     from object_bank import CLASS_NAMES, RARE_CLASS_IDS, ObjectBank
     from real_augmentation import CopyPasteAugmentor
+
+logger = logging.getLogger(__name__)
 
 
 # Ground/surface classes
@@ -290,7 +293,7 @@ class RareClassEnhancer:
                 self.copy_paste = CopyPasteAugmentor(object_bank_path)
                 self.object_bank = self.copy_paste.object_bank
             except Exception as e:
-                print(f"Warning: Could not load object bank: {e}")
+                logger.warning("Could not load object bank: %s", e)
 
     def _compute_class_deficits(self, scene: np.ndarray) -> dict[int, float]:
         """
@@ -460,7 +463,7 @@ class InpaintingEnhancer:
             try:
                 self.object_bank = ObjectBank.load(object_bank_path)
             except Exception as e:
-                print(f"Warning: Could not load object bank for inpainting: {e}")
+                logger.warning("Could not load object bank for inpainting: %s", e)
 
     def enhance(self, scene: np.ndarray) -> tuple[np.ndarray, dict]:
         """

@@ -198,6 +198,12 @@ until then the download script exits with the manual-download instructions:
 You only need the synthetic pool if you want to **retrain from scratch**. The
 released checkpoint already contains the trained weights.
 
+If instead you want to **regenerate the pool yourself** (the PS³ HDL-64E
+ray-tracer in `src/gssc/data/lidar_resampler_v2.py`), install the `ps3` extra
+(`uv pip install numba`, or `pip install -e ".[ps3]"`) so the resampler uses
+the Numba-accelerated fast path; without Numba it silently falls back to a much
+slower pure-Python loop.
+
 ## Checkpoints (~4 GB)
 
 ```bash

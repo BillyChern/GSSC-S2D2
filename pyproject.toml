@@ -69,6 +69,12 @@ viz = [
 wandb = [
     "wandb>=0.17",
 ]
+ps3 = [
+    # Numba JIT for the PS³ HDL-64E ray-tracer fast path
+    # (src/gssc/data/lidar_resampler_v2.py). Without it the resampler
+    # silently falls back to the much slower pure-Python loop.
+    "numba>=0.59",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/BillyChern/GSSC-S2D2"

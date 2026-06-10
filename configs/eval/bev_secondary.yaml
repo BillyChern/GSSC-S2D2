@@ -1,7 +1,13 @@
 _paper_table: "tab:bev (secondary task, BEV-A 36.09%)"
 _description: "LiDAR-only BEV refinement via S2D2: SCPNet-derived base BEV -> S2D2 BEV diffusion -> refined BEV. Expected 36.09% BEV mIoU on SemanticKITTI val seq 08, paper Tab. XV (secondary task)."
-task: bev
-split: val
-sequences: "08"
-correction_steps: 1
-tta: none
+# NOTE: scripts/eval.py routes eval/bev_* configs to evaluate_bev(), which takes
+# no config dict — sequence="08" and n_steps (from --steps, default 1) are
+# hardcoded/CLI-driven and the rest of the protocol is baked into the BEV
+# checkpoint. Every key below is therefore INERT documentation of the hardcoded
+# protocol, underscore-prefixed so load_yaml_to_args + the readers skip it while
+# the provenance is preserved.
+_task: bev
+_split: val
+_sequences: "08"
+_correction_steps: 1
+_tta: none

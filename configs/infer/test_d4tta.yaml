@@ -1,6 +1,16 @@
 _paper_table: tab:main_results (39.2 test row)
-_description: D4 TTA inference on test split for SemanticKITTI submission. Generates .label files.
+_description: |
+  D4 TTA inference on the SemanticKITTI HIDDEN TEST split (sequences 11-21) for
+  leaderboard submission. Writes .label files only (no local scoring -- test GT
+  is server-side). Reproduces the tab:main_results 39.2% test row.
+
+  Consumed by scripts/infer.py: `split` -> generator --split (test -> seqs
+  11..21); `correction_steps` -> --cold_steps; `tta: d4` -> the d4_tta module.
+  `sequences` is informational (the generator derives the sequence list from
+  `split`); scripts/infer.py cross-checks it against the resolved split.
+# --- Read by scripts/infer.py ---
 split: test
-sequences: "11,12,13,14,15,16,17,18,19,20,21"
 correction_steps: 4
 tta: d4
+# --- Informational (cross-checked against `split`, not used to pick sequences) ---
+sequences: "11,12,13,14,15,16,17,18,19,20,21"

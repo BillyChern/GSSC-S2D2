@@ -11,13 +11,18 @@ _description: |
 
   This config is aliased to `js3c_val_paper.yaml` for backwards compatibility
   with v1.1.0-pre callers.
+# Consumed by run_evaluation: split, sequences, base_pred_dir, bev_source,
+# bev_root, correction_steps, tta. The remaining keys document the hardcoded
+# protocol but are NOT read (base_kind: the JS3C base is selected via
+# base_pred_dir; bev_from_base + cold_diffusion: always-on in the Algo2 path),
+# so they are underscore-prefixed to preserve provenance while signalling inert.
 split: val
 sequences: "08"
-base_kind: js3c
+_base_kind: js3c
 base_pred_dir: data/js3cnet_predictions
 bev_source: gt
 bev_root: SemanticKITTI_3D/256
-bev_from_base: true
-cold_diffusion: true
+_bev_from_base: true
+_cold_diffusion: true
 correction_steps: 1
 tta: none

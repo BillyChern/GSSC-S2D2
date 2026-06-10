@@ -14,13 +14,20 @@ _description: >
   (the SemanticKITTI model cannot emit them). Expected scorable classes: the 16
   shared SemanticKITTI∩KITTI360 classes.
 
-dataset: kitti360
+# Read by scripts/eval_kitti360.py: split, correction_steps, kitti360_root,
+# match_table, base_pred_dir. The other documentary keys are INERT for this
+# reader (dataset: routing is by entry-point script, not this key; sequences:
+# derived from split via Kitti360EvalConfig; tta: no D4 path here; bev_source /
+# bev_from_base: the derived-BEV + bev_from_base behaviour is hardcoded inline in
+# run_s2d2_and_writeback). Underscore-prefixed to preserve the documented
+# protocol while signalling not-consumed.
+_dataset: kitti360
 split: val                      # -> sequence 2013_05_28_drive_0006_sync
-sequences: "2013_05_28_drive_0006_sync"
+_sequences: "2013_05_28_drive_0006_sync"
 correction_steps: 1             # N=1 headline (S²D² single correction step)
-tta: none
-bev_source: derived             # topmost-non-empty BEV from the (remapped) base 3D pred
-bev_from_base: true
+_tta: none
+_bev_source: derived            # topmost-non-empty BEV from the (remapped) base 3D pred (hardcoded inline)
+_bev_from_base: true
 
 # --- Paths (repo-relative; see docs/DATASET.md for provisioning) ---
 # SSCBench-KITTI360 layout root (contains data_3d_raw/ + data_2d_raw/<seq>/voxels/).

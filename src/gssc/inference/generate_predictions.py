@@ -93,6 +93,7 @@ def load_lidar_voxels(voxel_path: str | os.PathLike) -> torch.Tensor:
 
 
 def main() -> None:
+    """Parse CLI arguments and run scene-completion inference, writing official SemanticKITTI ``.label`` predictions to the output directory."""
     parser = argparse.ArgumentParser(description='Generate official SemanticKITTI SSC predictions')
     parser.add_argument('--checkpoint', type=str, required=True,
                         help='Path to B4b checkpoint (e.g., best_miou.pt)')
@@ -125,8 +126,8 @@ def main() -> None:
                               'override). '
                               "'gt': load preprocessed GT BEV from `<voxel_root>/<seq>/<frame>_bev.npy`. "
                               'Used to reproduce the paper GT-BEV-conditioned protocol '
-                              '(JS3C-Net + S²D² val mIoU 26.05% under the official '
-                              'semantic-kitti-api headline; 26.72% under the paper internal '
+                              '(JS3C-Net + S²D² val mIoU 26.05%% under the official '
+                              'semantic-kitti-api headline; 26.72%% under the paper internal '
                               'SSCMetrics, supp tab:supp_b6_val footnote).'))
     parser.add_argument('--bev_root', type=str, default=None,
                         help=('Root for GT BEV files when `--bev_source gt`. Defaults to '

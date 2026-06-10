@@ -2,11 +2,15 @@ _paper_table: "tab:main_results row 91 (JS3C+S2D2, +D4 TTA)"
 _description: |
   JS3C-Net cross-base eval at N=4 with D4 dihedral TTA. Expected val mIoU:
   >= 26.72% (TTA monotone gain over the N=1 row).
+# Consumed by run_evaluation: split, sequences, base_pred_dir, correction_steps,
+# tta. base_kind / bev_from_base / cold_diffusion document the hardcoded protocol
+# (base selected via base_pred_dir; bev_from_base + cold_diffusion always-on in
+# the Algo2 path) but are NOT read -> underscore-prefixed to keep provenance.
 split: val
 sequences: "08"
-base_kind: js3c
+_base_kind: js3c
 base_pred_dir: data/js3cnet_predictions
-bev_from_base: true
-cold_diffusion: true
+_bev_from_base: true
+_cold_diffusion: true
 correction_steps: 4
 tta: d4

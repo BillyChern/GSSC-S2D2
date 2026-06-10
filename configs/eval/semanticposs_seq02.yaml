@@ -25,13 +25,20 @@ _description: >
   POSS counterpart (motorcycle, truck, other-vehicle, motorcyclist, parking,
   other-ground, terrain) fold to empty. All 11 POSS classes are scorable.
 
-dataset: semanticposs
+# Read by scripts/eval_semanticposs.py: split, sequences, correction_steps,
+# poss_root, voxel_gt_root, base_pred_dir, datacfg. The other documentary keys
+# are INERT for this reader (dataset: routing is by entry-point script, not this
+# key; tta: no D4 path here; bev_source / bev_from_base: the derived-BEV +
+# bev_from_base behaviour is hardcoded inline in run_s2d2_and_writeback).
+# Underscore-prefixed to preserve the documented protocol while signalling
+# not-consumed.
+_dataset: semanticposs
 split: val                      # -> sequence 02 (the only POSS eval sequence)
 sequences: "02"
 correction_steps: 1             # N=1 headline (S²D² single correction step)
-tta: none
-bev_source: derived             # topmost-non-empty BEV from the (SemanticKITTI-space) base 3D pred
-bev_from_base: true
+_tta: none
+_bev_source: derived            # topmost-non-empty BEV from the (SemanticKITTI-space) base 3D pred (hardcoded inline)
+_bev_from_base: true
 
 # --- Paths (fill after provisioning the raw SemanticPOSS release) ---
 # Raw SemanticPOSS layout root: contains sequences/02/{velodyne,labels}.

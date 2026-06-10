@@ -11,12 +11,17 @@ _description: |
   Expected mIoU: ~24.3 % via official semantic-kitti-api (4071 frames, seq 08).
   For the paper protocol that reproduces the 26.72% claim, use
   `eval/js3c_val_paper.yaml` instead.
+# Consumed by run_evaluation: split, sequences, base_pred_dir, bev_source,
+# correction_steps, tta. base_kind / bev_from_base / cold_diffusion document the
+# hardcoded protocol (base selected via base_pred_dir; bev_from_base +
+# cold_diffusion always-on in the Algo2 path) but are NOT read -> underscore-
+# prefixed to preserve provenance while signalling not-consumed.
 split: val
 sequences: "08"
-base_kind: js3c
+_base_kind: js3c
 base_pred_dir: data/js3cnet_predictions
 bev_source: derived
-bev_from_base: true
-cold_diffusion: true
+_bev_from_base: true
+_cold_diffusion: true
 correction_steps: 1
 tta: none
