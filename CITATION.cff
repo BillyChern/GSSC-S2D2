@@ -14,7 +14,7 @@ version: 2.1.0
 date-released: 2026-05-26
 preferred-citation:
   type: article
-  title: "Generative Semantic Scene Completion through Modeling the Underlying Geometry and Semantics in Point Clouds"
+  title: "Generative Semantic Scene Completion"
   authors:
     - family-names: "Chen"
       given-names: "Shi"
