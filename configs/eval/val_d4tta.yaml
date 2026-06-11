@@ -1,6 +1,6 @@
 _paper_table: tab:main_results (val with D4 TTA)
-_description: 1-step (N=1) S2D2 correction sampling + D4 dihedral TTA. Expected 38.73% val mIoU.
+_description: 4-step (N=4) S2D2 correction sampling + D4 dihedral TTA. Expected 38.73% val mIoU (verified). Note N=1+D4 gives 38.56%; the paper's reported +D4 val (38.73%) and test (39.2%) numbers use N=4.
 split: val
 sequences: "08"
-correction_steps: 1
+correction_steps: 4
 tta: d4

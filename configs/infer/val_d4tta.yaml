@@ -1,15 +1,16 @@
 _paper_table: tab:main_results (val with D4 TTA)
 _description: |
-  N=1 correction-step inference + D4 dihedral TTA on SemanticKITTI val (seq 08).
+  N=4 correction-step inference + D4 dihedral TTA on SemanticKITTI val (seq 08).
   Writes .label files only; score with scripts/eval.py / semantic_kitti_api.
-  Canonical val-side framing: correction_steps=1 (the test row uses 4).
+  The paper's +D4 TTA numbers (38.73% val, 39.2% test) use correction_steps=4;
+  N=1+D4 yields only 38.56% val, so N=4 is required to reproduce 38.73%.
 
   Consumed by scripts/infer.py: `split: val` -> generator --split valid (seq 08);
-  `correction_steps: 1` -> --cold_steps 1; `tta: d4` -> the d4_tta module.
+  `correction_steps: 4` -> --cold_steps 4; `tta: d4` -> the d4_tta module.
   `sequences` is informational (cross-checked against `split`).
 # --- Read by scripts/infer.py ---
 split: val
-correction_steps: 1
+correction_steps: 4
 tta: d4
 # --- Informational (cross-checked against `split`, not used to pick sequences) ---
 sequences: "08"
