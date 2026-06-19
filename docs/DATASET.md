@@ -338,12 +338,12 @@ The pool is built by the Paired Sparse–Dense Scene Synthesis (PS³) pipeline:
    of candidates) runs alongside an occupancy filter (2–12 % occupied) and a
    spatial-layout filter. The 57K pool's `generation_metadata.json` records
    these exact settings.
-3. **HDL-64E ray tracing** turns each kept complete scene into a realistic sparse
+3. **Rare-class object-bank paste** optionally injects rare-class instances from
+   the object bank to rebalance the long tail.
+4. **HDL-64E ray tracing** turns each enriched complete scene into a realistic sparse
    scan via a Velodyne HDL-64E Bresenham3D / DDA ray-tracer
    (`src/gssc/data/lidar_resampler_v2.py`), producing the `_voxels` half of the
    pair.
-4. **Rare-class object-bank paste** optionally injects rare-class instances from
-   the object bank to rebalance the long tail.
 
 ## Checkpoints (~4 GB)
 

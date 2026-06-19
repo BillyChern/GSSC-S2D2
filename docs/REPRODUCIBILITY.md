@@ -9,7 +9,7 @@ two pillars are scoped as follows:
 
 * **PS³** (*Paired Sparse–Dense Scene Synthesis*) is the offline
   data-augmentation pipeline (pyramid multinomial diffusion 𝒮₁→𝒮₂→𝒮₃ +
-  Jensen–Shannon filter + HDL-64E ray-tracer + rare-class object bank) that
+  Jensen–Shannon filter + rare-class object bank + HDL-64E ray-tracer) that
   builds the synthetic (sparse, complete) training pool. Its generator
   checkpoints ship in the model zoo (`pyramid/pyramid_s1|s2|s3`) and the
   training commands live in `docs/TRAIN.md` ("Pyramid diffusion"). To
