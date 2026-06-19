@@ -310,7 +310,7 @@ Pinned versions in `uv.lock`. See [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY
 
 1. **Structured source.** Replace the noise endpoint with a learned base model's prediction $x_{\text{src}}$. The forward process becomes the Dirac mixture $x_t = \bar\alpha_t \cdot x_0 + (1 - \bar\alpha_t) \cdot x_{\text{src}}$, a deterministic interpolant between ground truth and $x_{\text{src}}$.
 2. **S²D² correction sampling.** A non-noise deterministic reverse process (we specialise the non-noise correction sampler of Cold Diffusion, Bansal et al. 2022, to our linear simplex interpolant) that routes the full residual $\hat{\mathbf{x}}_0 - \mathbf{x}_{\text{src}}$ directly per step. At $N = 1$, the iterate at $t = T$ coincides with $\mathbf{x}_{\text{src}}$, giving a Lipschitz-free single-step bound (App. A.5 in the paper).
-3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid ($32^2{\times}4$ → $64^2{\times}8$ → $256^2{\times}32$) generates synthetic $(\text{sparse}, \text{complete})$ pairs. Combined with HDL-64E Bresenham3D ray-tracing and a 57,789-instance / 8-rare-class object bank (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk), this yields the 32,039-scene synthetic pool used by the headline configuration (pooled with the 19,130 real frames for a 51,169-frame total, a 2.67× expansion).
+3. **Pyramid diffusion data augmentation.** A coarse-to-fine pyramid ($32^2{\times}4$ → $64^2{\times}8$ → $256^2{\times}32$) generates synthetic $(\text{sparse}, \text{complete})$ pairs. Combined with a 57,789-instance / 8-rare-class object bank (bicycle, motorcycle, truck, other-vehicle, person, bicyclist, motorcyclist, trunk) and HDL-64E Bresenham3D ray-tracing, this yields the 32,039-scene synthetic pool used by the headline configuration (pooled with the 19,130 real frames for a 51,169-frame total, a 2.67× expansion).
 
 The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:posterior`, `prop:elbo`, `prop:fm`, `prop:meanflow`, `thm:error`, `cor:onestep`, `cor:lipprop`, `prop:proj`).
 
@@ -401,7 +401,7 @@ The TPAMI submission snapshot referenced in the paper supplementary is the **v2.
 
 Supported by NSFC Grant No. 624B1006. Thanks to the [SemanticKITTI](http://www.semantic-kitti.org/) authors for the public benchmark and raw data. Open-source software this project builds on:
 
-* **Pyramid Discrete Diffusion** ([Liu et al., 2023](https://arxiv.org/abs/2311.12085)) — multi-scale discrete diffusion for 3D scene synthesis; foundation of our offline data augmentation pipeline (𝒮₁/𝒮₂/𝒮₃ + HDL-64E ray-tracing + rare-class object bank).
+* **Pyramid Discrete Diffusion** ([Liu et al., 2023](https://arxiv.org/abs/2311.12085)) — multi-scale discrete diffusion for 3D scene synthesis; foundation of our offline data augmentation pipeline (𝒮₁/𝒮₂/𝒮₃ + rare-class object bank + HDL-64E ray-tracing).
 * **improved-diffusion** ([OpenAI, MIT](https://github.com/openai/improved-diffusion)) — diffusion training and sampling scaffolding our diffusion code adapts.
 * **SCPNet** ([SCPNet/Codes-for-SCPNet](https://github.com/SCPNet/Codes-for-SCPNet)) — sparse-3D-CNN base SSC model used as the frozen headline base.
 * **JS3C-Net** ([yanx27/JS3C-Net](https://github.com/yanx27/JS3C-Net)) — point-voxel hybrid base used for the cross-base lift.
