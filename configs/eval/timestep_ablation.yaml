@@ -5,9 +5,29 @@ _description: |
   eval/val_1step; the only thing that varies across rows is which checkpoint is
   loaded (gssc_timesteps/gssc_T10, gssc_timesteps/gssc_T50,
   gssc_timesteps/gssc_T100skewed, and gssc_mf/gssc_31k_mf_step40000 for the
-  T=100uniform reference). The training-timestep count is fixed inside each
-  checkpoint, so no eval-side flag is required here. Run one row at a time via
+  T=100uniform reference). Run one row at a time via
   `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`.
+
+  READ BEFORE USING THE T=10 / T=50 ROWS. These two rows are degenerate and the
+  paper reports them without interpreting them (supp Tab. XII, dagger note).
+  Two things go wrong, and neither is fixed by an eval flag:
+
+    1. beta stays linear on [1e-4, 0.1] regardless of T, so abar_T = prod(1-beta)
+       depends on T:  T=100 -> 0.0056,  T=50 -> 0.075,  T=10 -> 0.595.
+       At T=10 the forward process covers only ~40% of the distance from x_0 to
+       x_src, i.e. it never reaches the structured source that S2D2 is built on.
+    2. The correction sampler hard-codes its timestep grid (range(99,-1,-1), or
+       linspace(99,0,n_steps)) and does NOT read num_timesteps from the
+       checkpoint. Every row is therefore queried at t=99 -- a timestep the T=10
+       and T=50 models never saw in training (their max t is 9 and 49).
+
+  So those rows evaluate an operator that is out of distribution in BOTH state
+  and timestep. Their mIoU says nothing about the cost of a shorter schedule.
+  A real schedule-length ablation would retune beta_max per T to hold abar_T
+  fixed and retrain each row; that has not been run.
+
+  Only the two abar_T = 0.0056 rows (T=100 uniform vs T=100 skewed-99) share the
+  headline's corruption endpoint and are directly comparable to it.
 split: val
 sequences: "08"
 correction_steps: 1

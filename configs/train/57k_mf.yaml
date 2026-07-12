@@ -6,6 +6,13 @@ s3_mode: teacher
 scpnet_pred_dir: data/scpnet_predictions
 bev_from_base: true
 cold_diffusion: true
+# POOL SELECTION IS IMPLICIT -- read this before running.
+# The "synthetic" entry below resolves to <data_root>/sequences/synthetic/voxels,
+# a single fixed path. Nothing in this file selects the 57K pool over the 31K one:
+# this config and 31k_mf.yaml request the SAME directory. The 31K/57K distinction
+# was made by physically swapping the contents of that directory between runs.
+# To reproduce this row you must populate sequences/synthetic/ with the 57,650-scene
+# pool first; otherwise you will silently re-run the 31K configuration.
 train_sequences: "00,01,02,03,04,05,06,07,09,10,synthetic"
 diffusion_version: v2
 loss_type: kl

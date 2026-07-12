@@ -16,4 +16,9 @@ ssc_lovasz_weight: 0.3
 auxiliary_loss_weight: 0.0005
 algo2_eval_steps: 100
 save_interval: 5000
+# DEGENERATE CONFIG -- see configs/eval/timestep_ablation.yaml before using.
+# beta_max stays 0.1 regardless of T, so abar_T = 0.075 here (vs 0.0056 at
+# T=100): the forward process stops 7.5% short of the source. The correction
+# sampler also hard-codes t=99, which this model (max t = 49) never trained on.
+# The paper reports this row without interpreting it (supp Tab. XII, dagger).
 num_timesteps: 50
