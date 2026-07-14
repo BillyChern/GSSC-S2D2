@@ -390,7 +390,7 @@ SemanticKITTI is non-commercial under CC-BY-NC-SA 4.0.
 predictions support **SSC training augmentation for voxel-grid models**. They
 were built and validated with voxel-native bases (SCPNet, LMSCNet) and with the
 voxel-grid S²D² refiner, where the synthetic pool contributes the within-SSC
-lift folded into the SCPNet +2.37 pp headline.
+lift folded into the SCPNet +2.36 pp headline.
 
 **Limitations to know before you train.**
 

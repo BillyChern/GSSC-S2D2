@@ -28,7 +28,7 @@ The paper organises the method into three pillars that share one structured-sour
 * **S²D²** — *Structured Source Discrete Diffusion*: the one-step deployment regime that refines a frozen base SSC model's prediction — the headline 38.54 % val / 39.2 % test result and the focus of this repository.
 
 > [!IMPORTANT]
-> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100 (the added correction step costs 107.2 ms; 1000 / 107.2 ≈ 9.33 FPS), and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5 pp** over the frozen SCPNet base on hidden test (36.7 → 39.2) and **+2.37 pp** on val seq 08 (36.17 → 38.54, single correction step). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.8 BEV mIoU** over the base-derived BEV: 34.3 % → 36.1 % on val seq 08).
+> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation, no test-time adaptation, **9.33 FPS marginal throughput** on a single H100 (the added correction step costs 107.2 ms; 1000 / 107.2 ≈ 9.33 FPS), and a **+1.3 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 39.2) — equivalently **+2.5 pp** over the frozen SCPNet base on hidden test (36.7 → 39.2) and **+2.36 pp** on val seq 08 (36.17 → 38.54, single correction step). Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.8 BEV mIoU** over the base-derived BEV: 34.3 % → 36.1 % on val seq 08).
 
 > [!TIP]
 > **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for the 3-command reproduction recipe of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once the base predictions are local.
@@ -82,7 +82,7 @@ The paper organises the method into three pillars that share one structured-sour
 On full SemanticKITTI **val** seq 08 (note: val numbers below, distinct from the 39.2 % **hidden-test** figure above):
 * **val: 38.54 %** mIoU (single correction step, $N{=}1$, no TTA) — verified end-to-end by the maintainers (requires the released assets); the *same* $N{=}1$ no-TTA setting scores **38.8 %** on the hidden test (the 38.54 val / 38.8 test pair in the test table above) — to our knowledge the best single-frame single-sample result on the leaderboard to date (+0.9 over TALoS 37.9)
 * **val: 38.73 %** mIoU (N=1 correction step + *D*<sub>4</sub> TTA) → the same recipe scores **39.2 %** on the hidden test
-* **+2.37** absolute over our SCPNet base (36.17 % val)
+* **+2.36** absolute over our SCPNet base (36.17 % val)
 
 <p align="center">
   <img src="assets/qualitative.png" width="92%" alt="Qualitative comparison on SemanticKITTI val seq 08 vs SOTA baselines" />

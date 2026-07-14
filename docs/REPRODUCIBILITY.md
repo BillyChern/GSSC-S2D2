@@ -164,10 +164,19 @@ quantity that should reproduce cleanly across retrains is therefore the
 not the absolute mIoU.
 
 Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step; this retrain's own measurements, which preserve the released checkpoint's per-class delta structure except for the one seed-sensitive class, motorcyclist — paper supp tab:supp_retrain_deltas):
-car +1.1, motorcycle −0.1, truck +5.4, other-veh +2.5, person +1.2,
-bicyclist +5.3, motorcyclist +4.4, road +4.6, parking +2.3, traffic-sign +4.2;
+car +1.0, motorcycle +0.2, truck +5.4, other-veh +2.3, person +1.9,
+bicyclist +5.2, motorcyclist +0.3, road +4.3, parking +2.3, traffic-sign +5.8;
 **overall +1.9%** (vs. the released checkpoint's +2.4%, the gap being motorcyclist's
-+4.4 retrain vs. +8.2 released). Per-class behavior is preserved against SCPNet base, and
+**+0.3 retrain vs. +8.3 released** — that one class accounts for ~87% of the shortfall).
+
+> **Corrected 2026-07-14.** An earlier version of this list was not a retrain
+> measurement: nine of its ten entries were the *released* checkpoint's deltas copied
+> across, including two values (`truck +5.4`, `parking +2.3`) that were themselves
+> arithmetic errors — deltas computed by subtracting *rounded* table cells rather than
+> the true unrounded IoUs. The released checkpoint's true deltas are truck **+5.3** and
+> parking **+2.4**. The retrain figures above are the genuine per-class measurements.
+
+Per-class behavior is preserved against SCPNet base, and
 this delta-style improvement carries to the SemanticKITTI test server under
 matched samplers. SCPNet base is sampler-free, so the row-wise comparison
 holds the base fixed (val: 36.17 under our v2 port; test: 36.7 published)
@@ -175,7 +184,7 @@ and varies S²D²'s sampler:
 
 | S²D² sampler | Val seq 08 mIoU | Test mIoU | Δ vs. base (val) | Δ vs. base (test) |
 |---|---|---|---|---|
-| N=1 (no TTA, real-time) | 38.54 | 38.8 | **+2.37** | **+2.1** |
+| N=1 (no TTA, real-time) | 38.54 | 38.8 | **+2.36** | **+2.1** |
 | N=1 + D4 TTA (headline) | 38.73 | 39.2 | **+2.6** | **+2.5** |
 
 Two facts hold across both rows. First, the val and test deltas track

@@ -70,7 +70,7 @@ released checkpoints; SCPNet uses the same training recipe with
 |---|---|---|---|---|---|---|
 | `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 14.8 | **16.6** | **+1.8** | `configs/train/lmscnet_real.yaml` |
 | `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.7 | **26.1** | **+3.3** | `configs/train/js3c_real.yaml`    |
-| (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.37** | `configs/train/31k_mf.yaml`       |
+| (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.36** | `configs/train/31k_mf.yaml`       |
 
 > **JS3C-Net number convention.** The JS3C row leads with the **paper headline
 > 26.1 % (+3.3 pp)** under the official `semantic-kitti-api` (the precise eval
@@ -89,7 +89,7 @@ released checkpoints; SCPNet uses the same training recipe with
 > to LMSCNet / JS3C-Net / SCPNet, not to the released checkpoint's denoiser.
 
 Each cross-base checkpoint subdir is ~265 MB total (~140 MB for the single
-`model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.37) and LMSCNet
+`model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.36) and LMSCNet
 (14.8 → 16.6, +1.8; LMSCNet base re-scored from on-disk predictions, superseding
 the earlier 12.10 → 16.59 / +4.49 summary) deltas in the table are measured
 end-to-end under the official `semantic-kitti-api`. The released LMSCNet
