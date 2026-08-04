@@ -42,7 +42,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # kept as ``None`` sentinels so the unreachable research branches below still
 # guard cleanly (``... is not None``) without importing nonexistent modules.
 DSKDLoss3D = None
-S3DSKDDataset = None
+# S3DSKDDataset is NOT dev-only: the headline recipe sets `s3_mode: teacher`, and
+# _create_dataloader dispatches on `s3_mode is not None and S3DSKDDataset is not None`.
+# With the sentinel left at None that guard fails, the trainer silently falls back to the
+# raw-.bin SemanticKITTISSCDataset, which reads `<data_root>/sequences/<seq>/voxels` instead
+# of `<data_root>/SemanticKITTI_3D/256/<seq>` and enumerates ZERO samples -- so
+# `python scripts/train.py train/31k_mf` dies in DataLoader with num_samples=0. The class
+# ships in the release (gssc.data.semantickitti) and imports cleanly; only the binding was
+# nulled. Bound properly here so the advertised training recipes actually run.
+from gssc.data.semantickitti import S3DSKDDataset  # noqa: E402
 create_s3_dataloader = None
 MIMOSceneCompletion = None
 BEVAugmenter = None

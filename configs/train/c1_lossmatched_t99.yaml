@@ -1,0 +1,57 @@
+_paper_table: "reviewer CRITICAL C1 — loss-matched one-step control (also reproduces the endpoint-only ablation)"
+_description: >
+  The loss-matched one-step control the 2026-08-04 reviewer panel asked for, and the
+  reproducible replacement for the paper's development-codebase "endpoint-only" ablation.
+
+  This file is `train/31k_mf.yaml` with exactly ONE change: the training timestep is
+  fixed at t=99=T-1 instead of t ~ Uniform{0..99}. Everything else — model, optimiser,
+  LR, batch size, iteration budget, EMA decay, the synthetic pool, the base predictions,
+  and critically the ENTIRE V2 loss suite (KL posterior + focal gamma=2 +
+  effective-number class balancing capped 20x + occupied_weight=10 + obs_weight_factor=2
+  + Lovasz 0.3 + auxiliary 0.0005) — is byte-identical to the headline recipe.
+
+  Why this is the right control. The paper's existing supervised-refiner control differs
+  from the headline in BOTH the training path AND the loss: it runs
+  `--direct_prediction`, whose loss is plain `CE(class_0=0.02) + 0.3*Lovasz`
+  (train_scene_completion.py, `_train_step_direct`), with no focal term, no
+  class-balancing and no occupancy weighting. So its 27.0 mIoU cannot separate "the
+  multi-timestep path matters" from "the loss suite matters" — which is precisely the
+  distinction the paper's §V-C run-in asserts. Holding the loss fixed and varying only
+  the timestep distribution isolates the path.
+
+  At t=99 the forward process puts x_t within O(abar_T)=O(5.6e-3) of x_src, so this run
+  trains on essentially the deployed input and predicts x_0 from it in one step: a
+  supervised refiner, but one carrying the headline objective.
+
+  How to read the result. Base 36.17, headline 38.54, both val seq. 08 at N=1.
+    * ~38.5  => the multi-step curriculum buys nothing; the gain is the loss suite and
+               the diffusion framing is decoration. The reviewer is right and §V-C's
+               claim must come out.
+    * << 38.5 => the training path is load-bearing with the loss held constant, which is
+               the claim §V-C makes and the existing control cannot support.
+
+  Adjudicate at step_40000 first: that is the headline checkpoint's step, so it is the
+  budget-matched comparison. The run continues to 100K so the control can also be given
+  the headline's own selection procedure (best EMA val mIoU), which is the steelman.
+
+data_root: data
+model_type: sparse_full
+s3_mode: teacher
+scpnet_pred_dir: data/scpnet_predictions
+bev_from_base: true
+cold_diffusion: true
+train_sequences: "00,01,02,03,04,05,06,07,09,10,synthetic"
+diffusion_version: v2
+loss_type: kl
+batch_size: 4
+lr: 1.0e-4
+num_iterations: 100000
+ssc_lovasz_weight: 0.3
+auxiliary_loss_weight: 0.0005
+algo2_eval_steps: 100
+save_interval: 5000
+num_timesteps: 100
+
+# ---- the single deviation from train/31k_mf.yaml ----
+train_timesteps_mode: subset
+train_timesteps_list: "99"
