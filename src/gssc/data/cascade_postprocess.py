@@ -79,6 +79,14 @@ class PostProcessConfig:
     ensure_all_classes: bool = True  # CRITICAL: Ensure ALL rare classes present
     min_voxels_per_class: int = 50  # Minimum voxels required for each rare class
     target_rare_count: int = 200  # Target voxels per rare class after balancing
+    # Paste-count budget for RareClassEnhancer. These four are read by enhance() at lines ~318,
+    # 378, 396-397 and 416; they were dropped when the pipeline gained voxel_budget_ratio, which
+    # left enhance() raising AttributeError on its own config for every scene. The values are the
+    # ones tools/cascaded_generation.py passes, so caller and callee agree again.
+    min_objects_to_add: int = 20      # lower bound on the per-scene paste budget
+    max_objects_to_add: int = 50      # upper bound; also caps Phase 1 across all classes
+    max_objects_per_class: int = 10   # per-class ceiling inside the budget
+    balance_target_ratio: float = 1.0 # scales DATASET_AVERAGE_COUNTS when adaptive_balance is on
     enhancement_probability: float = 1.0  # Always enhance
     adaptive_balance: bool = True  # Enable adaptive per-scene balancing
     use_3d_bank: bool = True  # Use 3D object bank (not BEV)
