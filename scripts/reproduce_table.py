@@ -34,7 +34,10 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
     "tab:step_reduction":   {"config": "eval/step_sweep",    "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou completion_iou"},
     "tab:train_timesteps_curriculum": {"config": "eval/timestep_ablation", "checkpoint": "[gssc_timesteps/gssc_T10|gssc_timesteps/gssc_T50|gssc_timesteps/gssc_T100skewed|gssc_mf/gssc_31k_mf_step40000]", "metrics": "miou"},
     "tab:bev_results":      {"config": "eval/bev_secondary", "checkpoint": "bev/bev_perception_net",         "metrics": "miou"},
-    "tab:data_scaling":     {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step100000]", "metrics": "miou"},
+    # NOT the paper's tab:data_scaling. That table is the MULTI-frame sweep and only the
+    # headline 31K multi-frame checkpoint ships, so it cannot be regenerated. What the released
+    # per-row checkpoints reproduce is the SINGLE-frame sweep reported in prose in supp. App. C.
+    "data_scaling_sf":      {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step100000]", "metrics": "miou"},
     "tab:cross_base_js3c":  {
         # JS3C-Net cross-base. Paper headline = 26.05 (GT BEV, official
         # semantic-kitti-api, +3.32 pp). Footnote = 26.72 (same GT-BEV
@@ -149,6 +152,13 @@ def _resolve_checkpoint(ckpt_dir: Path, name: str, prefer_ema: bool = True) -> P
 PAPER_LABEL_ALIASES: dict[str, str] = {
     "tab:perclass_delta": "tab:perclass",          # main Table II
 }
+UNREPRODUCIBLE: dict[str, str] = {
+    "tab:data_scaling": (
+        "the multi-frame data-scaling sweep cannot be regenerated: only the headline 31K "
+        "multi-frame checkpoint ships. Run 'data_scaling_sf' for the single-frame sweep "
+        "reported in prose in supplementary Appendix C."
+    ),
+}
 MULTI_KEY_LABELS: dict[str, list[str]] = {
     "tab:portable_s2d2": ["tab:cross_base_lmsc", "tab:cross_base_js3c"],
 }
@@ -162,6 +172,8 @@ def resolve_table(name: str) -> list[str]:
         return [PAPER_LABEL_ALIASES[name]]
     if name in MULTI_KEY_LABELS:
         return MULTI_KEY_LABELS[name]
+    if name in UNREPRODUCIBLE:
+        raise KeyError(f"{name}: {UNREPRODUCIBLE[name]}")
     raise KeyError(name)
 
 

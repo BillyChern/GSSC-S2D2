@@ -1,4 +1,4 @@
-_paper_table: "tab:bev (secondary task, BEV-A 36.09%)"
+_paper_table: "tab:bev_results (secondary task, BEV-A 36.09%)"
 _description: "LiDAR-only BEV refinement via S2D2: SCPNet-derived base BEV -> S2D2 BEV diffusion -> refined BEV. Expected 36.09% BEV mIoU on SemanticKITTI val seq 08, paper Tab. XV (secondary task)."
 # NOTE: scripts/eval.py routes eval/bev_* configs to evaluate_bev(), which takes
 # no config dict — sequence="08" and n_steps (from --steps, default 1) are

@@ -18,11 +18,11 @@ either with the --scpnet-repo flag or the $SCPNET_REPO environment variable. The
 default location is the repo-relative path 'external/Codes-for-SCPNet'.
 
 Usage:
-    python tools/run_scpnet_inference.py --sequences 08 --eval --max_frames 10
-    python tools/run_scpnet_inference.py --sequences 08 --eval
-    python tools/run_scpnet_inference.py --sequences all
-    SCPNET_REPO=/path/to/Codes-for-SCPNet python tools/run_scpnet_inference.py --sequences 08
-    python tools/run_scpnet_inference.py --scpnet-repo /path/to/Codes-for-SCPNet --sequences 08
+    python -m gssc.inference.run_scpnet --sequences 08 --eval --max_frames 10
+    python -m gssc.inference.run_scpnet --sequences 08 --eval
+    python -m gssc.inference.run_scpnet --sequences all
+    SCPNET_REPO=/path/to/Codes-for-SCPNet python -m gssc.inference.run_scpnet --sequences 08
+    python -m gssc.inference.run_scpnet --scpnet-repo /path/to/Codes-for-SCPNet --sequences 08
 """
 
 import os
