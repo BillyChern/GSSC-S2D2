@@ -1130,6 +1130,7 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
         n_steps: int = 100,
         show_progress: bool = False,
         return_softmax: bool = False,
+        tau: float = 1.0,
         **model_kwargs,
     ) -> torch.Tensor:
         """S2D2 correction sampling (specialising the non-noise correction sampler of Cold Diffusion (Bansal et al., 2022) to our linear simplex interpolant).
@@ -1176,7 +1177,13 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
             if x_scpnet_saved is not None:
                 model_kwargs['x_scpnet'] = x_scpnet_saved
 
-            x_0_pred = F.softmax(x_0_logits, dim=1)
+            # Sampling temperature. At n_steps=1 the loop takes only the `else` branch below,
+            # so the returned label is argmax(softmax(logits / tau)) = argmax(logits): provably
+            # invariant for any tau > 0. For n_steps > 1 tau does change the intermediate
+            # corrections, which is why the paper scopes the invariance claim to N=1.
+            # Guarded so the default is bit-identical to not dividing at all.
+            logits = x_0_logits if tau == 1.0 else x_0_logits / tau
+            x_0_pred = F.softmax(logits, dim=1)
 
             if idx < len(timesteps) - 1:
                 # Intermediate step: apply correction toward x_0_pred

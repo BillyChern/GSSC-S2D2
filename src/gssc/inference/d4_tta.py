@@ -168,6 +168,7 @@ def run_algo2_softmax(
     bev: torch.Tensor,
     n_steps: int,
     device: torch.device,
+    tau: float = 1.0,
 ) -> torch.Tensor:
     """Run a single S2D2 correction forward pass and return the soft-max distribution [1,K,H,W,D].
 
@@ -184,6 +185,7 @@ def run_algo2_softmax(
             shape=(1, 256, 256, 32),
             device=device,
             n_steps=n_steps,
+            tau=tau,
             show_progress=False,
             ssc_pred=base_oh,
             return_softmax=True,
@@ -208,6 +210,10 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument('--checkpoint', required=True)
     p.add_argument('--cold_steps', type=int, default=4)
+    p.add_argument('--tau', type=float, default=1.0,
+                   help='Sampling temperature on the denoiser logits. Inert at --cold_steps 1; '
+                        'affects intermediate corrections at more steps, so it is not inert here '
+                        '(this path defaults to 4).')
     p.add_argument('--output_dir', required=True)
     p.add_argument('--data_root', default='data/SemanticKITTI',
                    help='Root containing sequences/<SEQ>/voxels/*.bin')
@@ -279,7 +285,7 @@ def main() -> None:
             for (fx, fy, rk) in D4_ELEMENTS:
                 lidar_t, base_t, _ = apply_d4(lidar_base, base_pred_t, torch.zeros(1, 256, 256, dtype=torch.long, device=device), fx, fy, rk)
                 bev_t = derive_bev(base_t)
-                soft = run_algo2_softmax(model, diffusion, lidar_t, base_t, bev_t, args.cold_steps, device)
+                soft = run_algo2_softmax(model, diffusion, lidar_t, base_t, bev_t, args.cold_steps, device, tau=args.tau)
                 soft_back = invert_d4(soft, fx, fy, rk)
                 soft_sum = soft_back if soft_sum is None else (soft_sum + soft_back)
 

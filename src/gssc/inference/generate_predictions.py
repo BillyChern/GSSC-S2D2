@@ -110,6 +110,10 @@ def main() -> None:
                         help='Use training weights instead of EMA. WARNING: for correction sampling, EMA is strongly preferred')
     parser.add_argument('--cold_steps', type=int, default=100,
                         help='Number of cold diffusion steps (100=full, 1=one-step)')
+    parser.add_argument('--tau', type=float, default=1.0,
+                        help='Sampling temperature applied to the denoiser logits. Provably inert at '
+                             '--cold_steps 1 (argmax is scale-invariant); affects intermediate '
+                             'corrections only for more steps.')
     parser.add_argument('--algo2', action='store_true',
                         help='Use S2D2 correction sampling (Cold Diffusion non-noise specialisation) instead of D3PM posterior')
     parser.add_argument('--pred_dir', type=str, default=None,
@@ -283,6 +287,7 @@ def main() -> None:
                             device=device,
                             n_steps=args.cold_steps,
                             show_progress=False,
+                            tau=args.tau,
                             ssc_pred=scp_oh,
                         )
                     elif args.cold_steps >= 100:

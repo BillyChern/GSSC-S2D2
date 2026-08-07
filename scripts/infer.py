@@ -98,6 +98,8 @@ def main() -> None:
                    help="Override config split (val/valid -> seq 08, test -> 11-21)")
     p.add_argument("--steps", type=int, default=None,
                    help="Override config correction_steps (1, 4, 100)")
+    p.add_argument("--tau", type=float, default=1.0,
+                   help="Sampling temperature on the denoiser logits; provably inert at steps=1")
     p.add_argument("--tta", choices=["none", "flip_y", "d4"], default=None,
                    help="Override config tta mode")
     p.add_argument("--dry-run", action="store_true",
@@ -171,6 +173,7 @@ def main() -> None:
         cmd = [sys.executable, "-m", "gssc.inference.d4_tta",
                "--checkpoint", a.checkpoint,
                "--cold_steps", str(steps),
+               "--tau", str(a.tau),
                "--output_dir", a.output,
                "--data_root", str(semantic_kitti_root),
                "--scpnet_dir", str(scpnet_dir),
@@ -180,6 +183,7 @@ def main() -> None:
         cmd = [sys.executable, "-m", "gssc.inference.generate_predictions",
                "--checkpoint", a.checkpoint,
                "--cold_steps", str(steps),
+               "--tau", str(a.tau),
                "--output_dir", a.output,
                "--data_root", str(semantic_kitti_root),
                "--scpnet_dir", str(scpnet_dir),
