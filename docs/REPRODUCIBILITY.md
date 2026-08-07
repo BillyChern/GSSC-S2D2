@@ -17,8 +17,9 @@ two pillars are scoped as follows:
   (`uv pip install numba`) so `src/gssc/data/lidar_resampler_v2.py` uses the
   Numba-accelerated fast path; without it the resampler silently falls back to
   a much slower pure-Python loop. The
-  synthetic pool itself is consumed by the single-frame data-scaling configs
-  (Tab. VII).
+  synthetic pool itself is consumed by the single-frame data-scaling configs, whose
+  sweep is reported in prose in supplementary App. C. Tab. VII is the MULTI-frame
+  sweep and does not ship its per-row checkpoints.
 * **SGSC** (*Semantic-guided Generative Scene Completion*, the from-noise
   regime, **30.54 % val mIoU**) is **intentionally out of scope for this
   release**: no SGSC checkpoint or from-noise sampler is shipped, mirroring the
@@ -222,16 +223,26 @@ paper.
 | Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10). The released LMSCNet `model_ema.safetensors` ships complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint workaround is needed |
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
-| Tab. VII (data scaling) | Per-row checkpoint, e.g. `python scripts/eval.py eval/data_scaling_sf --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` (canonical per-row config; identical N=1 protocol to `eval/val_1step`) | See MODEL_ZOO.md |
+| single-frame data scaling (no paper table; Tab. VII is the multi-frame sweep and ships no per-row checkpoints) | Per-row checkpoint, e.g. `python scripts/eval.py eval/data_scaling_sf --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` (canonical per-row config; identical N=1 protocol to `eval/val_1step`) | See MODEL_ZOO.md |
 | Supp. tab:train_timesteps_ablation (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` (multi-row; run each `gssc_timesteps/` checkpoint via `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`) | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
 | Tab. tab:bev_results (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` (or `python scripts/reproduce_table.py tab:bev_results`) | 36.1 BEV mIoU |
 | Fig. 4 / Fig. 5 (qualitative) | Single-frame qualitative demo: `examples/quickstart.ipynb` | — |
 
-> **Tab. VIII (DW-IoU) is out of scope for this release.** The distance-weighted
-> IoU / safety-metric subset is not shipped with the public evaluator (the
-> `--metrics` argument selects `miou`, `completion_iou`, and `per_class` only);
-> like the SGSC from-noise regime, it is intentionally excluded from the
-> reproducible surface here.
+> **Tab. VIII (DW-IoU) is reproducible, but it is DERIVED rather than evaluated.**
+> DW-IoU is *Detection-Window* IoU, `1 - (1 - IoU_c)^(rate * t_w)`: a function of the
+> per-class IoU an eval already reports and each system's measured end-to-end rate, not
+> a distance weighting. Nothing extra runs on the GPU, which is why `--metrics` still
+> selects `miou`, `completion_iou`, and `per_class` only. Two steps:
+>
+> ```
+> python scripts/eval.py eval/dwiou_sweep --checkpoint <ckpt> --metrics per_class --output m.json
+> python -m gssc.utils.dw_iou --metrics-json m.json --rate 3.23
+> ```
+>
+> Rates are Tab. VIII's measured end-to-end FPS: base 4.95, N=1 3.23, N=4 1.58, N=10 0.78,
+> N=100 0.09. `tests/test_dw_iou.py` checks the derivation against all 20 published cells.
+> DW-IoU assumes independent frames, so it is an optimistic upper bound on the benefit of a
+> faster refresh, not a detection probability.
 
 All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`). Cross-base reproduction additionally requires `data/js3cnet_predictions/` (JS3C-Net) or `data/lmscnet_predictions/` (LMSCNet); see the dedicated sections below.
 
