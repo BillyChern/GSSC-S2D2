@@ -141,14 +141,47 @@ def _resolve_checkpoint(ckpt_dir: Path, name: str, prefer_ema: bool = True) -> P
     )
 
 
+# Aliases: the labels as they appear in the paper, mapped onto the keys above. Additive by design --
+# the original keys keep working. Two paper labels have no 1:1 key and are handled explicitly:
+# tab:portable_s2d2 spans three bases, so it resolves to the per-base keys and reports both; and the
+# training-timestep comparison is no longer a table in the paper (it was folded into prose in
+# Appendix C), so its key is kept for the experiment but carries no paper label.
+PAPER_LABEL_ALIASES: dict[str, str] = {
+    "tab:perclass_delta": "tab:perclass",          # main Table II
+}
+MULTI_KEY_LABELS: dict[str, list[str]] = {
+    "tab:portable_s2d2": ["tab:cross_base_lmsc", "tab:cross_base_js3c"],
+}
+
+
+def resolve_table(name: str) -> list[str]:
+    """Map a user-supplied name onto one or more TABLE_MAP keys."""
+    if name in TABLE_MAP:
+        return [name]
+    if name in PAPER_LABEL_ALIASES:
+        return [PAPER_LABEL_ALIASES[name]]
+    if name in MULTI_KEY_LABELS:
+        return MULTI_KEY_LABELS[name]
+    raise KeyError(name)
+
+
+def selectable_names() -> list[str]:
+    return sorted({*TABLE_MAP, *PAPER_LABEL_ALIASES, *MULTI_KEY_LABELS})
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("table", choices=list(TABLE_MAP), help="Table label from the paper")
+    parser.add_argument("table", choices=selectable_names(),
+                        help="Table label from the paper, or a driver key (see PAPER_LABEL_ALIASES)")
     parser.add_argument("--checkpoints-dir", default=str(REPO_ROOT / "data" / "checkpoints"))
     parser.add_argument("--data-root", default=str(REPO_ROOT / "data"))
     args = parser.parse_args()
 
-    spec = TABLE_MAP[args.table]
+    keys = resolve_table(args.table)
+    if len(keys) > 1:
+        print(f"{args.table} spans {len(keys)} driver entries: {', '.join(keys)}; "
+              f"reproducing each in turn.")
+    spec = TABLE_MAP[keys[0]]
     ckpt_dir = Path(args.checkpoints_dir)
     data_root = Path(args.data_root)
 
