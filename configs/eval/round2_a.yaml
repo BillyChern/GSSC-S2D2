@@ -1,0 +1,23 @@
+_paper_table: none. Reported in prose in supplementary Appendix C (round-2 iteration); it is a
+#              negative result and is not tabulated.
+_description: |
+  Round-2 iteration: run S^2D^2 a second time, taking Round-1's own output as the source
+  x_src instead of the frozen base's prediction. Everything else matches the headline
+  N=4 + D_4 TTA recipe, so the only change is where the source comes from.
+
+  This needs no new code. `base_pred_dir` is forwarded to the prediction subprocess as
+  --scpnet_dir, which is what supplies x_src, so pointing it at a Round-1 output directory
+  makes that output the source. Produce Round-1 first, then run this:
+
+    python scripts/infer.py infer/val_d4tta --checkpoint <headline> --output round1/
+    python scripts/eval.py eval/round2_a  --checkpoint <headline>
+
+  Expected: 37.7% mIoU, 1.1 pp BELOW Round-1's 38.73%. Once Round-1 has minimised the
+  structured residual, Round-2's target falls below its own prediction-noise floor and it
+  over-smooths an already-refined source. Reported as a negative result; do not read the
+  drop as a bug in this config.
+split: val
+sequences: "08"
+correction_steps: 4
+tta: d4
+base_pred_dir: round1/sequences
