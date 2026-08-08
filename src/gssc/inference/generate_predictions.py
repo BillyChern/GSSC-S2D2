@@ -229,6 +229,21 @@ def main() -> None:
 
         logger.info("Sequence %s: %d frames -> %s", seq, len(frame_ids), out_pred_dir)
 
+        if args.skip_existing:
+            n_present = sum(
+                os.path.exists(os.path.join(out_pred_dir, f'{f}.label')) for f in frame_ids
+            )
+            if n_present:
+                # A resumed run reuses whatever wrote those files, which may be a DIFFERENT
+                # checkpoint than --checkpoint. Scoring the result then reports the stale
+                # model under this invocation's name. Say so loudly rather than silently.
+                logger.warning(
+                    "Sequence %s: reusing %d/%d existing .label files under %s. These were NOT "
+                    "produced by --checkpoint %s unless that is what wrote them; delete the "
+                    "directory or pick a fresh --output_dir to regenerate from this checkpoint.",
+                    seq, n_present, len(frame_ids), out_pred_dir, args.checkpoint,
+                )
+
         for frame_id in tqdm(frame_ids, desc=f'Seq {seq}'):
             out_path = os.path.join(out_pred_dir, f'{frame_id}.label')
 

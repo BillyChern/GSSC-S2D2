@@ -227,6 +227,16 @@ paper.
 | Supp. tab:train_timesteps_ablation (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` (multi-row; run each `gssc_timesteps/` checkpoint via `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`) | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
 | Tab. tab:bev_results (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` (or `python scripts/reproduce_table.py tab:bev_results`) | 36.1 BEV mIoU |
 | Fig. 4 / Fig. 5 (qualitative) | Single-frame qualitative demo: `examples/quickstart.ipynb` | — |
+| Supp. per-frame VRU regression (shipped base) | `python scripts/perframe_vru.py --voxels <seq08>/voxels --base data/scpnet_predictions/08 --refined <N=1 dump>/sequences/08/predictions --gate` | person 301/1,255 (24.0%), bicyclist 185/788 (23.5%), motorcyclist 32/74 (43.2%) |
+
+> **`--gate` is not optional here, and `--refined` must be a dump you generated yourself.**
+> `scripts/eval.py` always passes `--skip_existing`, so when a prediction directory already
+> exists it is reused and the `--checkpoint` you named is never loaded: the score then
+> describes whatever wrote those files, under your invocation's name. Point `--output_dir` at
+> a fresh path or delete the old one. `--gate` catches the mistake — it asserts the aggregate
+> reproduces base person 22.0 / bicyclist 18.0 / motorcyclist 4.1 at 36.17 % mIoU and refined
+> 23.2 / 23.3 / 12.4 at 38.54 % before reporting any per-frame statistic, and it does reject a
+> retrain-arm dump (motorcyclist 4.4, mIoU 38.05).
 
 > **Tab. VIII (DW-IoU) is reproducible, but it is DERIVED rather than evaluated.**
 > DW-IoU is *Detection-Window* IoU, `1 - (1 - IoU_c)^(rate * t_w)`: a function of the
