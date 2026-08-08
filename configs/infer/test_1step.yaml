@@ -1,0 +1,20 @@
+_paper_table: tab:main_results (38.8 test row, the headline)
+_description: |
+  Single correction-step (N=1) inference on the SemanticKITTI HIDDEN TEST split
+  (sequences 11-21) for leaderboard submission. Writes .label files only (no
+  local scoring -- test GT is server-side). Reproduces the tab:main_results
+  38.8% test row, which is the paper's headline: it is the configuration the
+  deployment predicate admits, whereas infer/test_d4tta.yaml (39.2%) uses four
+  steps and an eight-view D4 ensemble and is excluded by that same predicate.
+
+  Consumed by scripts/infer.py: `split` -> generator --split (test -> seqs
+  11..21); `correction_steps` -> --cold_steps; `tta: none` -> the Algo2 sampler
+  in generate_predictions. `sequences` is informational (the generator derives
+  the sequence list from `split`); scripts/infer.py cross-checks it against the
+  resolved split.
+# --- Read by scripts/infer.py ---
+split: test
+correction_steps: 1
+tta: none
+# --- Informational (cross-checked against `split`, not used to pick sequences) ---
+sequences: "11,12,13,14,15,16,17,18,19,20,21"
