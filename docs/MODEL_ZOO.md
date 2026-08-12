@@ -52,12 +52,15 @@ numbers drift between revisions; the labels do not).
 
 The `mf` / `sf` tags in the subdir names mark the training regime: **`mf`** =
 multi-frame-trained with single-frame input at inference (the headline regime);
-**`sf`** = the single-frame data-scaling sweep (`tab:data_scaling`).
+**`sf`** = the single-frame data-scaling retrains, which are a *companion* to
+`tab:data_scaling` and not its source. `tab:data_scaling` itself reports the
+headline multi-frame-trained regime — see the single-frame section below, and
+`docs/REPRODUCIBILITY.md` ("Tab. VII is the MULTI-frame sweep").
 
 | Subdir | Paper label | Val mIoU | Test mIoU | Config | Size (full subdir) |
 |---|---|---|---|---|---|
 | `gssc_mf/gssc_31k_mf_step40000/` | **Headline** (`tab:portable_s2d2`) | 38.54 | 38.8 (N=1, no TTA) / 39.2 (+D4 TTA) | `configs/train/31k_mf.yaml` | ~265 MB |
-| `gssc_mf/gssc_57k_mf_step40000/` | internal / unreported (in no paper table; the paper's 57K row is single-frame, `tab:data_scaling` 38.4) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
+| `gssc_mf/gssc_57k_mf_step40000/` | internal / unreported (in no paper table; `tab:data_scaling`'s 57K row is the multi-frame **38.4**, measured on the development codebase, and this released checkpoint is a different run — do not read 37.76 as that cell) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
 
 ## Cross-base portability (paper tab:portable_s2d2, three frozen-base rows)
 

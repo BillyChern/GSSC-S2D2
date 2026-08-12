@@ -31,6 +31,16 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.1] — 2026-08-12
+
+### Fixed — MODEL_ZOO contradicted itself on the data-scaling regime
+- `docs/MODEL_ZOO.md` described `tab:data_scaling` as the SINGLE-frame sweep in
+  two places while correctly calling it MULTI-frame in a third, and
+  `docs/REPRODUCIBILITY.md` and `README.md` both say multi-frame. The two wrong
+  sites are corrected. The 57K row also now states that the released
+  `gssc_57k_mf` checkpoint (37.76) is a DIFFERENT run from the paper cell
+  (38.4), so the two are not mistaken for each other.
+
 ## [2.3.0] — 2026-08-12
 
 The TPAMI submission snapshot. MINOR, not MAJOR: the headline 38.54 % val mIoU
@@ -41,7 +51,7 @@ a *stated* number that was never the headline.
 - **`configs/infer/test_1step.yaml`** — the hidden-test single-sample (N=1)
   configuration. Until now the release shipped only `test_d4tta.yaml`, so the
   38.8 % headline row had no runnable command while the 39.2 % 8-fold-D4 row
-  did. This is why the submission snapshot is v2.3.0 and not an earlier tag.
+  did. This is why the submission snapshot is the v2.3.x line and not an earlier tag.
 - **`scripts/perframe_vru.py`** + **`tests/test_perframe_vru.py`** — per-frame
   VRU instrument, gated on the published cells, and it now warns when
   `--skip_existing` would silently reuse a dump produced by a different base.
@@ -103,7 +113,7 @@ previously called v2.1.0 "the TPAMI submission snapshot" and said it carried a
 tag `submission-ready-tpami-2026`; both were wrong. No such tag was ever
 created, and v2.1.0 predates `configs/infer/test_1step.yaml`, the command
 behind the headline single-sample hidden-test number. The submission snapshot
-is **v2.3.0**.
+is **v2.3.1**.
 
 ### Added — LMSCNet third-base support
 - **`scripts/dump_lmscnet_predictions.py`**, **`src/gssc/models/lmscnet_base.py`** (`.npy` reader), **`configs/train/lmscnet_real.yaml`**, **`configs/eval/lmscnet_val_1step.yaml`** — together they let any visitor reproduce the paper's third cross-base result, **LMSCNet → +S²D² = 16.6 % val mIoU (+1.8 pp over the 14.8 % LMSCNet base)**, under the official `semantic-kitti-api` evaluator (the LMSCNet base is re-scored from on-disk predictions, superseding the earlier 12.10 % summary).
@@ -332,7 +342,8 @@ is **v2.3.0**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.0.0...v2.1.0
