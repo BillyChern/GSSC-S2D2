@@ -10,8 +10,8 @@ authors:
     given-names: "Weifeng"
 url: "https://github.com/BillyChern/GSSC-S2D2"
 license: Apache-2.0
-version: 2.1.0
-date-released: 2026-05-26
+version: 2.3.0
+date-released: 2026-08-12
 preferred-citation:
   type: article
   title: "Generative Semantic Scene Completion through Modeling the Underlying Geometry and Semantics in Point Clouds"

@@ -381,7 +381,7 @@ A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `as
 
 (Machine-readable: [`CITATION.cff`](CITATION.cff))
 
-The TPAMI submission snapshot referenced in the paper supplementary is the **v2.1.0** release, tagged `submission-ready-tpami-2026`; its Hydra configs hold the same hyperparameters listed in the paper's reproducibility appendix.
+The TPAMI submission snapshot referenced in the paper supplementary is the **v2.3.0** release; its Hydra configs hold the same hyperparameters listed in the paper's reproducibility appendix. v2.3.0 rather than an earlier tag because `configs/infer/test_1step.yaml`, the command behind the headline single-sample hidden-test number, was only added in it.
 
 ---
 

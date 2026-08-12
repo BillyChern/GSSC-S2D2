@@ -31,6 +31,51 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.0] — 2026-08-12
+
+The TPAMI submission snapshot. MINOR, not MAJOR: the headline 38.54 % val mIoU
+is unchanged — every number below is either a new instrument or a correction to
+a *stated* number that was never the headline.
+
+### Added — the missing headline command
+- **`configs/infer/test_1step.yaml`** — the hidden-test single-sample (N=1)
+  configuration. Until now the release shipped only `test_d4tta.yaml`, so the
+  38.8 % headline row had no runnable command while the 39.2 % 8-fold-D4 row
+  did. This is why the submission snapshot is v2.3.0 and not an earlier tag.
+- **`scripts/perframe_vru.py`** + **`tests/test_perframe_vru.py`** — per-frame
+  VRU instrument, gated on the published cells, and it now warns when
+  `--skip_existing` would silently reuse a dump produced by a different base.
+- **`src/gssc/utils/dw_iou.py`** + **`tests/test_dw_iou.py`** — DW-IoU,
+  validated against all 20 published cells.
+- **`--tau`** on the inference driver, so the paper's temperature-invariance
+  claim can be checked rather than taken on trust
+  (**`tests/test_tau_invariance.py`**).
+- **`configs/eval/round2_a.yaml`** — the round-2 iteration the paper reports.
+- **`configs/train/{57k_mf,T10,T50,c1_lossmatched_t99}.yaml`** — configs for
+  ablation rows that previously had none.
+- `scripts/reproduce_table.py` now accepts the paper's own table labels.
+
+### Fixed — recipes and instruments that could not run as advertised
+- `S3DSKDDataset` was never bound, so the advertised DSKD training recipes
+  could not start.
+- `RareClassEnhancer` read paste-budget fields that had been dropped.
+- `scripts/fps_measure_dense_vs_sparse.py` could not import `gssc`.
+- `configs/eval/val_d4tta.yaml` had `correction_steps: 1`; 4 is what
+  reproduces the 38.73 % val +D4 number. The test suite asserted N=1 for the
+  same config and was red before this was corrected.
+
+### Changed — claims corrected against the artifacts
+- Two ablations whose released configs cannot reproduce their paper rows are
+  now flagged as such instead of implying they can.
+- `reproduce_table.py` no longer advertises a table the release cannot
+  regenerate.
+- Corrected the retrain per-class deltas and the +2.37 headline delta.
+- PS³ component order aligned to **paste → resample** (object-bank paste
+  before HDL-64E ray-trace resampling) across README, DATASET and
+  REPRODUCIBILITY, matching the code and the paper's §III prose.
+- Fixed two Tab. VII mislabels and rewrote the DW-IoU scope note.
+- The quickstart notebook now reproduces the paper's two rare-class chip IoUs.
+
 ## [2.2.0] — 2026-06-10
 
 ### Docs — JS3C-Net cross-base number reconciliation
@@ -53,7 +98,12 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [2.1.0] — 2026-05-26
 
-This is the TPAMI submission snapshot; it also carries the tag `submission-ready-tpami-2026` referenced in the paper supplementary (reproducibility appendix). Its Hydra configs hold the same hyperparameters quoted in the paper.
+Its Hydra configs hold the hyperparameters quoted in the paper. This entry
+previously called v2.1.0 "the TPAMI submission snapshot" and said it carried a
+tag `submission-ready-tpami-2026`; both were wrong. No such tag was ever
+created, and v2.1.0 predates `configs/infer/test_1step.yaml`, the command
+behind the headline single-sample hidden-test number. The submission snapshot
+is **v2.3.0**.
 
 ### Added — LMSCNet third-base support
 - **`scripts/dump_lmscnet_predictions.py`**, **`src/gssc/models/lmscnet_base.py`** (`.npy` reader), **`configs/train/lmscnet_real.yaml`**, **`configs/eval/lmscnet_val_1step.yaml`** — together they let any visitor reproduce the paper's third cross-base result, **LMSCNet → +S²D² = 16.6 % val mIoU (+1.8 pp over the 14.8 % LMSCNet base)**, under the official `semantic-kitti-api` evaluator (the LMSCNet base is re-scored from on-disk predictions, superseding the earlier 12.10 % summary).
@@ -282,7 +332,9 @@ This is the TPAMI submission snapshot; it also carries the tag `submission-ready
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.1.0...v1.1.1
