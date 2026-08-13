@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gssc"
-version = "2.3.3"
+version = "2.3.4"
 description = "Official PyTorch implementation of S2D2 (Structured Source Discrete Diffusion) -- 'Generative Semantic Scene Completion' (TPAMI 2026)."
 readme = "README.md"
 license = { text = "Apache-2.0" }

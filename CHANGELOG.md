@@ -31,6 +31,18 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.4] — 2026-08-13
+
+### Fixed — two comments misstated the paper's auxiliary-loss weight by 100x
+- `multinomial.py` and the `--auxiliary_loss_weight` CLI help both read "(paper: 0.05)".
+  The paper states **lambda_a = 5e-4**, and every `configs/train/*.yaml` sets `0.0005`.
+  0.05 is a superseded value that degraded performance and survived only in these comments.
+- Behaviour was never affected (both defaults are 0.0; configs always override), but one of
+  the two is user-facing `--help`, and the paper's reproducibility appendix points reviewers
+  at a specific tag — so the tag they are sent to should not contain a false claim about the
+  paper. That is the whole reason for this release.
+
+
 ## [2.3.3] — 2026-08-13
 
 ### Fixed — the docs led with a JS3C number that appears nowhere in the paper
@@ -389,7 +401,8 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.3...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.4...HEAD
+[2.3.4]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.3...v2.3.4
 [2.3.3]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.2...v2.3.3
 [2.3.2]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.0...v2.3.1
