@@ -1,6 +1,32 @@
 """
 Post-Processing Pipeline for Cascaded S1→S2→S3 Generation
 
+⚠️  ORPHANED, AND **NOT** THE FILTER THE PAPER DESCRIBES. Read this before using it.
+
+Nothing in this repository imports this module: it is absent from
+``src/gssc/data/__init__.py`` and no script, config or test references it. It is retained
+for history, not wired into any pipeline.
+
+More importantly, the screening below is a DIFFERENT and superseded rule from the one the
+paper documents, and it occupies the same pipeline position, so it is easy to mistake for
+the paper's. The paper's PS³ quality filter (supplementary Appendix A, Algorithm 1, with
+the closed form in ``eq:supp_jsd``) is F1–F4:
+
+    F1  occupancy inside the BAND [2 %, 12 %] of the 256×256×32 grid
+    F2  road present AND |present ∩ {road, sidewalk, building, vegetation, terrain}| ≥ 2
+    F3  per-class mean-z gravity caps and floors
+    F4  D_JS(candidate ‖ reference) ≤ τ = 0.35, then keep the top ⌊0.5·|S|⌋ by ascending D_JS
+
+What this module implements instead is a lower bound on occupied voxels, a minimum
+ground-voxel count, a class-diversity count and an unlabeled-ratio cap. There is no
+occupancy band, no structural-class rule, no gravity check and no Jensen–Shannon
+divergence anywhere in it.
+
+The released synthetic pools were produced by the F1–F4 filter, not by this module, and
+they ship as DATA (``scripts/download_assets.py``), so reproducing the paper needs no
+filter code at all. If you regenerate a pool yourself, reimplement F1–F4 from the
+supplement — a pool screened by this module is not the paper's pool.
+
 This module provides quality filtering, geometric cleaning, and enhancement
 for synthetically generated scenes from the pyramid diffusion cascade.
 

@@ -16,7 +16,20 @@ two pillars are scoped as follows:
   regenerate the pool with the PS³ ray-tracer, install the `ps3` extra
   (`uv pip install numba`) so `src/gssc/data/lidar_resampler_v2.py` uses the
   Numba-accelerated fast path; without it the resampler silently falls back to
-  a much slower pure-Python loop. The
+  a much slower pure-Python loop.
+  **The Jensen–Shannon quality filter named above is NOT shipped as code.** It is
+  specified completely in the paper's supplementary Appendix A — Algorithm 1 plus
+  the closed form in `eq:supp_jsd`, with every constant: the [2 %, 12 %] occupancy
+  band, the road-plus-at-least-one-further-structural-class rule, the per-class
+  gravity caps, `τ = 0.35`, and the keep-top-⌊0.5·|S|⌋ ranking by ascending
+  divergence. So it can be reimplemented, but a pool you regenerate here is
+  **unscreened** until you do. Do not mistake
+  `src/gssc/data/cascade_postprocess.py` for it: that module is orphaned (nothing
+  in the repo imports it) and implements a different, superseded rule — a lower
+  bound on occupied voxels rather than a band, and no divergence test at all.
+  Reproducing any number in the paper needs no filter code, because the screened
+  pools ship as data.
+  The
   synthetic pool itself is consumed by the single-frame data-scaling configs, whose
   sweep is reported in prose in supplementary App. C. Tab. VII is the MULTI-frame
   sweep and does not ship its per-row checkpoints.
