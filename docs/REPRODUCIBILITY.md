@@ -188,8 +188,8 @@ and varies S²D²'s sampler:
 
 | S²D² sampler | Val seq 08 mIoU | Test mIoU | Δ vs. base (val) | Δ vs. base (test) |
 |---|---|---|---|---|
-| N=1 (no TTA, real-time) | 38.54 | 38.8 | **+2.36** | **+2.1** |
-| N=1 + D4 TTA (headline) | 38.73 | 39.2 | **+2.6** | **+2.5** |
+| N=1 (no TTA, the headline) | 38.54 | 38.8 | **+2.36** | **+2.1** |
+| N=4 + D4 TTA (excluded from the paper's predicate) | 38.73 | 39.2 | **+2.6** | **+2.5** |
 
 Two facts hold across both rows. First, the val and test deltas track
 each other to within ~0.3 mIoU at every sampler setting, so the lift is not
