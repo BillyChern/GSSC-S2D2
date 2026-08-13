@@ -17,6 +17,6 @@ also supported for advanced users:
 """
 from __future__ import annotations
 
-__version__ = "2.3.4"
+__version__ = "2.3.5"
 __author__ = "Shi Chen, Weifeng Ge"
 __all__ = ["__author__", "__version__"]

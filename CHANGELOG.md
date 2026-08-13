@@ -31,6 +31,25 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.5] — 2026-08-13
+
+### Fixed — the PS³ Jensen–Shannon filter is not shipped, and a lookalike module is not it
+- `docs/REPRODUCIBILITY.md` listed the Jensen–Shannon filter as a PS³ component and explained
+  how to regenerate the pool, without saying that component is absent. A reader following it
+  would build an **unscreened** pool believing the pipeline was reproduced. Now stated, with a
+  pointer to supplementary Appendix A, which specifies the filter completely (the [2 %, 12 %]
+  occupancy band, the road-plus-one-structural-class rule, the gravity caps, `τ = 0.35`, and the
+  keep-top-⌊0.5·|S|⌋ ranking) so it can be reimplemented.
+- `src/gssc/data/cascade_postprocess.py` is an ORPHAN that reads as authoritative: nothing
+  imports it, it is not exported, and nothing references it — but its header claims the
+  S1→S2→S3 post-processing role that the paper's Algorithm 1 occupies, while implementing a
+  different, superseded rule (an occupied-voxel lower bound rather than a band; no divergence
+  test at all). Its docstring now says it is orphaned, that it is **not** the paper's filter,
+  and what the paper's filter actually is.
+- No behaviour change. Reproducing any published number needs no filter code, because the
+  screened pools ship as data via `scripts/download_assets.py`.
+
+
 ## [2.3.4] — 2026-08-13
 
 ### Fixed — two comments misstated the paper's auxiliary-loss weight by 100x
@@ -401,7 +420,8 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.4...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.5...HEAD
+[2.3.5]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.4...v2.3.5
 [2.3.4]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.3...v2.3.4
 [2.3.3]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.2...v2.3.3
 [2.3.2]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.1...v2.3.2
