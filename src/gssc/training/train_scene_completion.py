@@ -3107,7 +3107,8 @@ def main():
     parser.add_argument('--obs_weight_factor', type=float, default=2.0,
                         help='Extra weight for LiDAR-observed voxels (0 to disable)')
     parser.add_argument('--auxiliary_loss_weight', type=float, default=0.0,
-                        help='Weight for auxiliary x0 reconstruction loss (paper: 0.05)')
+                        help='Weight for auxiliary x0 reconstruction loss '
+                             '(paper: 5e-4; every configs/train/*.yaml sets 0.0005)')
 
     # Training (adjusted for SemanticKITTI 256×256×32)
     parser.add_argument('--batch_size', type=int, default=4,

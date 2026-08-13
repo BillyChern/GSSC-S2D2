@@ -781,7 +781,7 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
         lovasz_weight: float = 0.3,  # Weight for Lovász loss
         obs_weight_factor: float = 2.0,  # Extra weight for LiDAR-observed voxels
         class_weights: torch.Tensor = None,  # Optional per-class weights
-        auxiliary_loss_weight: float = 0.0,  # Auxiliary x0 reconstruction loss (paper: 0.05)
+        auxiliary_loss_weight: float = 0.0,  # Auxiliary x0 reconstruction loss (paper: 5e-4)
         adaptive_auxiliary_loss: bool = True,  # Weight auxiliary loss by (1-t/T)+1
         completion_weight: float = 0.0,  # Extra weight for UNOBSERVED voxels (completion task)
         loss_type: str = 'kl',  # 'kl' (posterior-based) or 'ce_direct' (direct CE on x_0)
