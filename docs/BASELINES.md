@@ -31,11 +31,16 @@ patches that replicate `spconv 1.0`'s shared-indice-key behaviour:
   (3,1,1)). Weight loading reshapes kernel dims while preserving flat
   element order.
 
-The port matches SCPNet's published 36.7% test mIoU **exactly** (byte-for-byte
-on completion IoU 56.1% and on 17/19 per-class IoUs to within 0.1%). On val
-seq 08 the port reads 36.17%, **−1.03% below** the paper's published 37.2%
-val number; this val-side gap is confined to seq 08 and does not transfer
-to test.
+The port has **never been scored on the hidden test set.** We did not submit it to
+the evaluation server, so no test measurement of the bare port exists, and every
+36.7% figure quoted for SCPNet here and in the paper is *SCPNet's own published
+number*, not ours. On val seq 08 the port reads 36.17%, **−1.03% below** the
+paper's published 37.2% val number. Whether that val shortfall would also appear
+on test is **unknown**: it cannot be checked without a submission we never made.
+Earlier revisions of this file claimed the port "matches 36.7% exactly" with
+per-class agreement, and that the val gap "does not transfer to test". Both
+asserted a measurement that does not exist, and contradicted the paper, which
+states in five places that we hold no test-server score for the bare port.
 
 ## JS3C-Net cross-base (added v1.1.0)
 

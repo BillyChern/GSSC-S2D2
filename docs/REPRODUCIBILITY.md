@@ -113,9 +113,10 @@ on SCPNet's repo where other users report the same problem.
 
 This is independent confirmation that the SCPNet codebase has reproduction
 issues that go beyond our spconv v1 → v2 port, and that our 1.03% val
-deviation is small in comparison. The test-server side, where the official
-scoring environment removes any local-toolchain confound, is where our port
-matches SCPNet's published 36.7% test mIoU exactly.
+deviation is small in comparison. The test-server side would remove any
+local-toolchain confound, but we never submitted the bare port there, so we hold
+no test measurement of it and cannot say whether the 1.03% val deviation appears
+on test at all.
 
 ## Random seeds and retrain variance
 
@@ -158,8 +159,9 @@ python scripts/train.py train/31k_mf
 
 **Read this number as a delta, not an absolute.** Both the released checkpoint
 and the retrain sit on top of the spconv v2 port of the SCPNet base described
-above. The port reproduces SCPNet's published 36.7% test mIoU exactly but
-reads 36.17% on val seq 08 (the v1 → v2 offset is confined to val). The
+above. That port reads 36.17% on val seq 08 against SCPNet's published 37.2%
+val, and it was never submitted to the test server, so its test score is
+unmeasured and the published 36.7% is SCPNet's figure rather than ours. The
 quantity that should reproduce cleanly across retrains is therefore the
 **per-class delta of S²D² over the SCPNet base under the same spconv build**,
 not the absolute mIoU.

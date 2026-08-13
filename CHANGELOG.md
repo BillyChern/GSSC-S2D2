@@ -31,6 +31,26 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.2] — 2026-08-13
+
+### Fixed — three docs asserted a hidden-test measurement that does not exist
+- `docs/BASELINES.md` and `docs/REPRODUCIBILITY.md` (two sites) claimed the spconv-v2
+  SCPNet port "matches"/"reproduces" SCPNet's published **36.7% test mIoU exactly**,
+  one of them adding per-class agreement ("byte-for-byte on completion IoU 56.1% and
+  on 17/19 per-class IoUs to within 0.1%") and the inference that the port's 1.03%
+  val shortfall "does not transfer to test".
+- **The port was never submitted to the evaluation server**, so none of that is
+  measured. The paper states this in five separate places ("we hold no test-server
+  score for the bare port", "we did not re-submit the port"), and the 36.7% is
+  SCPNet's own published figure throughout.
+- Why it mattered: the val-gap-does-not-transfer inference is exactly the claim the
+  paper refuses to make, and it sits on the provenance of the headline +2.1 pp test
+  margin. A reviewer reading the repo would have concluded we measured the port on
+  test and that the paper's hedging was unnecessary.
+- All three sites now state the port's test score is unmeasured. `REPRODUCIBILITY.md`
+  line 183 was already correct ("test: 36.7 published") and is unchanged.
+
+
 ## [2.3.1] — 2026-08-12
 
 ### Fixed — MODEL_ZOO contradicted itself on the data-scaling regime
@@ -342,7 +362,8 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.1...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.2...HEAD
+[2.3.2]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.1.0...v2.2.0
