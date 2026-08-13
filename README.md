@@ -278,11 +278,12 @@ Full mapping with anticipated wall-clock and disk requirements: **[docs/REPRODUC
 
 ---
 
-## Retraining the headline (≈ 37 GPU-hours on 2 × H100 80 GB)
+## Retraining the headline (≈ 37 GPU-hours to step 40000 on 2 × H100 80 GB)
 
 ```bash
 python scripts/train.py train/31k_mf --gpu 0,1 --seed 42
 # 100K iterations, batch size 4, AdamW lr 1e-4
+# The released checkpoint is step 40000 (~37 GPU-h); running all 100K costs ~90 GPU-h
 # Logs → outputs/train_31k_mf/{tensorboard,step_*.pt,best.pt}
 ```
 
@@ -361,7 +362,7 @@ A. **No.** Eval-only deployment uses the released weights + SCPNet predictions o
 A. Every paper artefact corresponds to a config file. `python scripts/train.py train/31k_mf` runs the exact headline recipe with no chance of accidentally diverging from the paper.
 
 **Q. Single-seed numbers — why no error bars?**
-A. Same convention as every method in the leaderboard table: a full SemanticKITTI SSC training run is expensive (~37 GPU-hours), and the official scoring server takes a single submission. We use a single seed (42) to match this convention. See §V.A of the paper for the variance-disclosure discussion.
+A. Same convention as every method in the leaderboard table: a SemanticKITTI SSC training run is expensive (ours: ~37 GPU-hours to the released step-40000 checkpoint, ~90 for the full 100K-iteration launch), and the official scoring server takes a single submission. We use a single seed (42) to match this convention. See §V.A of the paper for the variance-disclosure discussion.
 
 **Q. Where do I find figures and paper-typesetting source?**
 A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `assets/qualitative.png`) live under `assets/` and are embedded above. The full paper figure set and the LaTeX typesetting source live in the (private until publication) paper repo, not here. This repo focuses on **method reproduction**; the shipped notebook (`examples/quickstart.ipynb`) walks through the headline eval end-to-end.
@@ -381,7 +382,7 @@ A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `as
 
 (Machine-readable: [`CITATION.cff`](CITATION.cff))
 
-The TPAMI submission snapshot referenced in the paper supplementary is the **v2.3.6** release; its Hydra configs hold the same hyperparameters listed in the paper's reproducibility appendix. v2.3.1 rather than an earlier tag because `configs/infer/test_1step.yaml`, the command behind the headline single-sample hidden-test number, was only added in it.
+The TPAMI submission snapshot referenced in the paper supplementary is the **v2.3.7** release; its Hydra configs hold the same hyperparameters listed in the paper's reproducibility appendix. Keep this tag in step with the one named in the paper's reproducibility appendix — the paper cites the tag by name, so bumping one without the other strands the reference.
 
 ---
 

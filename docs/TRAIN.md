@@ -15,7 +15,11 @@ python scripts/train.py train/31k_mf --gpu 0,1
 * Loss: KL posterior + Lovász (0.3) + auxiliary (5e-4)
 * Eval every 5K steps with N=100 S²D² correction sampling
 
-Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock at 2 GPUs).
+Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock at 2 GPUs) **to reach
+step 40000** — the released checkpoint (`gssc_31k_mf_step40000`) and the figure
+the paper's compute table prices as the S²D² headline. The config above runs to
+100000 iterations; letting it finish costs ~90 GPU-hours at the same observed
+~0.9 GPU-h per 1K steps. Stopping at 40K is what reproduces the paper.
 Output: `outputs/train_31k_mf/step_{5000,10000,...,100000}.pt` + `best.pt`.
 
 ## Data-scaling ablations (Tab. VII)
@@ -73,7 +77,7 @@ python scripts/train.py train/js3c_real --gpu 0,1
   reproducible at-deploy derived-BEV number is 24.32 % (+1.59 pp) under the
   official `semantic-kitti-api`.
 
-Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock; identical to the headline 31k_mf run).
+Cost: ~90 GPU-hours on 2× H100 80 GB (≈45 h wall-clock). This run trains to the full 100000 iterations, unlike the headline, which is read off at step 40000 for ~37 GPU-h; the paper's compute table prices the alt-base runs at ~90 GPU-h each.
 Output: `outputs/train_js3c_real/step_{5000,...,100000}.pt`.
 
 ## LMSCNet cross-base (paper tab:portable_s2d2, third base; v2.1.0)
@@ -101,7 +105,7 @@ python scripts/train.py train/lmscnet_real --gpu 0,1
   45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint
   workaround is needed.
 
-Cost: ~37 GPU-hours on 2× H100 80 GB (≈18.5 h wall-clock; identical to the headline 31k_mf run).
+Cost: ~90 GPU-hours on 2× H100 80 GB (≈45 h wall-clock). This run trains to the full 100000 iterations, unlike the headline, which is read off at step 40000 for ~37 GPU-h; the paper's compute table prices the alt-base runs at ~90 GPU-h each.
 Output: `outputs/train_lmscnet_real/step_{5000,...,100000}.pt`.
 
 ## BEV second task

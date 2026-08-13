@@ -31,6 +31,34 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.7] — 2026-08-13
+
+### Fixed — every training-cost label priced a 100K-iteration launch at the 40K-step price
+`configs/train/*.yaml` all set `num_iterations: 100000`, and the released headline checkpoint
+is `gssc_31k_mf_step40000` — step 40000. The paper's compute table prices the S²D² headline at
+~37 GPU-h and the alt-base runs at ~90 GPU-h each, consistent at one rate (~0.9 GPU-h per 1K
+steps). Six sites in this repo labelled a 100K-iteration launch with the headline's ~37 GPU-h,
+so a reproducer sizing any full run under-provisioned by ~2.4×:
+
+- `docs/TRAIN.md:18` — headline block, whose own Output line lists `step_{...,100000}.pt`
+- `docs/TRAIN.md:76`, `:104` — the JS3C-Net and LMSCNet alt-base runs, both "identical to the
+  headline 31k_mf run" (the paper says ~90 GPU-h each)
+- `docs/REPRODUCIBILITY.md:157` — "each full training run … costs roughly 37 GPU-hours"
+- `docs/REPRODUCIBILITY.md:315`, `:403` — the two alt-base launch comments
+- `README.md:281` heading and `:364` FAQ
+
+Each now states both figures and which checkpoint each buys: ~37 GPU-h reaches step 40000,
+which is what reproduces the paper; ~90 GPU-h finishes all 100K iterations. No config, code or
+measured value changed.
+
+### Fixed — README's tag justification was false, and false for v2.3.1 too
+`README.md:384` said the paper points at v2.3.1 "because `configs/infer/test_1step.yaml` … was
+only added in it". `git tag --contains` on that file's adding commit lists **v2.3.0** onward, so
+the justification was untrue of v2.3.1 as well as of the current tag. v2.3.6 corrected the tag
+number in the sentence's first half and left the false clause standing in its second — the same
+half-landed shape v2.3.6 itself was written to repair. The clause is removed and replaced with
+the standing instruction to keep the tag in step with the paper's.
+
 ## [2.3.6] — 2026-08-13
 
 ### Fixed — the v2.3.3 "26.1 is not a paper number" sweep HALF-LANDED

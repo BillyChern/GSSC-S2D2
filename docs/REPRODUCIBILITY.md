@@ -153,9 +153,11 @@ We use a single seed for the published retrain recipe. **This matches the prevai
 SemanticKITTI SSC reporting convention** — every method in the paper's main
 hidden-test results table (LMSCNet, SSA-SC, JS3C-Net, SCPNet, TALoS) likewise
 reports a single
-test-server entry per configuration with no variance bars, because each full
-training run at 256×256×32 voxel resolution costs roughly 37 GPU-hours on
-2×H100, and the official scoring server returns one number per submission.
+test-server entry per configuration with no variance bars, because a training
+run at 256×256×32 voxel resolution costs tens of GPU-hours — ours takes roughly
+37 on 2×H100 to reach the released step-40000 checkpoint, ~90 for the full
+100K-iteration launch — and the official scoring server returns one number per
+submission.
 
 ### Expected retrain variance
 
@@ -312,7 +314,8 @@ sequences 00-08, 09, 10; the hidden test 11-21 is optional.)
 ### Train and eval
 
 ```bash
-# Real-only training (~37 GPU-hours on 2× H100; cold_diffusion=true is required)
+# Real-only training (~90 GPU-hours on 2× H100 for the full 100K iterations;
+# cold_diffusion=true is required)
 python scripts/train.py train/js3c_real
 
 # Paper-headline eval — GT BEV + N=1 Algo2 (paper Tab. III / tab:portable_s2d2, JS3C+S²D² row)
@@ -400,7 +403,8 @@ Real-only reproduction needs sequences 00-08, 09, 10.)
 ### Train and eval
 
 ```bash
-# Real-only training (~37 GPU-hours on 2× H100; cold_diffusion=true is required)
+# Real-only training (~90 GPU-hours on 2× H100 for the full 100K iterations;
+# cold_diffusion=true is required)
 python scripts/train.py train/lmscnet_real
 
 # Eval — N=1 Algo2, derived BEV (paper Tab. III / tab:portable_s2d2, LMSCNet+S²D² row)
