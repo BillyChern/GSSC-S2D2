@@ -222,7 +222,7 @@ paper.
 | **Tab. I (test mIoU, HEADLINE)** | `python scripts/infer.py infer/test_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test_n1/` then submit to SemanticKITTI Codabench | **38.8 mIoU, 58.9 IoU_cmpl** — the configuration the deployment predicate admits (one step, no TTA) |
 | Tab. I (test mIoU, D4 ensemble) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl — four steps + eight-view D4, **excluded** by the predicate |
 | Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --metrics miou per_class` | 38.54 mIoU |
-| Tab. III (tab:portable_s2d2, cross-base JS3C, paper headline)   | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.05 mIoU (official semantic-kitti-api, +3.32 pp; paper rounds to 26.1 / +3.3). Internal training-time evaluator on the same protocol = 26.72 mIoU (+3.99 pp), a continuity row |
+| Tab. III (tab:portable_s2d2, cross-base JS3C, GT-BEV diagnostic) | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.05 mIoU (official semantic-kitti-api, +3.32 pp; paper rounds to 26.1 / +3.3). Internal training-time evaluator on the same protocol = 26.72 mIoU (+3.99 pp), a continuity row |
 | Tab. III (tab:portable_s2d2, cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api, +1.59 pp) |
 | Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10). The released LMSCNet `model_ema.safetensors` ships complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint workaround is needed |
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
@@ -336,7 +336,7 @@ and crashes the dumper on those frames (the paper's supplementary material
 discusses the underlying segmentation-head OOD issue). The full blacklist ships with
 the dataset as `js3cnet_predictions/synthetic_31k_bad_frames.txt`.
 
-The headline cross-base row (26.1 % mIoU official api; 26.7 %
+The GT-BEV diagnostic row (26.05 % mIoU official api; 26.7 %
 internal training-time evaluator continuity row; 24.3 % at-deploy derived BEV)
 is trained on **real frames only**, so the synth gap does not affect it. The synth-augmentation row
 (reported in the paper's supplementary validation-protocol table) filters at

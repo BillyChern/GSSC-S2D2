@@ -31,6 +31,33 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.3] — 2026-08-13
+
+### Fixed — the docs led with a JS3C number that appears nowhere in the paper
+- Eleven sites across README, MODEL_ZOO, BASELINES, INFERENCE, REPRODUCIBILITY and
+  DATASET led with **26.1 % (+3.3 pp)** for JS3C-Net + S²D² and called it "the paper
+  headline", several adding that "the paper rounds this to 26.1".
+- The paper's JS3C headline is **24.3 % (+1.6 pp)** (derived BEV, official
+  `semantic-kitti-api`), and the string **26.1 appears zero times** in the paper or
+  its supplement — so it cannot be a rounding of anything the paper prints. The
+  v2.2.0 alignment pass locked the docs to a paper claim the paper later corrected.
+- 24.3 now leads everywhere, protocol-matched to the 22.7 % base and to the released
+  checkpoint's own training distribution (`js3c_real.yaml` sets `bev_from_base: true`).
+  26.05 and 26.72 are kept as labelled diagnostics.
+- For which protocol produced 26.05 versus 26.72, the docs now defer to the paper's
+  supplementary table (which carries an explicit Evaluator column) instead of
+  asserting a pairing this repo has twice described wrongly.
+
+### Fixed — margins and a rate the paper disclaims (see also e5639a7)
+- Six sites quoted the 8-view D₄ ensemble row (39.2, N=4) as the deployable result:
+  "+1.3 over TALoS", "+2.5 pp over the frozen base", and "+2.5 ... with a single
+  extra forward pass" (self-contradictory, since +2.5 needs four steps plus the
+  ensemble). The predicate-satisfying margins are **+0.9** and **+2.1**.
+- "real-time" and "cheapest deployable" are retracted: the paper says the marginal
+  9.33 FPS "is an incremental pass, not a deployable rate" and that neither it nor
+  the 3.23 FPS pipeline matches the sensor's 10 Hz cadence.
+
+
 ## [2.3.2] — 2026-08-13
 
 ### Fixed — three docs asserted a hidden-test measurement that does not exist
@@ -362,7 +389,8 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.2...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.3...HEAD
+[2.3.3]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.2...v2.3.3
 [2.3.2]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.1...v2.3.2
 [2.3.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.2.0...v2.3.0

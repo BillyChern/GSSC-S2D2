@@ -86,7 +86,7 @@ data/js3cnet_predictions/
 └── README.md
 ```
 
-The cross-base headline (26.1 % val mIoU under the official `semantic-kitti-api`;
+The cross-base headline (24.3 % val mIoU, derived BEV under the official `semantic-kitti-api`;
 26.7 % under the paper's internal training-time evaluator, a continuity row;
 24.3 % at-deploy with derived BEV) is trained on real frames only; the synth
 subdirs are shipped for the synth-augmentation analysis in the paper's

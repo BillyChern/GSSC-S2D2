@@ -72,17 +72,24 @@ released checkpoints; SCPNet uses the same training recipe with
 | Subdir | Base | Architecture family | Base mIoU | +S²D² mIoU | Δ | Config |
 |---|---|---|---|---|---|---|
 | `gssc_lmsc/gssc_lmsc_s2d2_real/` | LMSCNet | 2D CNN (dense)        | 14.8 | **16.6** | **+1.8** | `configs/train/lmscnet_real.yaml` |
-| `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.7 | **26.1** | **+3.3** | `configs/train/js3c_real.yaml`    |
+| `gssc_js3c/gssc_js3c_s2d2_real/` | JS3C-Net | Point + voxel hybrid | 22.7 | **24.3** | **+1.6** | `configs/train/js3c_real.yaml`    |
 | (uses `gssc_mf/gssc_31k_mf_step40000/`) | SCPNet | Sparse 3D CNN       | 36.17 | **38.54** | **+2.36** | `configs/train/31k_mf.yaml`       |
 
-> **JS3C-Net number convention.** The JS3C row leads with the **paper headline
-> 26.1 % (+3.3 pp)** under the official `semantic-kitti-api` (the precise eval
-> output is 26.05 %, which the paper rounds to 26.1). The same protocol scored
-> with the paper's *internal* training-time evaluator (`SSCMetrics`) reads
-> **26.7 % (+4.0 pp)** — a continuity row in the paper, **not** the headline.
-> The reproducible at-deploy number with derived BEV under the official api is
-> **24.3 % (+1.6 pp)** (what `scripts/reproduce_table.py` yields end-to-end).
-> See the JS3C-Net evaluator notes below.
+> **JS3C-Net number convention.** The JS3C row leads with **24.3 % (+1.6 pp)**,
+> derived BEV under the official `semantic-kitti-api`, because that is the row
+> the paper cites as its JS3C-Net headline and it is what
+> `scripts/reproduce_table.py` yields end-to-end. It also matches the released
+> checkpoint's training distribution, which used derived BEV
+> (`configs/train/js3c_real.yaml` sets `bev_from_base: true`).
+>
+> Earlier revisions of this file led with **26.1 % (+3.3 pp)** and called it
+> "the paper headline". That was wrong on both counts: the paper's JS3C headline
+> is 24.3 %, and the string 26.1 appears **nowhere** in the paper or its
+> supplement, so it cannot be a rounding of anything the paper prints. The
+> figures the paper does carry for this base, besides 24.3, are diagnostics its
+> supplement labels row by row and explicitly says are not protocol-matched to
+> the SCPNet and LMSCNet rows — read them off that table rather than from here,
+> since this file has twice mis-stated which protocol produced which.
 
 > **Note on the "Architecture family" column.** This column describes the
 > **frozen base model** (the predictor S²D² corrects), not the S²D² denoiser
@@ -99,22 +106,21 @@ end-to-end under the official `semantic-kitti-api`. The released LMSCNet
 `model_ema.safetensors` ships complete (278 tensors, including all 45 BatchNorm
 running buffers), loads cleanly, and reproduces the 16.59 figure directly.
 
-The JS3C-Net row carries three numbers; the table leads with the official
-headline:
+The JS3C-Net row carries three numbers; the table leads with the paper's:
 
-- **26.05 % (+3.32 pp)** — **paper headline** (the paper rounds this to
-  26.1 % / +3.3 pp): GT BEV fed to S²D², scored under the official
-  `semantic-kitti-api`. This is the canonical JS3C cross-base
-  number.
-- **26.72 % (+3.99 pp)** — the *same* protocol scored with the paper's
-  **internal training-time evaluator** (`SSCMetrics`). This is a continuity row
-  in the paper (rounds to 26.7 %), **not** the headline; it differs from the
-  26.05 % official figure by the internal/official evaluator gap documented in
-  the paper's supplementary validation-protocol table.
-- **24.32 % (+1.59 pp)** — the reproducible **at-deploy** number with derived
-  BEV under the official `semantic-kitti-api`. This is what
-  `scripts/reproduce_table.py` yields end-to-end and the most honest
-  deploy-time figure.
+- **24.32 % (+1.59 pp)** — the **paper headline** for this base, and the
+  reproducible at-deploy figure: derived BEV under the official
+  `semantic-kitti-api`, protocol-matched to the 22.7 % base and to the released
+  checkpoint's own training distribution. This is what
+  `scripts/reproduce_table.py` yields end-to-end.
+- **26.05 % (+3.32 pp)** — a GT-BEV diagnostic under the official
+  `semantic-kitti-api`. **Not** the headline.
+- **26.72 % (+3.99 pp)** — scored with the paper's **internal training-time
+  evaluator** (`SSCMetrics`). A continuity row, **not** the headline.
+
+For which protocol produced 26.05 versus 26.72, read the paper's supplementary
+validation-protocol table rather than this file: its rows carry an explicit
+Evaluator column, and this file has twice described the pairing wrongly.
 
 SCPNet's 38.54 is an official `semantic-kitti-api` number everywhere it
 appears. The JS3C-Net derived-BEV deploy number (**24.32**) is produced by
@@ -122,7 +128,7 @@ appears. The JS3C-Net derived-BEV deploy number (**24.32**) is produced by
 - `eval/js3c_val_paper.yaml` reproduces the GT-BEV protocol by loading
   preprocessed GT BEV via the config key `bev_source: gt` (set in
   `configs/eval/js3c_val_paper.yaml`; it is a YAML key, not a CLI flag). Under
-  the official `semantic-kitti-api` this lands at the **26.05 %** headline; the
+  the official `semantic-kitti-api` this lands at the **26.05 %** diagnostic; the
   paper's internal SSCMetrics on the identical protocol reads **26.72 %**.
 - `eval/js3c_val_realistic.yaml` uses derived BEV (topmost-non-empty class
   from JS3C-Net's 3D prediction, selected via the config key
@@ -250,7 +256,8 @@ Or via the eval entry point::
 python scripts/eval.py eval/val_1step \
     --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
-# JS3C-Net cross-base (26.05% val official-api headline, paper rounds to 26.1/+3.3;
+# JS3C-Net cross-base (24.3% val is the paper headline for this base, derived BEV;
+# 26.05% is a GT-BEV diagnostic, NOT the headline, and 26.1 is in no paper table;
 # 26.72% internal training-time evaluator continuity row; 24.32% at-deploy derived BEV)
 python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
@@ -268,6 +275,6 @@ Or reproduce a specific paper table with the all-in-one driver::
 # 38.54% val headline (paper label tab:portable_s2d2); the driver's CLI key for
 # this checkpoint is tab:perclass (an alias of tab:main_results in the paper).
 python scripts/reproduce_table.py tab:perclass             # 38.54% val (paper tab:portable_s2d2)
-python scripts/reproduce_table.py tab:cross_base_js3c      # 26.05% val (official-api headline; paper 26.1, tab:portable_s2d2)
+python scripts/reproduce_table.py tab:cross_base_js3c      # 24.3% val, the paper headline (derived BEV, tab:portable_s2d2)
 python scripts/reproduce_table.py tab:bev_results          # 36.1% BEV (paper tab:bev_results)
 ```
