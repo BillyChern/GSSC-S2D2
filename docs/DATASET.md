@@ -422,7 +422,7 @@ contents are identical; only the directory label differs.
   [github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2).
   This is also the errata channel: file an issue if a frame, count, or shape
   here does not match what you downloaded.
-- **Version:** v2.3.7 (the TPAMI submission snapshot; bump this WITH supplementary.tex's tag).
+- **Version:** v2.3.8 (the TPAMI submission snapshot; bump this WITH supplementary.tex's tag).
 - **Mirror:** the full synthetic pool is mirrored to IEEE DataPort on paper
   publication; until then the download scripts print manual-download
   instructions.

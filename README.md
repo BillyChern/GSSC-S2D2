@@ -382,7 +382,7 @@ A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `as
 
 (Machine-readable: [`CITATION.cff`](CITATION.cff))
 
-The TPAMI submission snapshot referenced in the paper supplementary is the **v2.3.7** release; its Hydra configs hold the same hyperparameters listed in the paper's reproducibility appendix. Keep this tag in step with the one named in the paper's reproducibility appendix — the paper cites the tag by name, so bumping one without the other strands the reference.
+The TPAMI submission snapshot referenced in the paper supplementary is the **v2.3.8** release; its Hydra configs hold the same hyperparameters listed in the paper's reproducibility appendix. Keep this tag in step with the one named in the paper's reproducibility appendix — the paper cites the tag by name, so bumping one without the other strands the reference.
 
 ---
 

@@ -31,6 +31,20 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.8] — 2026-08-13
+
+### Fixed — v2.3.7 bumped 2 of the 4 version declarations, so `uv lock --check` failed
+v2.3.5 and v2.3.6 each bumped `pyproject.toml`, `CITATION.cff`, `src/gssc/__init__.py` and
+`uv.lock` together. v2.3.7 bumped only the first two, leaving `__init__.py` and the `uv.lock`
+`gssc` entry at 2.3.6 — which makes `uv lock --check` fail, i.e. a visitor's first command
+errors out. This is verbatim the defect the paper harness's `check_release_snapshot` R4 was
+written to catch after the same drift sat in five files at v2.1.0; its comparison silently
+accepted any drift inside one minor series, so it reported the mismatch as a *note* and exited 0.
+That filter is fixed in the same cycle as this release.
+
+All four declarations now read 2.3.8 and `uv lock --check` is clean. No code, config, doc text,
+or measured value changed relative to v2.3.7 beyond the version strings.
+
 ## [2.3.7] — 2026-08-13
 
 ### Fixed — every training-cost label priced a 100K-iteration launch at the 40K-step price
