@@ -64,9 +64,11 @@ python scripts/train.py train/js3c_real --gpu 0,1
   synthetic pool" section in `docs/REPRODUCIBILITY.md`).
 * 100K iterations, batch size 4, lr 1e-4, ema_decay 0.9999.
 * `cold_diffusion=true` (REQUIRED for cross-base — deterministic forward).
-* Expected val mIoU at step 100K: **26.05 %** (paper rounds to 26.1; paper
-  tab:portable_s2d2 headline, +3.3 pp over the JS3C-Net base 22.7 %, official
-  `semantic-kitti-api`). The same protocol under the paper's internal
+* Expected val mIoU at step 100K: **26.05 %** — a GT-BEV DIAGNOSTIC under the
+  official `semantic-kitti-api`, **not** the paper's headline for this base. The
+  paper's JS3C-Net headline is **24.3 % (+1.6 pp)**, derived BEV, which is what
+  `eval/js3c_val_realistic` reproduces. The string "26.1" appears nowhere in the
+  paper or its supplement, so it is not a rounding of anything the paper prints. The same protocol under the paper's internal
   training-time evaluator reads 26.72 % (+3.99 pp, a continuity row); the
   reproducible at-deploy derived-BEV number is 24.32 % (+1.59 pp) under the
   official `semantic-kitti-api`.

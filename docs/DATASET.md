@@ -67,9 +67,10 @@ pool used in the paper.
 
 Precomputed for val seq 08 + train seqs 00-07, 09, 10 + test 11-21 + the 31K
 and 57K synthetic pools (the `31K` pool is the 32,039-frame `synthetic_31k`
-dir). Required to reproduce the v1.1.0 cross-base headline (paper
-tab:portable_s2d2 cross-base rows; official `semantic-kitti-api` headline
-22.7 → 26.1, +3.3 pp val mIoU):
+dir). Required to reproduce the JS3C-Net cross-base rows of paper
+tab:portable_s2d2, whose headline is **22.7 → 24.3, +1.6 pp** val mIoU under the
+official `semantic-kitti-api` with derived BEV (26.05 is the GT-BEV diagnostic,
+not the paper's headline):
 
     python scripts/download_assets.py --js3c-predictions
 
@@ -421,7 +422,7 @@ contents are identical; only the directory label differs.
   [github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2).
   This is also the errata channel: file an issue if a frame, count, or shape
   here does not match what you downloaded.
-- **Version:** v2.3.1 (the TPAMI submission snapshot).
+- **Version:** v2.3.6 (the TPAMI submission snapshot; bump this WITH supplementary.tex's tag).
 - **Mirror:** the full synthetic pool is mirrored to IEEE DataPort on paper
   publication; until then the download scripts print manual-download
   instructions.

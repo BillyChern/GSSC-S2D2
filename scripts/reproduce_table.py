@@ -39,10 +39,11 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
     # per-row checkpoints reproduce is the SINGLE-frame sweep reported in prose in supp. App. C.
     "data_scaling_sf":      {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step100000]", "metrics": "miou"},
     "tab:cross_base_js3c":  {
-        # JS3C-Net cross-base. Paper headline = 26.05 (GT BEV, official
-        # semantic-kitti-api, +3.32 pp). Footnote = 26.72 (same GT-BEV
-        # protocol, paper internal SSCMetrics, +3.99 pp). At-deploy = 24.32
-        # (derived BEV, official api, +1.59 pp). The js3c_val_1step config
+        # JS3C-Net cross-base. The PAPER'S headline for this base is 24.32
+        # (derived BEV, official semantic-kitti-api, +1.59 pp), which
+        # eval/js3c_val_realistic reproduces. 26.05 is a GT-BEV DIAGNOSTIC
+        # (official api, +3.32 pp) and 26.72 the same protocol under the paper's
+        # internal SSCMetrics (+3.99 pp); neither is the paper's headline. The js3c_val_1step config
         # below uses the GT-BEV paper protocol; for the at-deploy figure run
         # eval/js3c_val_realistic instead (see docs/REPRODUCIBILITY.md).
         "config": "eval/js3c_val_1step",

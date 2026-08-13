@@ -31,6 +31,40 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.6] — 2026-08-13
+
+### Fixed — the v2.3.3 "26.1 is not a paper number" sweep HALF-LANDED
+v2.3.3 claimed to remove every site calling 26.1 / 26.05 the paper's JS3C-Net headline. It
+missed **eight lines in six files**, two of them in files v2.3.3 named as fixed. An
+adversarial review of the release repo found them; the residue was:
+
+- `docs/TRAIN.md:67` "**26.05 %** (paper rounds to 26.1; paper tab:portable_s2d2 headline)"
+- `docs/DATASET.md:71` "official `semantic-kitti-api` headline 22.7 → 26.1, +3.3 pp"
+- `scripts/reproduce_table.py:42` "Paper headline = 26.05"
+- `src/gssc/models/js3c_base.py:14` "Reproducing paper Tab. III row 91 (26.05 % val mIoU…)"
+- `docs/INFERENCE.md:54`, `:68` "the number the paper rounds to 26.1"
+- `docs/REPRODUCIBILITY.md:238`, `:279`, `:320` "paper rounds to 26.1 / +3.3", "22.7 % → 26.1 %"
+- `README.md:43` "**22.7 % → 26.1 % (+3.3 pp)** … (paper headline)"
+
+The paper's JS3C-Net headline is **24.3 % (+1.6 pp)** (derived BEV, official
+`semantic-kitti-api`), and **"26.1" appears zero times** in the paper or its supplement, so it
+cannot be a rounding of anything the paper prints. 26.05 and 26.72 are kept everywhere as
+labelled GT-BEV diagnostics; only the false attribution to the paper is gone. Measured values
+in code (`expected_mIoU: 26.05`) were NOT changed — they are real measurements; only the
+comments calling them the paper's headline were.
+
+Why it recurred: the v2.3.3 sweep matched phrasings ("26.1" beside "headline") rather than the
+CLAIM. This release swept every line pairing 26.1/26.05 with the word "paper" and re-checked
+with a claim-shaped pattern until it returned clean.
+
+### Fixed — the repo told reviewers the paper points at the wrong tag
+`README.md:384` asserted "the TPAMI submission snapshot referenced in the paper supplementary is
+the **v2.3.1** release" and `docs/DATASET.md:424` stamped "Version: v2.3.1", while the paper's
+reproducibility appendix names a later tag and "2.3.1" appears nowhere in the submission. Both
+now say v2.3.6, and DATASET.md carries the instruction to bump it WITH supplementary.tex's tag,
+which is how it drifted four releases behind.
+
+
 ## [2.3.5] — 2026-08-13
 
 ### Fixed — the PS³ Jensen–Shannon filter is not shipped, and a lookalike module is not it
@@ -420,7 +454,8 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.5...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.6...HEAD
+[2.3.6]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.5...v2.3.6
 [2.3.5]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.4...v2.3.5
 [2.3.4]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.3...v2.3.4
 [2.3.3]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.2...v2.3.3

@@ -235,7 +235,7 @@ paper.
 | **Tab. I (test mIoU, HEADLINE)** | `python scripts/infer.py infer/test_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test_n1/` then submit to SemanticKITTI Codabench | **38.8 mIoU, 58.9 IoU_cmpl** — the configuration the deployment predicate admits (one step, no TTA) |
 | Tab. I (test mIoU, D4 ensemble) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl — four steps + eight-view D4, **excluded** by the predicate |
 | Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --metrics miou per_class` | 38.54 mIoU |
-| Tab. III (tab:portable_s2d2, cross-base JS3C, GT-BEV diagnostic) | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.05 mIoU (official semantic-kitti-api, +3.32 pp; paper rounds to 26.1 / +3.3). Internal training-time evaluator on the same protocol = 26.72 mIoU (+3.99 pp), a continuity row |
+| Tab. III (tab:portable_s2d2, cross-base JS3C, GT-BEV diagnostic) | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.05 mIoU (official semantic-kitti-api, +3.32 pp) -- the GT-BEV diagnostic, NOT the paper's headline (24.3 %, derived BEV). Internal training-time evaluator on the same protocol = 26.72 mIoU (+3.99 pp), a continuity row |
 | Tab. III (tab:portable_s2d2, cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api, +1.59 pp) |
 | Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10). The released LMSCNet `model_ema.safetensors` ships complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint workaround is needed |
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
@@ -276,9 +276,10 @@ All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already e
 ## JS3C-Net cross-base reproduction (paper Tab. III / tab:portable_s2d2, cross-base rows)
 
 Stacking S²D² on the older point-voxel hybrid base JS3C-Net (Yan et al.,
-AAAI 2021) lifts val mIoU **22.7 % → 26.1 % (+3.3 pp)** under the paper
-headline protocol (official `semantic-kitti-api`; precise eval output
-22.73 → 26.05). The same protocol scored with the paper's internal
+AAAI 2021) lifts val mIoU **22.7 % → 24.3 % (+1.6 pp)**, which is the paper's
+headline for this base (official `semantic-kitti-api`, derived BEV). Under the
+GT-BEV DIAGNOSTIC protocol the same run reads 22.73 → 26.05 (+3.32 pp), a figure
+the paper does not print -- "26.1" appears nowhere in it. The same protocol scored with the paper's internal
 training-time evaluator reads **26.7 % (+4.0 pp)** (a continuity row), and the
 reproducible at-deploy number under the official `semantic-kitti-api` with
 derived BEV is **24.3 % (+1.6 pp)**. See the per-table rows above and the eval notes below for the
@@ -317,8 +318,9 @@ python scripts/train.py train/js3c_real
 # Paper-headline eval — GT BEV + N=1 Algo2 (paper Tab. III / tab:portable_s2d2, JS3C+S²D² row)
 python scripts/eval.py eval/js3c_val_paper \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
-# → expect 26.05 % val mIoU under the official semantic-kitti-api (paper headline,
-#   rounds to 26.1 / +3.3). The paper's internal training-time evaluator on the
+# → expect 26.05 % val mIoU under the official semantic-kitti-api. This is the
+#   GT-BEV DIAGNOSTIC, not the paper's headline (that is 24.3 %, derived BEV, via
+#   eval/js3c_val_realistic). The paper's internal training-time evaluator on the
 #   identical protocol reads 26.72 % (+3.99 pp) — a continuity row, not the headline.
 
 # Realistic-deployment eval — derived BEV + N=1 Algo2 (honest deploy number)
