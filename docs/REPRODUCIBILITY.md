@@ -88,7 +88,8 @@ v1 weights load correctly:
   element order, so the published v1 weights produce numerically equivalent
   forward passes under v2.
 * Empirical reproduction: 36.17% val seq-08 mIoU vs. SCPNet's published 37.2%
-  (1.03% gap, confined to val; the test-server number reproduces exactly). See
+  (a 1.03% val gap; the port was never submitted to the test server, so whether
+  the gap also appears on test is unmeasured). See
   [BASELINES.md](BASELINES.md) for the full diff and
   `src/gssc/inference/run_scpnet.py` for the loader.
 
@@ -238,7 +239,7 @@ paper.
 > describes whatever wrote those files, under your invocation's name. Point `--output_dir` at
 > a fresh path or delete the old one. `--gate` catches the mistake — it asserts the aggregate
 > reproduces base person 22.0 / bicyclist 18.0 / motorcyclist 4.1 at 36.17 % mIoU and refined
-> 23.2 / 23.3 / 12.4 at 38.54 % before reporting any per-frame statistic, and it does reject a
+> 23.2 / 23.2 / 12.4 at 38.54 % before reporting any per-frame statistic, and it does reject a
 > retrain-arm dump (motorcyclist 4.4, mIoU 38.05).
 
 > **Tab. VIII (DW-IoU) is reproducible, but it is DERIVED rather than evaluated.**

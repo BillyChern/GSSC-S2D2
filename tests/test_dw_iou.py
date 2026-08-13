@@ -14,7 +14,12 @@ import pytest
 from gssc.utils.dw_iou import dw_iou, dw_vru_iou
 
 BASE_VRU = [22.0, 18.0, 4.1]    # SCPNet base: person, bicyclist, motorcyclist
-N1_VRU = [23.2, 23.3, 12.4]     # base + released per-class deltas (+1.2, +5.3, +8.3)
+# Per-class IoUs as the paper PRINTS them (supp tab:supp_portable_full). bicyclist is 23.2, not
+# the 23.3 a base+rounded-delta reconstruction (18.0 + 5.3) gives: the measurement sits near
+# 23.25, so 23.2 and 23.3 are two prints of one number and the paper standardises on the table's.
+# The published DW-IoU cells below came from UNROUNDED IoUs, which is why they reconcile exactly
+# with neither 1-d.p. vector and why the assertion below carries a tolerance.
+N1_VRU = [23.2, 23.2, 12.4]
 WINDOWS = [0.5, 1.0, 2.0, 2.5]
 
 # (row, FPS, per-class IoUs, published DW-VRU-IoU at each window)

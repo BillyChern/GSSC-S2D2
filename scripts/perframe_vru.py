@@ -42,7 +42,12 @@ VRU: Dict[int, str] = {6: "person", 7: "bicyclist", 8: "motorcyclist"}
 
 # Published cells the gate checks against (supplementary Tables XVI/XX).
 GATE_BASE = {"person": 22.0, "bicyclist": 18.0, "motorcyclist": 4.1, "miou": 36.17}
-GATE_REFINED = {"person": 23.2, "bicyclist": 23.3, "motorcyclist": 12.4, "miou": 38.54}
+# bicyclist is 23.2, matching supp tab:supp_portable_full and the per-class line in
+# outputs/experiment_log.md. A supplement NOTE used to print 23.3 for this same cell; both are
+# prints of ONE measurement sitting near 23.25, where Python's round() gives 23.2 and half-up
+# gives 23.3. The paper standardises on the table's value, so this gate does too, and the
+# per-class tolerance below carries a margin past that rounding boundary.
+GATE_REFINED = {"person": 23.2, "bicyclist": 23.2, "motorcyclist": 12.4, "miou": 38.54}
 
 _LUT: np.ndarray | None = None
 _PATHS: Tuple[str, str, str] | None = None
@@ -144,7 +149,10 @@ def main() -> None:
             for k, w in want.items():
                 # Half-width of the published cell's last digit, plus float slack: 23.25
                 # against a printed 23.3 agrees, and 23.3 is not exactly representable.
-                half = 0.005 if k == "miou" else 0.05
+                # 0.055 not 0.05 on per-class: the bicyclist cell sits at ~23.25, exactly on
+                # the boundary between printing 23.2 and 23.3, and a bare half-width would put
+                # a genuine run on a knife edge against whichever print the paper carries.
+                half = 0.005 if k == "miou" else 0.055
                 if abs(g[k] - w) > max(a.tol, half) + 1e-9:
                     bad.append(f"{arm}.{k}: got {g[k]}, published {w}")
         if bad:
