@@ -76,6 +76,38 @@ def _build_label_to_train_lut() -> np.ndarray:
     return lut
 
 
+def _assert_bound(name: str, result: object, ckpt_path: object) -> None:
+    """Refuse to score a module whose weights did not fully bind.
+
+    ``load_state_dict(strict=False)`` is required here (EMA shadows may omit
+    non-float buffers) but it also silently tolerates an architecture that does not
+    match the checkpoint. That is how this path came to reconstruct the denoiser at
+    ``input_resolution=64`` / ``cond_channels=128`` against a 256/64 checkpoint and
+    still return a number: 48 attention tensors stayed at initialisation.
+
+    Args:
+        name: Module label used in the error message.
+        result: The ``_IncompatibleKeys`` returned by ``load_state_dict``.
+        ckpt_path: Checkpoint being loaded, echoed so the message is actionable.
+
+    Raises:
+        RuntimeError: If any key is missing or unexpected.
+    """
+    missing = list(getattr(result, "missing_keys", []))
+    unexpected = list(getattr(result, "unexpected_keys", []))
+    if not missing and not unexpected:
+        logger.info("%s: all weights bound", name)
+        return
+    raise RuntimeError(
+        f"{name}: {len(missing)} missing and {len(unexpected)} unexpected key(s) when "
+        f"loading {ckpt_path}. The architecture does not match the checkpoint, so any "
+        f"score from it would be meaningless. Check the reconstruction keys in the "
+        f"checkpoint's 'config' (input_resolution, model_size, conditioning_type, "
+        f"use_self_conditioning, lidar_channels). "
+        f"First missing: {missing[:3]}; first unexpected: {unexpected[:3]}"
+    )
+
+
 def evaluate_bev(
     checkpoint: str,
     data_root: str,
@@ -138,7 +170,17 @@ def evaluate_bev(
     num_classes = int(cfg.get("num_classes", 20))
     num_timesteps = int(cfg.get("num_timesteps", 100))
     base_channels = int(cfg.get("base_channels", 128))
+    # The shipped BEV run uses cond_channels=64 and input_resolution=256. Both were
+    # previously left at their defaults here (128 from this function, 64 from the UNet
+    # factory), and load_state_dict(strict=False) accepted the result SILENTLY: 12
+    # cond_proj tensors shape-mismatched and 48 attention tensors stayed at init, so the
+    # eval scored a half-initialised model. Read the reconstruction spec from the
+    # checkpoint, and keep the old values only as fallbacks for older files.
     lidar_channels = int(cfg.get("lidar_channels", 128))
+    input_resolution = int(cfg.get("input_resolution", 64))
+    model_size = str(cfg.get("model_size", "base"))
+    conditioning_type = str(cfg.get("conditioning_type", "sum"))
+    use_self_conditioning = bool(cfg.get("use_self_conditioning", True))
 
     # Build the 2D diffusion process (used for the schedule constants the
     # checkpoint was trained against — even though the headline 1-step
@@ -149,24 +191,35 @@ def evaluate_bev(
     # Note: create_modular_bev_unet's body channel count is fixed by
     # ``model_size``; ``base_channels`` from the checkpoint config is
     # informational and only checked for consistency.
-    del base_channels  # silence "unused" until we wire model_size from cfg
+    del base_channels  # silence "unused"; model_size carries the body width
     denoiser = create_modular_bev_unet(
         num_classes=num_classes,
+        input_resolution=input_resolution,
+        conditioning_type=conditioning_type,
+        use_self_conditioning=use_self_conditioning,
+        model_size=model_size,
         cond_channels=lidar_channels,
     ).to(device)
     lidar_encoder = SparseLiDAREncoder(
         in_channels=1, base_channels=32, out_channels=lidar_channels,
     ).to(device)
 
-    # Load weights (EMA preferred when present)
+    # Load weights (EMA preferred when present).
+    #
+    # strict=False is kept because some checkpoints carry EMA shadows that omit
+    # non-float buffers, but a SILENT partial load is exactly how this path shipped a
+    # half-initialised denoiser. Report what did not bind, and refuse to score on it:
+    # a wrong number that looks right is worse than a crash.
     if "denoiser_ema" in ckpt:
-        denoiser.load_state_dict(ckpt["denoiser_ema"], strict=False)
-        lidar_encoder.load_state_dict(ckpt["lidar_encoder_ema"], strict=False)
+        den_res = denoiser.load_state_dict(ckpt["denoiser_ema"], strict=False)
+        enc_res = lidar_encoder.load_state_dict(ckpt["lidar_encoder_ema"], strict=False)
         logger.info("Loaded EMA weights")
     else:
-        denoiser.load_state_dict(ckpt["denoiser_state_dict"], strict=False)
-        lidar_encoder.load_state_dict(ckpt["lidar_encoder_state_dict"], strict=False)
+        den_res = denoiser.load_state_dict(ckpt["denoiser_state_dict"], strict=False)
+        enc_res = lidar_encoder.load_state_dict(ckpt["lidar_encoder_state_dict"], strict=False)
         logger.info("Loaded training weights")
+    _assert_bound("denoiser", den_res, ckpt_path)
+    _assert_bound("lidar_encoder", enc_res, ckpt_path)
     denoiser.train(False)
     lidar_encoder.train(False)
 
