@@ -43,15 +43,18 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
         # (derived BEV, official semantic-kitti-api, +1.59 pp), which
         # eval/js3c_val_realistic reproduces. 26.05 is a GT-BEV DIAGNOSTIC
         # (official api, +3.32 pp) and 26.72 the same protocol under the paper's
-        # internal SSCMetrics (+3.99 pp); neither is the paper's headline. The js3c_val_1step config
-        # below uses the GT-BEV paper protocol; for the at-deploy figure run
-        # eval/js3c_val_realistic instead (see docs/REPRODUCIBILITY.md).
-        "config": "eval/js3c_val_1step",
+        # internal SSCMetrics (+3.99 pp); neither is the paper's headline. This key is named
+        # after a PAPER TABLE, so it must dispatch the config that reproduces that table's row:
+        # main Tab. III prints "JS3C-Net + S2D2  24.3  +1.6". Until 2026-08-15 it shipped
+        # eval/js3c_val_1step with expected 26.05 -- the GT-BEV diagnostic -- so a reader
+        # reproducing the cross-base row got a number the paper does not print there. For the
+        # GT-BEV diagnostic run eval/js3c_val_1step explicitly (see docs/REPRODUCIBILITY.md).
+        "config": "eval/js3c_val_realistic",
         "checkpoint": "gssc_js3c/gssc_js3c_s2d2_real",
         "metrics": "miou per_class completion_iou",
         "base_pred_dir_required": "data/js3cnet_predictions",
         "base_kind": "js3c",
-        "expected_mIoU": 26.05,
+        "expected_mIoU": 24.32,
     },
     "tab:cross_base_lmsc":  {
         "config": "eval/lmscnet_val_1step",
