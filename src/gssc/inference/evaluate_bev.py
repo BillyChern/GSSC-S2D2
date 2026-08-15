@@ -128,7 +128,9 @@ def evaluate_bev(
         sequence: SemanticKITTI sequence id (default ``"08"`` = val).
         output: Optional path to dump per-class IoUs as JSON.
         gpu: CUDA device id.
-        max_frames: Optional cap for quick smoke runs.
+        max_frames: Optional cap for quick smoke runs. Takes the FIRST n frames in sorted
+            order. This is NOT the protocol the published BEV numbers were measured under --
+            see the note below -- so a ``--max-frames 100`` result does not reproduce them.
 
     Returns:
         Dict with ``"mIoU"`` (mean over 19 valid classes) and
@@ -136,6 +138,30 @@ def evaluate_bev(
 
     Raises:
         FileNotFoundError: missing checkpoint or data root.
+
+    Note:
+        THE PUBLISHED BEV NUMBERS COME FROM A DIFFERENT FRAME SET THAN THIS FUNCTION SCORES.
+        ``train_bev_secondary.run_algo2_on_samples`` evaluates
+        ``RandomState(42).choice(len(val_dataset), 100, replace=False)`` -- a seeded random
+        sample of 100 frames, not the first 100.
+
+        Adding a ``--sample-seed`` flag here would NOT be enough to reproduce them, because
+        the two index spaces differ in three ways and the seed indexes a list, not a set of
+        frame ids:
+
+        1. root   -- the dataset reads ``SemanticKITTI_3D/256/<seq>/``, this reads the voxel
+                     directory passed in;
+        2. glob   -- the dataset enumerates ``*_bev.npy``, this enumerates ``*.bin``;
+        3. filter -- the dataset DROPS any frame whose ``_voxels.npy`` or ``_bev_top.npy`` is
+                     missing, so its indices are a filtered subsequence.
+
+        Seeding this list would therefore select a different 100 frames and return a
+        plausible number that reproduces nothing. Reproducing the published figure requires
+        rebuilding the dataset's sample list exactly, and a previous reimplementation of this
+        protocol scored 33.61% where the training log recorded 34.75% -- a 1.1 pp gap that is
+        itself evidence of how easily this diverges. Until that is done and checked against
+        the log, the honest statement is the one in the supplement: those figures are scored
+        on 100 seeded val frames by the training-time evaluator.
     """
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
 
