@@ -1,4 +1,4 @@
-_paper_table: tab:dwiou (Tab. VIII, DW-VRU-IoU under reaction-time budgets)
+_paper_table: tab:dwiou (supplementary Tab. IV, DW-VRU-IoU under reaction-time budgets)
 _description: |
   DW-VRU-IoU across reaction windows. NOTE: this is a DERIVED quantity, not a separate
   evaluation -- DW-IoU_c = 1 - (1 - IoU_c)^(rate * t_w) is a function of the per-class IoU an

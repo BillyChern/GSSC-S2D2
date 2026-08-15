@@ -1,4 +1,4 @@
-_paper_table: tab:train_timesteps_curriculum (T=100skewed row)
+_paper_table: none (the training-timestep schedule ablation is NOT reported in the paper; these runs were triaged as degenerate and the table was dropped. Config retained for provenance.)
 _description: Training-timestep schedule ablation T=100skewed.
 data_root: data
 model_type: sparse_full

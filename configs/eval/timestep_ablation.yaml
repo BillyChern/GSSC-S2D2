@@ -1,4 +1,4 @@
-_paper_table: tab:train_timesteps_curriculum (Tab. XII, training-timestep schedule ablation)
+_paper_table: none (the training-timestep schedule ablation is NOT reported in the paper; these runs were triaged as degenerate and the table was dropped. Config retained for provenance.)
 _description: |
   Per-row eval recipe for the training-timestep ablation (T=10 / T=50 / T=100skewed
   / T=100uniform headline). Identical N=1 correction-sampling protocol to

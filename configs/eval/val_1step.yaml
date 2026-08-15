@@ -1,4 +1,4 @@
-_paper_table: tab:perclass (1-step row)
+_paper_table: tab:perclass_delta (main-paper Tab. II, 1-step row)
 _description: 1-step S2D2 correction-sampling evaluation on full val seq 08. Expected 38.54% mIoU.
 split: val
 sequences: "08"

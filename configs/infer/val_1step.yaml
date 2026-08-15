@@ -1,4 +1,4 @@
-_paper_table: tab:perclass
+_paper_table: tab:perclass_delta (main-paper Tab. II)
 _description: |
   Single correction-step (N=1) inference on SemanticKITTI val (sequence 08).
   Writes .label files only; score them with scripts/eval.py or the official
