@@ -34,7 +34,7 @@ The paper organises the method into three pillars that share one structured-sour
 > **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for the 3-command reproduction recipe of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once the base predictions are local.
 
 > [!NOTE]
-> **Assets are not yet public.** The pretrained checkpoints and base-model predictions are released **upon paper acceptance**; until then `scripts/download_assets.py` fails loudly with a pointer to `docs/DATASET.md` for manual provisioning, and a fresh clone cannot reach 38.54 % without those assets. The commands below are the exact recipe — the "verified end-to-end" labels record what the maintainers measured locally, not what an external clone can run today.
+> **Assets.** The pretrained checkpoints and base-model predictions are public; `scripts/download_assets.py` provisions them, and `docs/DATASET.md` documents how to regenerate every artefact locally instead. A fresh clone cannot reach 38.54 % without those assets. The commands below are the exact recipe — the "verified end-to-end" labels record what the maintainers measured locally, not what an external clone can run today.
 
 ### What's new
 
@@ -326,7 +326,7 @@ The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:p
 | Object bank (57,789 instances, 8 rare classes) | Hugging Face *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 448 MB |
 | Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | ~128 GB (31K) – ~230 GB (57K), approx. |
 
-These artefacts are released **upon paper acceptance** under two different terms. GSSC-authored code and the GSSC-trained model weights are Apache-2.0. The synthetic pool and object bank are derived from SemanticKITTI, which is distributed under CC-BY-NC-SA 4.0, so they inherit its non-commercial, share-alike restriction; the model weights, although Apache-2.0 as our contribution, were also trained on SemanticKITTI, so downstream use of the weights still carries that non-commercial caveat. SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). Until the hosting URLs are live, `scripts/download_assets.py` fails loudly with a pointer to `docs/DATASET.md`, which documents manual provisioning; the script will populate every entry automatically once the URLs are wired in.
+These artefacts are released under two different terms. GSSC-authored code and the GSSC-trained model weights are Apache-2.0. The synthetic pool and object bank are derived from SemanticKITTI, which is distributed under CC-BY-NC-SA 4.0, so they inherit its non-commercial, share-alike restriction; the model weights, although Apache-2.0 as our contribution, were also trained on SemanticKITTI, so downstream use of the weights still carries that non-commercial caveat. SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). `scripts/download_assets.py` populates every entry automatically; `docs/DATASET.md` documents manual provisioning as an alternative.
 
 ---
 

@@ -36,8 +36,8 @@ running SCPNet yourself:
 
     python scripts/download_assets.py --predictions
 
-The hosted mirror is released upon paper publication. Until then
-`download_assets.py --predictions` exits with the manual-download instructions.
+`download_assets.py --predictions` provisions these from the hosted mirror;
+the manual route below regenerates them locally instead.
 
 ### Per-frame triplet
 
@@ -74,9 +74,8 @@ not the paper's headline):
 
     python scripts/download_assets.py --js3c-predictions
 
-The hosted mirror is released upon paper publication; until then the command
-above exits with the manual-download instructions (clone JS3C-Net and dump
-locally, shown below). Layout mirrors `scpnet_predictions/` exactly:
+The command above provisions these from the hosted mirror; the manual route
+(clone JS3C-Net and dump locally) is shown below as an alternative. Layout mirrors `scpnet_predictions/` exactly:
 
 ```
 data/js3cnet_predictions/
@@ -116,7 +115,7 @@ paper tab:portable_s2d2. The LMSCNet+S²D² row lifts val mIoU **14.8 → 16.6 (
 `semantic-kitti-api`, superseding the earlier 12.10 → 16.59 / +4.49 summary)
 and is trained on **real frames only** (sequences 00-07, 09, 10 + val 08).
 
-Hosted predictions are released upon paper publication. Until then, dump them
+Hosted predictions are available. To regenerate them instead, dump them
 locally from the publicly released multiscale LMSCNet checkpoint:
 
 ```bash
@@ -202,8 +201,8 @@ object-bank-paste step and by training-time copy-paste augmentation:
 
     python scripts/download_assets.py --object-bank
 
-The hosted mirror is released upon paper publication. Until then
-`download_assets.py --object-bank` exits with the manual-download instructions.
+`download_assets.py --object-bank` provisions this from the hosted mirror;
+the manual route below rebuilds it locally instead.
 
 ### On-disk format
 
@@ -261,10 +260,10 @@ Pooled with the **19,130** real SemanticKITTI training frames this gives a
 split. (The `31K` shorthand in the variant/directory names below is the
 historical config-dir label `synthetic_pool_31K` / `--synthetic-pool 31K`; the
 actual frame count is 32,039.) Five sizes are released for the data-scaling
-ablation. The full pool is mirrored to IEEE DataPort upon paper publication;
-until then the download script exits with the manual-download instructions:
+ablation. The full pool is mirrored to IEEE DataPort; the download
+script provisions it, and the manual route below regenerates it locally:
 
-    # Via download script (prints the manual-download note until the mirror is live):
+    # Via download script:
     python scripts/download_assets.py --synthetic-pool 31K   # ~128 GB uncompressed (approx.; .tar.gz mirror is smaller)
     python scripts/download_assets.py --synthetic-pool 57K   # ~230 GB uncompressed (approx.; .tar.gz mirror is smaller)
 
