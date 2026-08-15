@@ -194,14 +194,33 @@ def main() -> None:
     args = parser.parse_args()
 
     keys = resolve_table(args.table)
+    ckpt_dir = Path(args.checkpoints_dir)
+    data_root = Path(args.data_root)
     if len(keys) > 1:
         print(f"{args.table} spans {len(keys)} driver entries: {', '.join(keys)}; "
               f"reproducing each in turn.")
-    spec = TABLE_MAP[keys[0]]
-    ckpt_dir = Path(args.checkpoints_dir)
-    data_root = Path(args.data_root)
+    for key in keys:
+        _reproduce_one(key, args.table, ckpt_dir, data_root)
 
-    print(f"=== Reproducing {args.table} ===")
+
+def _reproduce_one(key: str, label: str, ckpt_dir: Path, data_root: Path) -> None:
+    """Reproduce ONE driver entry.
+
+    Split out of :func:`main` because the announcement and the behaviour disagreed:
+    main() printed "reproducing each in turn" for a multi-entry label and then ran
+    ``TABLE_MAP[keys[0]]`` only, so every entry after the first was silently skipped.
+    A reader trusting that message would have reported a partial table as a full one.
+
+    Args:
+        key: Driver key into :data:`TABLE_MAP`.
+        label: The table label the user asked for, echoed so multi-entry output stays
+            attributable to the request that produced it.
+        ckpt_dir: Root of the checkpoint tree.
+        data_root: Root of the data tree.
+    """
+    spec = TABLE_MAP[key]
+
+    print(f"=== Reproducing {label} [{key}] ===")
     print(f"  config:     {spec['config']}")
     print(f"  checkpoint: {spec['checkpoint']}")
     print(f"  metrics:    {spec['metrics']}")

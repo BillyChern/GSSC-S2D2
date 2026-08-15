@@ -40,7 +40,7 @@ import numpy as np
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from gssc.data.learning_map import LEARNING_MAP_ARRAY  # noqa: E402
+from gssc.data.learning_map import LEARNING_MAP_ARRAY
 
 #: SemanticKITTI SSC voxel grid. ``infer.py`` flattens this in C order before writing.
 GRID_SHAPE = (256, 256, 32)

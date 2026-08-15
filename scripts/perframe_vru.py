@@ -32,13 +32,12 @@ import argparse
 import json
 import pathlib
 from multiprocessing import Pool
-from typing import Dict, Tuple
 
 import numpy as np
 import yaml
 
 NCLS = 20
-VRU: Dict[int, str] = {6: "person", 7: "bicyclist", 8: "motorcyclist"}
+VRU: dict[int, str] = {6: "person", 7: "bicyclist", 8: "motorcyclist"}
 
 # Published cells the gate checks against (supplementary Tables XVI/XX).
 GATE_BASE = {"person": 22.0, "bicyclist": 18.0, "motorcyclist": 4.1, "miou": 36.17}
@@ -50,7 +49,7 @@ GATE_BASE = {"person": 22.0, "bicyclist": 18.0, "motorcyclist": 4.1, "miou": 36.
 GATE_REFINED = {"person": 23.2, "bicyclist": 23.2, "motorcyclist": 12.4, "miou": 38.54}
 
 _LUT: np.ndarray | None = None
-_PATHS: Tuple[str, str, str] | None = None
+_PATHS: tuple[str, str, str] | None = None
 
 
 def build_lut(datacfg: str) -> np.ndarray:

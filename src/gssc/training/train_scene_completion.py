@@ -50,7 +50,7 @@ DSKDLoss3D = None
 # `python scripts/train.py train/31k_mf` dies in DataLoader with num_samples=0. The class
 # ships in the release (gssc.data.semantickitti) and imports cleanly; only the binding was
 # nulled. Bound properly here so the advertised training recipes actually run.
-from gssc.data.semantickitti import S3DSKDDataset  # noqa: E402
+from gssc.data.semantickitti import S3DSKDDataset
 create_s3_dataloader = None
 MIMOSceneCompletion = None
 BEVAugmenter = None

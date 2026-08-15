@@ -72,7 +72,7 @@ def main() -> None:
                    help="Reaction windows in seconds")
     a = p.parse_args()
     ious = a.iou if a.iou else _vru_from_metrics_json(a.metrics_json)
-    print(f"per-class IoU: " + ", ".join(f"{c}={v:.1f}" for c, v in zip(VRU_CLASSES, ious)))
+    print("per-class IoU: " + ", ".join(f"{c}={v:.1f}" for c, v in zip(VRU_CLASSES, ious)))
     print(f"rate: {a.rate:.2f} FPS")
     for t_w in a.windows:
         print(f"  T_w={t_w:>4}s   DW-VRU-IoU = {dw_vru_iou(ious, a.rate, t_w):5.1f} %")

@@ -135,7 +135,11 @@ extend-ignore = [
 "tests/**" = ["B011", "E402"]                           # importorskip before package imports
 "scripts/**" = ["E402"]                                 # sys.path manipulation before import
 "src/gssc/inference/run_scpnet.py" = ["E402"]           # spconv monkey-patches before import
-"src/gssc/training/train_scene_completion.py" = ["E402", "F401"]  # late imports + experimental optional deps
+# I001: the S3DSKDDataset import sits INSIDE the block of `= None` sentinels deliberately,
+# under the comment explaining that binding it there is what makes `train/31k_mf` run at all
+# (left unbound, the loader silently enumerates ZERO samples). Sorting the block would hoist
+# the import away from that explanation, so the placement is pinned here, not in the source.
+"src/gssc/training/train_scene_completion.py" = ["E402", "F401", "I001"]  # late imports + experimental optional deps
 "src/gssc/models/bev_sparse_bev_net.py" = ["E402"]      # SCPNet vendored layout
 
 [tool.pytest.ini_options]
