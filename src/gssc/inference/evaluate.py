@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -167,6 +168,93 @@ def _run_step_sweep(
     return result
 
 
+#: Measured bytes per written ``.label`` frame at 256x256x32 (857 frames = 3.4 GB).
+_BYTES_PER_FRAME = 4_060_000
+
+#: Headroom kept free beyond the estimate: the larger of this and _RESERVE_FRACTION of the
+#: filesystem. Both exist because "it fits" and "it is safe to run" are different questions.
+_MIN_RESERVE = 8 * 2**30
+_RESERVE_FRACTION = 0.10
+
+
+def _count_frames(data_root: Path, sequences: str) -> int:
+    """Number of frames Stage 1 will write across `sequences`.
+
+    Counts ``velodyne/*.bin`` because that is the input Stage 1 iterates. A sequence whose
+    directory is missing contributes 0 rather than raising: this feeds a disk-space
+    estimate, and a wrong estimate must never be the thing that stops an evaluation.
+
+    Args:
+        data_root: Repository data root containing ``SemanticKITTI/``.
+        sequences: Comma-separated sequence ids, e.g. ``"08"``.
+
+    Returns:
+        Total frame count; 0 if nothing could be counted.
+    """
+    total = 0
+    for seq in (s.strip() for s in sequences.split(",") if s.strip()):
+        # Both layouts are in the wild: the raw SemanticKITTI download nests everything under
+        # dataset/, while a repo-local checkout usually drops that level. Try both rather than
+        # assuming, because guessing wrong yields 0 frames -- and 0 frames makes the caller's
+        # space check demand 0 bytes, i.e. a guard that silently always passes.
+        for base in (data_root / "SemanticKITTI" / "sequences",
+                     data_root / "SemanticKITTI" / "dataset" / "sequences"):
+            seq_dir = base / seq / "velodyne"
+            if seq_dir.is_dir():
+                total += sum(1 for _ in seq_dir.glob("*.bin"))
+                break
+    return total
+
+
+def _assert_scratch_space(target: Path, n_frames: int) -> None:
+    """Fail before writing if `target`'s filesystem cannot hold the predictions.
+
+    Stage 1 writes one ``.label`` per frame, so a full SemanticKITTI val sequence needs
+    roughly 16 GB. Without this check that lands in the system temp directory, which on a
+    container is usually the small overlay backing ``/`` -- the run fills the root
+    filesystem and takes the machine down with it rather than failing. Raising here turns
+    a wedged host into a message naming the remedy.
+
+    Args:
+        target: Directory the predictions will be written under.
+        n_frames: Number of frames Stage 1 will write.
+
+    Raises:
+        RuntimeError: If free space is below the estimated requirement.
+    """
+    if n_frames <= 0:
+        logger.warning(
+            "could not count frames under %s, so the disk-space check is inactive for this "
+            "run; if the temp filesystem is small, redirect TMPDIR before starting", target)
+        return
+
+    need = n_frames * _BYTES_PER_FRAME
+    usage = shutil.disk_usage(target)
+    # Reserve headroom rather than merely fitting. A run that fits with 5 GiB to spare still
+    # leaves the filesystem near-full for everything else on the host, and if that filesystem
+    # is the root overlay the consequence is a wedged machine, not a failed command. Sizing
+    # this from measurement: the 4071-frame val run needs 15.4 GiB and /tmp offered 21.4 GiB,
+    # so a bare fits/does-not-fit test passes the exact case that motivated this check.
+    reserve = max(_MIN_RESERVE, int(usage.total * _RESERVE_FRACTION))
+    on_root = os.stat(target).st_dev == os.stat("/").st_dev
+    if usage.free >= need + reserve:
+        if on_root:
+            logger.warning(
+                "scratch resolves onto the ROOT filesystem (%s); writing %.1f GiB there will "
+                "leave %.1f GiB. Prefer TMPDIR on a data volume", target, need / 2**30,
+                (usage.free - need) / 2**30)
+        return
+
+    where = " -- and it is the ROOT filesystem, so filling it wedges the host" if on_root else ""
+    raise RuntimeError(
+        f"{target} has {usage.free / 2**30:.1f} GiB free but this evaluation writes about "
+        f"{need / 2**30:.1f} GiB ({n_frames} frames) and reserves {reserve / 2**30:.1f} GiB "
+        f"of headroom{where}. Point TMPDIR at a larger volume "
+        f"(TMPDIR=/path/with/room python scripts/eval.py ...), or pass --keep-predictions to "
+        f"write under the data root instead."
+    )
+
+
 def run_evaluation(
     checkpoint: str,
     config: str,
@@ -250,6 +338,8 @@ def run_evaluation(
         pred_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Predictions kept at: %s", pred_dir)
     else:
+        scratch_root = Path(os.environ.get("TMPDIR") or tempfile.gettempdir())
+        _assert_scratch_space(scratch_root, _count_frames(data_root_path, sequences))
         pred_dir_ctx = tempfile.TemporaryDirectory(prefix="gssc_eval_preds_")
         pred_dir = Path(pred_dir_ctx.name)
         logger.info("Predictions in temp dir: %s (auto-cleaned on success)", pred_dir)

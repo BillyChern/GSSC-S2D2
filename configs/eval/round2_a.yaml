@@ -5,19 +5,26 @@ _description: |
   x_src instead of the frozen base's prediction. Everything else matches the headline
   N=4 + D_4 TTA recipe, so the only change is where the source comes from.
 
-  This needs no new code. `base_pred_dir` is forwarded to the prediction subprocess as
-  --scpnet_dir, which is what supplies x_src, so pointing it at a Round-1 output directory
-  makes that output the source. Produce Round-1 first, then run this:
+  `base_pred_dir` is forwarded to the prediction subprocess as --scpnet_dir, which is what
+  supplies x_src, so pointing it at a Round-1 output makes that output the source. But the
+  two formats do not meet: inference WRITES flat uint16 `.label` in the original SemanticKITTI
+  label space, while `--scpnet_dir` READS (256,256,32) uint8 `_pred.npy` in learning-map
+  space. This config previously named `round1/sequences` and could not run at all -- the
+  loader found no `_pred.npy` and every frame came back empty. A conversion step is required,
+  not optional:
 
     python scripts/infer.py infer/val_d4tta --checkpoint <headline> --output round1/
+    python scripts/label_to_base_pred.py round1/ --output round1_src/
     python scripts/eval.py eval/round2_a  --checkpoint <headline>
 
-  Expected: 37.7% mIoU, 1.1 pp BELOW Round-1's 38.73%. Once Round-1 has minimised the
-  structured residual, Round-2's target falls below its own prediction-noise floor and it
-  over-smooths an already-refined source. Reported as a negative result; do not read the
-  drop as a bug in this config.
+  `label_to_base_pred.py` emits the same tree shape the real base predictions use
+  (<dir>/<seq>/<frame>_pred.npy), so the converted directory is a drop-in for --scpnet_dir.
+
+  The 37.7% that this file previously carried as "expected" had NO recorded source: it was
+  not produced by this config, which could not execute. Treat any number here as unbacked
+  until a run of the three commands above writes one.
 split: val
 sequences: "08"
 correction_steps: 4
 tta: d4
-base_pred_dir: round1/sequences
+base_pred_dir: outputs/round2_repro/round1_src
