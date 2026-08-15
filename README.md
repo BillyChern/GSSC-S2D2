@@ -17,7 +17,7 @@
 [![Type checks: mypy](https://img.shields.io/badge/types-mypy-2A6DB2.svg)](https://mypy.readthedocs.io/)
 [![SemanticKITTI](https://img.shields.io/badge/SemanticKITTI-39.2%20mIoU-orange.svg)](https://www.codabench.org/competitions/13814/#/results-tab)
 
-**SemanticKITTI hidden test — 38.8 % mIoU** at the single-frame single-sample setting (*N* = 1, no TTA) — to our knowledge the best single-frame single-sample result on the leaderboard to date (+0.9 over TALoS, 37.9) — rising to **39.2 % mIoU** with four correction steps and *D*<sub>4</sub> TTA, a row the single-sample predicate excludes and which therefore carries no TALoS margin. The leaderboard entry on [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) will be made public upon paper acceptance.
+**SemanticKITTI hidden test — 38.8 % mIoU** at the single-frame single-sample setting (*N* = 1, no TTA) — to our knowledge the best single-frame single-sample result on the leaderboard to date (+0.9 over TALoS, 37.9) — rising to **39.2 % mIoU** with four correction steps and *D*<sub>4</sub> TTA, a row the single-sample predicate excludes and which therefore carries no TALoS margin. The leaderboard entry is public on [Codabench](https://www.codabench.org/competitions/13814/#/results-tab).
 
 </div>
 
@@ -114,8 +114,6 @@ uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
 #    ^ CUDA 11.8 users: use spconv-cu118==2.3.8 instead (see the spconv note below)
 
 # 2. Pull pretrained checkpoint + SCPNet predictions
-#    URLs come online on paper acceptance; until then the script prints
-#    a pointer to docs/DATASET.md for manual download instructions.
 python scripts/download_assets.py --checkpoints --predictions
 # → data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors           (~140 MB; full subdir ~265 MB — see docs/MODEL_ZOO.md)
 # → data/scpnet_predictions/   (~178 GB real + synth; ~135 GB total for eval-only — see docs/DATASET.md)
@@ -321,9 +319,9 @@ The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:p
 
 | What | Where | Size |
 |---|---|---|
-| Pretrained checkpoints (17 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face *(URL added on first upload — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md))* | ≈ 4 GB |
-| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face *(URL pending; meanwhile reproduce locally via `scripts/dump_{js3c,lmscnet}_predictions.py` — see [docs/DATASET.md](docs/DATASET.md))* | ≈ 414 GB total (SCPNet ~178 GB + JS3C-Net ~190 GB + LMSCNet ~46 GB; only ~135 GB needed for the SCPNet eval-only headline) |
-| Object bank (57,789 instances, 8 rare classes) | Hugging Face *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 448 MB |
+| Pretrained checkpoints (17 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face [`BillyChern/GSSC-S2D2-checkpoints`](https://huggingface.co/BillyChern/GSSC-S2D2-checkpoints) — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) | ≈ 4 GB |
+| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face [`BillyChern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/BillyChern/GSSC-S2D2-datasets) — or reproduce locally via `scripts/dump_{js3c,lmscnet}_predictions.py`, see [docs/DATASET.md](docs/DATASET.md) | ≈ 414 GB total (SCPNet ~178 GB + JS3C-Net ~190 GB + LMSCNet ~46 GB; only ~135 GB needed for the SCPNet eval-only headline) |
+| Object bank (57,789 instances, 8 rare classes) | Hugging Face [`BillyChern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/BillyChern/GSSC-S2D2-datasets) — see [docs/DATASET.md](docs/DATASET.md) | 448 MB |
 | Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | ~128 GB (31K) – ~230 GB (57K), approx. |
 
 These artefacts are released under two different terms. GSSC-authored code and the GSSC-trained model weights are Apache-2.0. The synthetic pool and object bank are derived from SemanticKITTI, which is distributed under CC-BY-NC-SA 4.0, so they inherit its non-commercial, share-alike restriction; the model weights, although Apache-2.0 as our contribution, were also trained on SemanticKITTI, so downstream use of the weights still carries that non-commercial caveat. SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). `scripts/download_assets.py` populates every entry automatically; `docs/DATASET.md` documents manual provisioning as an alternative.

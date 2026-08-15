@@ -10,9 +10,10 @@ Usage::
     python scripts/download_assets.py --synthetic-pool 31K   # ~120 GB headline synth pool
     python scripts/download_assets.py --all                  # everything EXCEPT the synthetic pool (~4 GB models + ~414 GB predictions; see docs/DATASET.md)
 
-The Hugging Face mirrors and the IEEE DataPort synthetic-pool archive come
-online on paper publication. Until then every download flag exits with the
-manual-download instructions in docs/DATASET.md / docs/REPRODUCIBILITY.md.
+Checkpoints, base-model predictions and the object bank resolve against the two
+Hugging Face mirrors below. The synthetic pool is archived separately on IEEE
+DataPort; until its DOI is filled in, ``--synthetic-pool`` exits with the
+manual-build instructions in docs/DATASET.md / docs/REPRODUCIBILITY.md.
 """
 from __future__ import annotations
 
@@ -23,8 +24,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-HF_REPO_MODELS = "[HF_REPO_CHECKPOINTS]"
-HF_REPO_DATA = "[HF_REPO_DATASETS]"
+HF_REPO_MODELS = "BillyChern/GSSC-S2D2-checkpoints"
+HF_REPO_DATA = "BillyChern/GSSC-S2D2-datasets"
+# The synthetic pool (~128-230 GB) is archived on IEEE DataPort rather than the two
+# Hugging Face mirrors above. Fill in the DOI the archive is minted under.
 DATAPORT_URL = "[SYNTHETIC_POOL_URL]"
 
 logger = logging.getLogger("gssc.download")
@@ -33,14 +36,13 @@ logger = logging.getLogger("gssc.download")
 def _ensure_url_configured(url: str, label: str) -> None:
     """Bail out early when the asset URL is still a placeholder.
 
-    The hosted mirrors come online on paper acceptance; until then,
-    direct visitors at the manual-download docs instead of failing
-    inside huggingface_hub with a confusing 'Repository not found'.
+    Direct visitors at the manual-download docs rather than failing inside
+    huggingface_hub with a confusing 'Repository not found'.
     """
     if url.startswith("[") and url.endswith("]"):
         sys.exit(
             f"\n{label} URL is not yet configured (placeholder: {url}).\n"
-            "The hosted mirrors come online on paper acceptance. Until then:\n"
+            "Build it locally instead:\n"
             "  - Manual instructions:    docs/DATASET.md\n"
             "  - Reproducibility guide:  docs/REPRODUCIBILITY.md\n"
             "  - Issues:                 https://github.com/BillyChern/GSSC-S2D2/issues\n"
