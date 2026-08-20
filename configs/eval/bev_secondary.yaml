@@ -1,5 +1,14 @@
-_paper_table: "tab:bev_results (secondary task, BEV-A 36.09%)"
-_description: "LiDAR-only BEV refinement via S2D2: SCPNet-derived base BEV -> S2D2 BEV diffusion -> refined BEV. Expected 36.09% BEV mIoU on SemanticKITTI val seq 08, paper Tab. XV (secondary task)."
+_paper_table: "tab:bev_results (supplementary Tab. XXI, LiDAR-only BEV secondary task; the refined-BEV entry, 36.1%)"
+_description: "LiDAR-only BEV refinement via S2D2: SCPNet-derived base BEV -> S2D2 BEV diffusion -> refined BEV. Expected 36.09% BEV mIoU on SemanticKITTI val seq 08."
+# PROTOCOL -- this number is NOT the 4,071-frame semantic-kitti-api protocol the 3D
+# configs use, and must never be compared against a 3D mIoU. Per the checkpoint's own
+# config.json ("eval_protocol"), it is the training-time 2D BEV evaluator over 100
+# fixed val frames (seed 42), mIoU across the 19 evaluation classes with class 0
+# excluded -- the protocol the paper states in its BEV secondary-task recipe
+# paragraph (supplementary, tab:supp_bev_hyperparams).
+# CHECKPOINT: data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors. NOT
+# bev/bev_perception_net -- that is a different (938K-param 2D refinement) model
+# which the evaluator cannot load.
 # NOTE: scripts/eval.py routes eval/bev_* configs to evaluate_bev(), which takes
 # no config dict — sequence="08" and n_steps (from --steps, default 1) are
 # hardcoded/CLI-driven and the rest of the protocol is baked into the BEV

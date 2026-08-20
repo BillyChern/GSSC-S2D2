@@ -31,6 +31,68 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+Four changes on `main` past v2.3.8, all in paths a visitor actually runs. Commits
+`ee2fbd3`, `6324ead`, `07725af`, plus the release-hygiene pass below.
+
+### Fixed — the BEV secondary-task evaluator could not load its own model, and said nothing
+`evaluate_bev()` built the denoiser from the factory defaults (`input_resolution=64`,
+`cond_channels=128`); the shipped BEV run is 256 / 64. `load_state_dict(strict=False)`
+accepted that **silently**: 12 `cond_proj` tensors shape-mismatched and 48 attention tensors
+stayed at initialisation, so the evaluator would have scored a half-built model and returned a
+number. The reconstruction keys now come from the checkpoint's own `config.json`
+(`input_resolution`, `model_size`, `conditioning_type`, `use_self_conditioning`,
+`lidar_channels`), and `gssc.utils.checkpoint.assert_bound()` refuses to score when anything fails to
+bind. A wrong
+number that looks right is worse than a crash.
+
+The same cycle corrected *which* checkpoint the paper's BEV row belongs to. Every doc named
+`data/checkpoints/bev/bev_perception_net/model.safetensors`; that is a different model and it
+crashes the evaluator. The run behind the number is
+`data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors`, whose `config.json` records
+`measured_base_miou` 0.3475 and `measured_miou` 0.3609 — and, verbatim, the protocol they were
+measured under: *"training-time 2D BEV evaluator, 100 fixed val samples (seed 42) -- NOT the
+4071-frame semantic-kitti-api protocol"*. That sentence travels with the 36.1 % figure
+wherever it is quoted; the figure alone is not a semantic-kitti-api result.
+
+### Fixed — an evaluation run could fill the root filesystem instead of failing
+Stage 1 of an evaluation writes one `.label` per frame into `tempfile`'s directory, so a
+4071-frame val run puts ~15.4 GiB wherever `TMPDIR` points — on a container, the small overlay
+backing `/`. A reader following the supplement's repro matrix did not get a failed command,
+they got a wedged host. `_assert_scratch_space()` now estimates from a measured 4.06 MB/frame
+and refuses up front, naming `TMPDIR` and `--keep-predictions` as the remedies.
+
+Two defects in the guard's own first draft, both caught by replaying measured numbers rather
+than reasoning about them: it checked only whether the write *fits* (and so passed the exact
+configuration that motivated it — 21.4 GiB free against a 15.4 GiB requirement), and
+`_count_frames()` assumed a `dataset/` level this checkout does not have, returning 0 and
+multiplying out to a zero-byte requirement, i.e. a guard that always passes. It now reserves
+headroom (the larger of 8 GiB and 10 % of the filesystem), tries both layouts, and warns
+loudly on a zero count. `configs/eval/round2_a.yaml`, which could not execute at all — it
+named a directory of flat uint16 `.label` files where `--scpnet_dir` reads `(256, 256, 32)`
+uint8 `_pred.npy` in learning-map space — now documents the required conversion step.
+
+### Added — `--max-frames` states why it does not reproduce the published BEV numbers
+The published BEV figures come from `run_algo2_on_samples`, which evaluates
+`RandomState(42).choice(len(val_dataset), 100, replace=False)` — a seeded sample, not the
+first 100 frames `--max-frames` takes. The seed indexes a *list*, and the two lists differ in
+root, glob (`*_bev.npy` vs `*.bin`) and filtering (the dataset drops frames whose
+`_voxels.npy` or `_bev_top.npy` is missing). Seeding the evaluator's list would select a
+different 100 frames and return a plausible number reproducing nothing. Documented instead:
+what `--max-frames` does, what the published protocol is, and what reproducing it would take.
+
+### Changed — the CI badges now mean what they say
+`.github/workflows/test.yml` installed only `pytest pyyaml`, so on a clean runner the job died
+**at collection** (`gssc.inference.evaluate_bev` imports `numpy` at module scope) while staying
+green on a developer box that already had numpy. It now declares `numpy` and runs the whole
+CPU-runnable suite — 43 cases pass, 33 skip through `pytest.importorskip` — instead of four
+node ids. `CONTRIBUTING.md`'s "CI-enforced" table listed five standards where two were
+enforced; the coverage row would have failed the build (the CPU-runnable suite reaches ~51 %
+against `fail_under = 80`). The table now lists only what a workflow runs, with the rest moved
+to a "run locally" table that says why each is not wired up. `SECURITY.md` sent readers to a
+hash table that did not exist and printed a bare `sha256sum <path>`, which emits a digest and
+no verdict; it now documents the `sha256sum -c` path against the `checksums.txt` that ships to
+the Hugging Face checkpoints repo root.
+
 ## [2.3.8] — 2026-08-13
 
 ### Fixed — v2.3.7 bumped 2 of the 4 version declarations, so `uv lock --check` failed
@@ -404,7 +466,7 @@ is **v2.3.1**.
   unchanged; the SCPNet path is exercised by `D.1`/`D.2` regression
   tests on every release.
 
-## [Pre-1.1.0 unreleased — folded into 1.1.0]
+## Pre-1.1.0 unreleased (folded into 1.1.0)
 
 ### Added
 - BEV second-task driver (`scripts/eval.py eval/bev_secondary`,
@@ -496,7 +558,9 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.6...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.8...HEAD
+[2.3.8]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.7...v2.3.8
+[2.3.7]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.6...v2.3.7
 [2.3.6]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.5...v2.3.6
 [2.3.5]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.4...v2.3.5
 [2.3.4]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.3...v2.3.4

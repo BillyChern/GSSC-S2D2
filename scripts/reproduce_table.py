@@ -33,11 +33,18 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
     "tab:main_results":     {"config": "infer/test_d4tta",   "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou per_class completion_iou", "submit": True},
     "tab:step_reduction":   {"config": "eval/step_sweep",    "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou completion_iou"},
     "tab:train_timesteps_curriculum": {"config": "eval/timestep_ablation", "checkpoint": "[gssc_timesteps/gssc_T10|gssc_timesteps/gssc_T50|gssc_timesteps/gssc_T100skewed|gssc_mf/gssc_31k_mf_step40000]", "metrics": "miou"},
-    "tab:bev_results":      {"config": "eval/bev_secondary", "checkpoint": "bev/bev_perception_net",         "metrics": "miou"},
+    # The 36.1% BEV entry was produced by bev/bev_s2d2_scpnet, NOT by
+    # bev/bev_perception_net (a different, 938K-param 2D refinement model that the BEV
+    # evaluator cannot load). "protocol" is printed with the recipe because this row is
+    # NOT scored the way every other row here is -- see the checkpoint's config.json.
+    "tab:bev_results":      {"config": "eval/bev_secondary", "checkpoint": "bev/bev_s2d2_scpnet",           "metrics": "miou",
+                             "protocol": "training-time 2D BEV evaluator, 100 fixed val samples (seed 42) "
+                                         "-- NOT the 4071-frame semantic-kitti-api protocol used by every "
+                                         "other row; mIoU over the 19 evaluation classes, class 0 excluded"},
     # NOT the paper's tab:data_scaling. That table is the MULTI-frame sweep and only the
     # headline 31K multi-frame checkpoint ships, so it cannot be regenerated. What the released
     # per-row checkpoints reproduce is the SINGLE-frame sweep reported in prose in supp. App. C.
-    "data_scaling_sf":      {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step100000]", "metrics": "miou"},
+    "data_scaling_sf":      {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step{93000,87000,85000,72000,69000}]", "metrics": "miou"},
     "tab:cross_base_js3c":  {
         # JS3C-Net cross-base. The PAPER'S headline for this base is 24.32
         # (derived BEV, official semantic-kitti-api, +1.59 pp), which
@@ -226,6 +233,9 @@ def _reproduce_one(key: str, label: str, ckpt_dir: Path, data_root: Path) -> Non
     print(f"  metrics:    {spec['metrics']}")
     if "expected_mIoU" in spec:
         print(f"  expected:   {spec['expected_mIoU']}% mIoU (paper)")
+    if "protocol" in spec:
+        # A number quoted without its protocol is a different claim from the number.
+        print(f"  protocol:   {spec['protocol']}")
     print()
 
     if "base_pred_dir_required" in spec:

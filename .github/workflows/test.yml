@@ -7,20 +7,35 @@ on:
     branches: [main]
 
 jobs:
-  pytest-light:
-    name: pytest (light, no torch)
+  pytest-cpu:
+    name: pytest (CPU, torch-free)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-      - run: pip install pytest pyyaml
-      - name: Run light + parser tests
+
+      # Enumerated instead of `pip install -e ".[dev]"` on purpose. Installing the
+      # project pulls torch==2.4.0 and its CUDA wheels (~2.5 GB) into a job whose whole
+      # point is to prove the package's light surface imports WITHOUT torch, and it
+      # would hide a newly-added undeclared import behind a transitive install.
+      #
+      # These three are the only distributions repo code imports on this path:
+      #   pyyaml -> gssc.utils.config_loader, gssc.inference.evaluate
+      #   numpy  -> gssc.inference.evaluate_bev (module scope), gssc.utils.dw_iou
+      # numpy's absence is why this job used to die AT COLLECTION on a clean runner
+      # while staying green on a developer box that already had it.
+      - name: Install the torch-free test dependencies
+        run: pip install pytest "pyyaml>=6.0" "numpy>=1.26,<2"
+
+      - name: Run the CPU-runnable test suite
+        # Everything that needs torch/spconv guards itself with pytest.importorskip and
+        # SKIPS here; the GPU pipelines are covered by the V4/V5 integration runs in
+        # docs/REPRODUCIBILITY.md. tests/test_tau_invariance.py is the one file that
+        # imports torch at module scope without importorskip, so it cannot be collected
+        # in a torch-free job -- drop the --ignore once it guards its import.
         run: |
-          PYTHONPATH=src python -m pytest \
-            tests/test_smoke.py::test_light_module_imports \
-            tests/test_smoke.py::test_version \
-            tests/test_config_loader.py \
-            tests/test_evaluate_parser.py \
+          PYTHONPATH=src python -m pytest tests/ \
+            --ignore=tests/test_tau_invariance.py \
             -v

@@ -38,6 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from gssc.diffusion.multinomial import MultinomialDiffusion3DV2
 from gssc.models.s2d2_unet import SceneCompletionUNetSparse
+from gssc.utils.checkpoint import assert_bound, config_value, load_checkpoint_config
 
 logger = logging.getLogger(__name__)
 
@@ -176,17 +177,32 @@ def main() -> None:
                 f"{ckpt['best_miou']:.4f}" if "best_miou" in ckpt else "?",
             )
 
+        # Architecture from the checkpoint's own declaration (sibling config.json, or
+        # ckpt["config"]); the literals are the fallback for a checkpoint that declares
+        # nothing. Every shipped checkpoint declares exactly these values. The two
+        # store_true CLI flags can only turn an option ON, so they are OR-ed with the
+        # declaration rather than overriding it with an argparse default of False.
+        cfg = load_checkpoint_config(ckpt_path_str, None if is_safetensors else ckpt)
         model = SceneCompletionUNetSparse(
-            num_classes=20, base_channels=32, time_emb_dim=128,
+            num_classes=config_value(cfg, 'num_classes', 20),
+            base_channels=config_value(cfg, 'base_channels', 32),
+            time_emb_dim=128,
             lidar_base_channels=16, lidar_out_channels=32, lidar_in_channels=1,
-            no_bev=args.no_bev, ssc_cond_channels=20, ssc_multiscale=args.ssc_multiscale,
+            no_bev=args.no_bev or config_value(cfg, 'no_bev', False),
+            ssc_cond_channels=20,
+            ssc_multiscale=args.ssc_multiscale or config_value(cfg, 'ssc_multiscale', False),
         ).to(device)
 
+        # strict=False is kept (EMA shadows may omit non-float buffers) but the result is
+        # checked: an unmatched architecture used to load silently, leave tensors at
+        # random init, and still print a plausible mIoU.
         if is_safetensors:
-            model.load_state_dict(state_dict, strict=False)
+            load_result = model.load_state_dict(state_dict, strict=False)
+            assert_bound("model", load_result, ckpt_path_str)
             logger.info("  Loaded deployment weights from safetensors")
         else:
-            model.load_state_dict(ckpt['model_state_dict'], strict=False)
+            load_result = model.load_state_dict(ckpt['model_state_dict'], strict=False)
+            assert_bound("model", load_result, ckpt_path_str)
             if not args.use_train_weights:
                 ema_count = 0
                 for name, param in model.named_parameters():
@@ -200,7 +216,9 @@ def main() -> None:
         model.train(False)
 
         diffusion = MultinomialDiffusion3DV2(
-            num_classes=20, num_timesteps=100, beta_max=0.1
+            num_classes=config_value(cfg, 'num_classes', 20),
+            num_timesteps=config_value(cfg, 'num_timesteps', 100),
+            beta_max=config_value(cfg, 'beta_max', 0.1),
         ).to(device)
 
     # Resolve GT-BEV root once (only used when --bev_source gt).

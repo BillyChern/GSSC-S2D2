@@ -134,7 +134,9 @@ python scripts/dump_lmscnet_predictions.py \
 #   (--weights is accepted as an alias for --checkpoint.)
 ```
 
-Once the mirror is live, the same predictions can be fetched with:
+The same predictions are mirrored on the Hugging Face dataset repo
+[`BillyChern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/BillyChern/GSSC-S2D2-datasets)
+and can be fetched with:
 
 ```bash
 python scripts/download_assets.py --lmscnet-predictions
@@ -160,21 +162,69 @@ Two evaluation-only domains for the cross-dataset zero-shot rows. The frozen
 SemanticKITTI checkpoint is applied as-is: no fine-tuning, no target labels at
 train time. Provision these only to reproduce the zero-shot table.
 
-**SSCBench-KITTI-360** (val seq 06; same-sensor near-domain). Download from
+**SSCBench-KITTI-360** (val scene 06; same-sensor near-domain). Download from
 [github.com/ai4ce/SSCBench](https://github.com/ai4ce/SSCBench) (SSCBench-KITTI360
-voxel labels and the matching point clouds). Place under
-`data/SSCBench-KITTI360/` so the layout becomes:
+voxel labels and the matching raw point clouds). The loader
+(`src/gssc/data/kitti360.py`) reads the **SSCBench release layout keyed by
+KITTI-360 drive name**, not a `sequences/06/` tree:
 
 ```
 data/SSCBench-KITTI360/
-└── sequences/
-    └── 06/                          <-- the only sequence the eval reads
-        └── voxels/
-            ├── {frame_id}.bin       # sparse LiDAR voxel mask
-            └── {frame_id}.label     # GT 256x256x32 voxel grid (16 shared classes)
+├── kitti_360_match.txt                       # frame-id <-> raw-velodyne-id table (required, see below)
+└── sscbench-kitti/                           # = `kitti360_root`; must DIRECTLY contain the two dirs below
+    ├── data_2d_raw/
+    │   └── 2013_05_28_drive_0006_sync/       <-- val scene 06, the only sequence the eval reads
+    │       └── voxels/
+    │           ├── {frame_id}.bin            # occupancy input (bit-packed, as in SemanticKITTI)
+    │           ├── {frame_id}.label          # GT 256x256x32 voxel grid, flat uint16, NOT bit-packed
+    │           └── {frame_id}.invalid        # raw uint8 per voxel, NOT bit-packed
+    └── data_3d_raw/
+        └── 2013_05_28_drive_0006_sync/
+            └── velodyne_points/data/
+                └── {frame_id}.bin            # raw scan, float32 (x, y, z, intensity)
 ```
 
-`scripts/eval_kitti360.py` reads `data/SSCBench-KITTI360/sequences/06/voxels/`.
+Three things about this layout are easy to get wrong:
+
+* **Drive names, not two-digit sequence ids.** `Kitti360SSCDataset` enumerates
+  `data_2d_raw/<drive>/voxels/*.label`, with `<drive>` taken from
+  `KITTI360_SPLITS` (`val` = `2013_05_28_drive_0006_sync`). The two-digit `06`
+  appears only later, when `scripts/eval_kitti360.py` stages GT and predictions
+  for the scorer.
+* **Both paths come from the config, and repo-relative paths resolve against the
+  repo root** (`configs/eval/kitti360_zeroshot_1step.yaml`:
+  `kitti360_root: data/SSCBench-KITTI360/sscbench-kitti`,
+  `match_table: data/SSCBench-KITTI360/kitti_360_match.txt`). The SSCBench
+  archive unpacks with an extra nesting level on some mirrors, so point
+  `kitti360_root` at whichever directory *directly* contains `data_2d_raw/` and
+  `data_3d_raw/`.
+* **`.invalid` is raw here, bit-packed in SemanticKITTI.** The driver repacks it
+  before scoring (`repack_invalid_for_semantic_kitti_api`); you do not do this
+  by hand.
+
+Sanity check after unpacking: the val drive's `voxels/` directory holds 5,436
+files — the `.bin` / `.label` / `.invalid` triplet for each of the 1,812 val
+frames — with ids stepping by 5 (`000000`, `000005`, …), while
+`velodyne_points/data/` holds consecutively numbered 6-digit scans.
+
+**`kitti_360_match.txt` is required, and here is where it comes from.**
+`Kitti360SSCDataset.__init__` opens `cfg.match_table` unconditionally, so the
+eval raises `FileNotFoundError` without it — even though this release does not
+need its ids: the SSCBench velodyne scans are named with the same 6-digit frame
+ids as the voxel files, so the loader indexes velodyne directly by `frame_id`
+and keeps the table's 10-digit raw id for provenance (and as a fallback for an
+upstream layout that keeps the long names). We could not find the file inside
+the SSCBench-KITTI360 archive itself; the copy we ran with is byte-identical
+(md5 `a21dc8f1d976fd5b821a3c681efaa425`, 64,316 lines) to the one the PaSCo
+repository ships at `pasco/data/kitti360/kitti_360_match.txt`, which is where
+ours came from. Take it from there, or from any SSCBench-derived codebase that
+ships the same table; each line is
+`<drive> <raw_id>.png <voxel_frame_id>.png`.
+
+The zero-shot driver writes the frozen base's KITTI-360 predictions to
+`data/scpnet_kitti360_predictions/` (`base_pred_dir` in the same config) and
+stages GT plus refined predictions under `data/kitti360_gt_staged/` and
+`data/predictions/kitti360_zeroshot/`.
 
 **SemanticPOSS** (val seq 02; cross-sensor domain). Download from
 [www.poss.pku.edu.cn/semanticposs](http://www.poss.pku.edu.cn/semanticposs.html).
@@ -190,9 +240,13 @@ data/SemanticPOSS/
             └── {frame_id}.label     # GT labels (11-class TALoS Tab. 4 map)
 ```
 
-`scripts/eval_semanticposs.py` reads `data/SemanticPOSS/sequences/02/`. Both
-runs are evaluation-only: the SemanticKITTI-trained weights are never adapted to
-the target domain.
+`scripts/eval_semanticposs.py` reads `data/SemanticPOSS/sequences/02/`.
+SemanticPOSS ships no voxelized SSC ground truth, so the driver materialises it
+(single-scan 256×256×32, majority vote + ray-cast `.invalid`) into
+`data/SemanticPOSS_voxel_gt/sequences/02/voxels/` before scoring — that path is
+`voxel_gt_root` in `configs/eval/semanticposs_seq02.yaml` and needs its own disk
+space. Both runs are evaluation-only: the SemanticKITTI-trained weights are
+never adapted to the target domain.
 
 ## Object bank (required for training, 448 MB)
 
@@ -260,10 +314,13 @@ Pooled with the **19,130** real SemanticKITTI training frames this gives a
 split. (The `31K` shorthand in the variant/directory names below is the
 historical config-dir label `synthetic_pool_31K` / `--synthetic-pool 31K`; the
 actual frame count is 32,039.) Five sizes are released for the data-scaling
-ablation. The full pool is mirrored to IEEE DataPort; the download
-script provisions it, and the manual route below regenerates it locally:
+ablation. The full pool is archived on IEEE DataPort rather than on the two
+Hugging Face mirrors; until its DOI is minted, `--synthetic-pool` exits with the
+manual-build instructions instead of downloading (the same statement as under
+*Maintenance* below), so the manual route is the one that works today:
 
-    # Via download script:
+    # Via the download script (resolves once the DataPort DOI is configured
+    # in scripts/download_assets.py):
     python scripts/download_assets.py --synthetic-pool 31K   # ~128 GB uncompressed (approx.; .tar.gz mirror is smaller)
     python scripts/download_assets.py --synthetic-pool 57K   # ~230 GB uncompressed (approx.; .tar.gz mirror is smaller)
 

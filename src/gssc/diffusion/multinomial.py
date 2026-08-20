@@ -819,16 +819,25 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
         alphas_cumprod = torch.cumprod(alphas, dim=0)
         alphas_cumprod_prev = F.pad(alphas_cumprod[:-1], (1, 0), value=1.0)
 
-        logger.debug(
-            "MultinomialDiffusion3DV2 noise schedule: "
-            "beta=[%g, %g] alpha_cumprod=[%.4f, %.4f, %.6f] "
-            "P(correct@t=99)=%.4f",
-            beta_min, beta_max,
-            alphas_cumprod[0].item(),
-            alphas_cumprod[50].item(),
-            alphas_cumprod[99].item(),
-            alphas_cumprod[99].item() + (1 - alphas_cumprod[99]).item() / num_classes,
-        )
+        # Probe indices are DERIVED from num_timesteps, and the whole call is behind
+        # isEnabledFor: logging evaluates its arguments eagerly, so literal indices here
+        # (previously 50 and 99) raised IndexError for every T < 100 -- configs/train/
+        # T10.yaml and T50.yaml could not construct this object at all.
+        if logger.isEnabledFor(logging.DEBUG):
+            t_mid = num_timesteps // 2
+            t_last = num_timesteps - 1
+            a_last = alphas_cumprod[t_last].item()
+            logger.debug(
+                "MultinomialDiffusion3DV2 noise schedule: T=%d "
+                "beta=[%g, %g] alpha_cumprod[0,%d,%d]=[%.4f, %.4f, %.6f] "
+                "P(correct@t=%d)=%.4f",
+                num_timesteps, beta_min, beta_max, t_mid, t_last,
+                alphas_cumprod[0].item(),
+                alphas_cumprod[t_mid].item(),
+                a_last,
+                t_last,
+                a_last + (1 - a_last) / num_classes,
+            )
 
         # Convert to log space for numerical stability
         log_alpha = torch.log(alphas)
@@ -1164,8 +1173,11 @@ class MultinomialDiffusion3DV2(MultinomialDiffusion3D):
             model_kwargs['ssc_pred'] = scp_oh
 
         # Build timestep schedule
-        timesteps = list(range(99, -1, -1)) if n_steps >= 100 else \
-                    list(np.linspace(99, 0, n_steps, dtype=int))
+        # Schedule bounds come from this instance's own T. They were hardcoded to 99/100,
+        # which made every T != 100 checkpoint index past the end of `alphas`.
+        t_last = self.num_timesteps - 1
+        timesteps = list(range(t_last, -1, -1)) if n_steps >= self.num_timesteps else \
+                    list(np.linspace(t_last, 0, n_steps, dtype=int))
 
         for idx, t in enumerate(timesteps):
             B = x_t.shape[0]

@@ -460,6 +460,11 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42,
                         help='Accepted for CLI compatibility with scripts/train.py; '
                              'not applied (BEV-A reproduction does no RNG seeding).')
+    # Every boolean flag also gets a hidden ``--no_<dest>`` twin, so a YAML config can
+    # switch OFF a flag that defaults to on (configs/ -> gssc.utils.config_loader).
+    from gssc.utils.config_loader import add_boolean_negations
+    add_boolean_negations(parser)
+
     args = parser.parse_args()
 
     config = vars(args)

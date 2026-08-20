@@ -20,9 +20,17 @@ Stages
    to KITTI-360 original 0-255 labels (``KITTI360_LEARNING_MAP_INV``); write
    ``.label`` + a bit-PACKED ``.invalid`` copy the official scorer can read.
 4. **Score** with ``external/semantic_kitti_api/evaluate_completion.py`` against
-   a KITTI-360 datacfg (``--datacfg``), reporting mIoU over the 16 shared
-   classes (other-structure / other-object are structurally 0 for a
-   SemanticKITTI-trained model).
+   a KITTI-360 datacfg (``--datacfg``). That scorer's own headline
+   (``mIoU SSC``) is the mean over **all 18** KITTI-360 classes, which includes
+   other-structure and other-object -- two classes a SemanticKITTI-trained model
+   can never emit, so they are structurally 0 and dilute the mean. Stage 5 below
+   therefore re-averages the scorer's per-class IoUs over the **16 shared**
+   SemanticKITTI-cap-KITTI-360 classes and reports THAT as the headline, which is
+   the quantity the paper's cross-dataset sentence quotes. Both means are printed,
+   each labelled with its class set; neither is derived from the other by
+   assumption.
+5. **Report** the 16-shared-class mIoU, read back from the ``scores.txt`` the
+   scorer writes (per-class IoUs), never recomputed from the predictions.
 
 This driver is intentionally separate from ``scripts/eval.py`` so the committed
 SemanticKITTI path (seq 08, SemanticKITTI learning_map) is untouched.
@@ -44,6 +52,7 @@ import logging
 import os
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -268,21 +277,87 @@ def prepare_gt_for_scorer(dataset: Kitti360SSCDataset, gt_root: Path) -> None:
     logger.info("Stage 4a OK: staged %d GT frames (.invalid repacked).", len(dataset))
 
 
-def score(gt_root: Path, pred_root: Path, datacfg: Path, gpu: int) -> int:
-    """Stage 4b: official scorer with the KITTI-360 datacfg (16-shared-class mIoU)."""
+def score(gt_root: Path, pred_root: Path, datacfg: Path, gpu: int,
+          scores_dir: Path) -> int:
+    """Stage 4b: official scorer with the KITTI-360 datacfg.
+
+    The scorer's printed ``mIoU SSC`` is ``class_jaccard[1:].mean()`` -- an 18-class
+    mean under this datacfg. ``--output`` is passed explicitly so its ``scores.txt``
+    (per-class IoUs) lands somewhere this driver owns; :func:`report_shared_class_miou`
+    reads it back. Without ``--output`` the scorer defaults to ``.`` and would write
+    into ``external/semantic_kitti_api/``.
+    """
     eval_script = REPO_ROOT / "external" / "semantic_kitti_api" / "evaluate_completion.py"
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = str(gpu)
+    scores_dir.mkdir(parents=True, exist_ok=True)
     cmd = [
         sys.executable, str(eval_script),
         "--dataset", str(gt_root),
         "--predictions", str(pred_root),
         "--split", "valid",     # NB: requires the KITTI-360 datacfg to list seq 06 under 'valid'
         "--datacfg", str(datacfg),
+        "--output", str(scores_dir),
     ]
     logger.info("Stage 4b (score): %s", " ".join(cmd))
     proc = subprocess.run(cmd, env=env, cwd=str(eval_script.parent))
     return proc.returncode
+
+
+def class_names_by_train_index(datacfg: Path) -> dict[int, str]:
+    """KITTI-360 train index -> class name, exactly as the scorer keys its scores.txt.
+
+    The scorer writes ``iou_<class_strings[class_inv_remap[i]]>``; both tables come from
+    the datacfg, so reading them from the same file is the only way this mapping cannot
+    drift away from the scorer's own naming.
+    """
+    data = yaml.safe_load(datacfg.read_text())
+    labels, inv = data["labels"], data["learning_map_inv"]
+    return {int(k): labels[v] for k, v in inv.items()}
+
+
+def shared_class_miou(scores: dict, names: dict[int, str],
+                      scorable: Sequence[int]) -> tuple[float, dict[int, float]]:
+    """Mean IoU over the shared classes only, plus the per-class values it averaged.
+
+    Raises:
+        KeyError: if a scorable class has no entry in the scorer's output. Better a loud
+            failure than a mean quietly taken over fewer classes than it claims.
+    """
+    per = {int(k): float(scores["iou_" + names[int(k)]]) for k in scorable}
+    return sum(per.values()) / len(per), per
+
+
+def report_shared_class_miou(scores_dir: Path, datacfg: Path) -> None:
+    """Stage 5: print the 16-shared-class headline beside the scorer's 18-class mean.
+
+    The docstring of this script used to claim a 16-shared-class mIoU while printing only
+    what the scorer printed, which is the 18-class mean -- a number roughly 2/18 lower,
+    because other-structure and other-object are structurally 0 for a SemanticKITTI-trained
+    model. Both are shown, each named by its class set, so neither can be quoted as the
+    other.
+    """
+    scores_path = scores_dir / "scores.txt"
+    if not scores_path.is_file():
+        logger.warning("Stage 5 skipped: %s was not written by the scorer; the printed "
+                       "mIoU above is the %d-class mean, NOT the shared-class headline.",
+                       scores_path, len(SCORABLE_K360_CLASSES) + len(STRUCTURAL_ZERO_K360_CLASSES))
+        return
+    scores = yaml.safe_load(scores_path.read_text())
+    names = class_names_by_train_index(datacfg)
+    shared, per = shared_class_miou(scores, names, SCORABLE_K360_CLASSES)
+    n_all = len(SCORABLE_K360_CLASSES) + len(STRUCTURAL_ZERO_K360_CLASSES)
+    logger.info("=" * 72)
+    logger.info(" SSCBench-KITTI360 zero-shot")
+    logger.info("   mIoU  (%2d shared classes, headline) : %.2f %%",
+                len(per), 100.0 * shared)
+    logger.info("   mIoU  (%2d classes, scorer default)  : %.2f %%   "
+                "[includes %s, structurally 0]", n_all, 100.0 * float(scores["iou_mean"]),
+                ", ".join(names[k] for k in STRUCTURAL_ZERO_K360_CLASSES))
+    logger.info("   Completion IoU                      : %.2f %%",
+                100.0 * float(scores["iou_completion"]))
+    logger.info("   scores.txt: %s", scores_path)
+    logger.info("=" * 72)
 
 
 def main() -> None:
@@ -325,10 +400,14 @@ def main() -> None:
     datacfg = Path(args.datacfg) if args.datacfg else \
         REPO_ROOT / "external" / "semantic_kitti_api" / "config" / "kitti360.yaml"
 
+    scores_dir = data_root / "eval_results" / "kitti360_zeroshot"
+
     run_scpnet_zeroshot(dataset, scpnet_dir, args.gpu)
     run_s2d2_and_writeback(dataset, scpnet_dir, args.checkpoint, pred_root, n_steps, args.gpu)
     prepare_gt_for_scorer(dataset, gt_root)
-    rc = score(gt_root, pred_root, datacfg, args.gpu)
+    rc = score(gt_root, pred_root, datacfg, args.gpu, scores_dir)
+    if rc == 0:
+        report_shared_class_miou(scores_dir, datacfg)
     sys.exit(rc)
 
 

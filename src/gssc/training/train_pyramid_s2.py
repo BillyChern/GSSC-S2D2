@@ -442,6 +442,11 @@ def main():
     parser.add_argument('--warmup-epochs', type=int, default=5,
                         help='Number of warmup epochs when using LR scaling (default: 5)')
 
+    # Every boolean flag also gets a hidden ``--no_<dest>`` twin, so a YAML config can
+    # switch OFF a flag that defaults to on (configs/ -> gssc.utils.config_loader).
+    from gssc.utils.config_loader import add_boolean_negations
+    add_boolean_negations(parser)
+
     args = parser.parse_args()
 
     # Setup distributed training

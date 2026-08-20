@@ -20,10 +20,19 @@ Reproduce the 38.73% val mIoU under N=1 + D4 TTA::
     python scripts/eval.py eval/val_d4tta \
         --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
-Reproduce the 36.09% BEV mIoU (secondary task, paper Sec. 4)::
+Reproduce the 36.09% BEV mIoU of the secondary BEV task (supplementary
+tab:bev_results, refined-BEV entry)::
 
     python scripts/eval.py eval/bev_secondary \
-        --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors
+        --checkpoint data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors
+
+That BEV figure is measured under a DIFFERENT protocol from every 3D number
+above and must not be compared against one. The checkpoint records its own
+protocol in ``config.json``: "training-time 2D BEV evaluator, 100 fixed val
+samples (seed 42) -- NOT the 4071-frame semantic-kitti-api protocol"; the
+mean is taken over the 19 evaluation classes with class 0 excluded.
+``bev/bev_perception_net`` is a different (938K-parameter 2D refinement)
+model and does not load in this evaluator.
 """
 from __future__ import annotations
 
@@ -45,7 +54,9 @@ def main() -> None:
     parser.add_argument("--output", default=None, help="Where to dump per-class JSON")
     parser.add_argument("--gpu", default="0")
     parser.add_argument("--steps", type=int, default=None, help="Correction-step count override (1, 4, 100)")
-    parser.add_argument("--tta", choices=["none", "flip_y", "d4"], default=None)
+    # "flip_y" is deliberately NOT offered: gssc.inference.evaluate dispatches d4/else,
+    # so the mode ran no augmentation while the banner printed tta=flip_y.
+    parser.add_argument("--tta", choices=["none", "d4"], default=None)
     parser.add_argument(
         "--metrics",
         nargs="+",

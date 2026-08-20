@@ -1,34 +1,52 @@
 # Contributing to GSSC-S2D2
 
+By participating you agree to the [Code of Conduct](.github/CODE_OF_CONDUCT.md)
+(Contributor Covenant 2.1). Security issues go to [SECURITY.md](SECURITY.md), not
+to the issue tracker.
+
 ## Code-quality standards
 
 This repository targets **Google/Apple production-grade standards**.
 
 ### Hard requirements (CI-enforced)
 
-| Standard | Tool | Command | Scope |
+Every row below is run by a job under `.github/workflows/`. A row is listed here only
+if a workflow runs the command at the scope the row states.
+
+| Standard | Tool | Command | Workflow |
 |---|---|---|---|
-| Style + import order | `ruff` | `ruff check src/ tests/ scripts/` | All non-vendored code |
-| Tests | `pytest` | `pytest tests/ -v` | 80 cases, all CPU-runnable |
-| Coverage | `pytest-cov` | `pytest --cov --cov-fail-under=80` | `src/gssc/{utils,inference}` (the testable subset) |
-| Static types | `mypy` | `mypy src/gssc/inference src/gssc/utils` | Public-API modules only |
-| Pre-commit | `pre-commit run --all-files` | local + CI | every commit |
+| Style + import order | `ruff` | `ruff check src/ tests/ scripts/` | lint.yml |
+| Tests | `pytest` | `pytest tests/ --ignore=tests/test_tau_invariance.py -v` | test.yml |
+| Static types | `mypy` | `mypy src/gssc/inference src/gssc/utils` | lint.yml |
 
-### Aspirational (run manually until CI gates are added)
+The test job runs on a torch-free CPU runner: 43 cases execute and 33 skip themselves
+through `pytest.importorskip`. `tests/test_tau_invariance.py` is ignored because it
+imports torch at module scope without that guard, so it cannot even be collected there.
 
-| Standard | Tool | Command |
-|---|---|---|
-| Dead code | `vulture` | `vulture src/` |
-| Unused imports | `pyflakes` | `pyflakes src/` |
-| Security | `bandit` | `bandit -r src/` |
-| Strict types | `mypy --strict` | `mypy --strict src/gssc/inference` |
+### Run locally (no workflow runs these)
+
+Useful, but deliberately not wired into a workflow -- each one either needs hardware the
+runner does not have, or would fail today. Do not move a row up without first making the
+workflow green.
+
+| Standard | Tool | Command | Why it is not in a workflow |
+|---|---|---|---|
+| Full suite | `pytest` | `pytest tests/ -v` | 116 cases, needs torch 2.4 + spconv on the runner |
+| Coverage | `pytest-cov` | `pytest --cov` | pyproject pins `fail_under = 80`; the CPU-runnable suite reaches ~51 %, so the gate would fail |
+| Pre-commit | `pre-commit` | `pre-commit run --all-files` | its `pytest-light` hook is `language: system` and assumes a prepared local interpreter |
+| Dead code | `vulture` | `vulture src/` | advisory -- no workflow runs it |
+| Unused imports | `pyflakes` | `pyflakes src/` | advisory -- no workflow runs it |
+| Security | `bandit` | `bandit -r src/` | advisory -- no workflow runs it |
+| Strict types | `mypy --strict` | `mypy --strict src/gssc/inference` | advisory -- no workflow runs it |
 
 > **Scope note.** Type-checking is enforced on the public-API surface
 > (`gssc.inference`, `gssc.utils`) where annotations are complete.
 > Legacy modules under `src/gssc/_improved_diffusion/`
 > and `src/gssc/training/train_pyramid_*.py`
 > are deliberately excluded from style + type gating until they're
-> refactored or removed (tracked in `CHANGELOG.md` Unreleased).
+> refactored or removed. The exclusion lists are not prose: they are
+> `[tool.ruff] extend-exclude` and `[tool.mypy] files` in `pyproject.toml`,
+> which is also where the gate reads them from.
 
 ### Style conventions
 
@@ -83,7 +101,8 @@ logger = logging.getLogger(__name__)
 
 * Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
 * One logical change per commit. Squash on merge if the branch has cleanup commits.
-* Run `ruff check && mypy --strict src/gssc && pytest` locally before pushing.
+* Run `ruff check src/ tests/ scripts/`, `mypy`, and `pytest tests/ -v` locally before
+  pushing -- the same three commands the workflows run.
 
 ### Things that will fail review
 

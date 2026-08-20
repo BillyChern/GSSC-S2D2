@@ -22,7 +22,7 @@ the paper's compute table prices as the S²D² headline. The config above runs t
 ~0.9 GPU-h per 1K steps. Stopping at 40K is what reproduces the paper.
 Output: `outputs/train_31k_mf/step_{5000,10000,...,100000}.pt` + `best.pt`.
 
-## Data-scaling ablations (Tab. VII)
+## Single-frame data-scaling companion sweep (NOT Tab. VII)
 
 ```bash
 for cfg in 0K_sf 10K_sf 20K_sf 31k_sf 57K_sf; do
@@ -30,13 +30,28 @@ for cfg in 0K_sf 10K_sf 20K_sf 31k_sf 57K_sf; do
 done
 ```
 
-## Training-timestep ablations (Supp. tab:train_timesteps_ablation)
+These are the **single-frame** retrains (single-frame LiDAR at both training and
+deployment). The paper reports their sweep as prose in supplementary App. C-B,
+not as a table. They are a companion to, not the source of, `tab:data_scaling`
+(supplementary Tab. VII), which is the **multi-frame** sweep and ships no
+per-row checkpoints — the supplement states this explicitly ("It is not Table
+VII, which is the multi-frame full-val sweep"). See `docs/MODEL_ZOO.md`
+("Single-frame data-scaling companion sweep") and `docs/REPRODUCIBILITY.md`.
+
+## Training-timestep ablations (internal; no paper table)
 
 ```bash
 for cfg in T10 T50 T100skewed; do
   python scripts/train.py train/$cfg --gpu 0
 done
 ```
+
+The paper prints no timestep-ablation table, and the label earlier revisions of
+these docs cited for one does not exist in it.
+Supplementary App. C-A discusses only the two `T=100` schedules, uniform against
+`t=T`-skewed, and states that the shorter schedules were trained and omitted
+rather than reported, because β stays linear on [1e-4, 0.1] irrespective of `T`.
+The `T10` / `T50` runs above are therefore internal ablations.
 
 ## Pyramid diffusion (offline data-aug pipeline)
 

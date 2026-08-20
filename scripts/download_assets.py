@@ -33,6 +33,15 @@ DATAPORT_URL = "[SYNTHETIC_POOL_URL]"
 logger = logging.getLogger("gssc.download")
 
 
+#: The three places a reader can get an asset when this script cannot fetch it. Every exit
+#: path in this file ends here, so no failure mode can leave the user without a next step.
+_MANUAL_ROUTES = (
+    "  - Manual instructions:    docs/DATASET.md\n"
+    "  - Reproducibility guide:  docs/REPRODUCIBILITY.md\n"
+    "  - Issues:                 https://github.com/BillyChern/GSSC-S2D2/issues\n"
+)
+
+
 def _ensure_url_configured(url: str, label: str) -> None:
     """Bail out early when the asset URL is still a placeholder.
 
@@ -42,10 +51,36 @@ def _ensure_url_configured(url: str, label: str) -> None:
     if url.startswith("[") and url.endswith("]"):
         sys.exit(
             f"\n{label} URL is not yet configured (placeholder: {url}).\n"
-            "Build it locally instead:\n"
-            "  - Manual instructions:    docs/DATASET.md\n"
-            "  - Reproducibility guide:  docs/REPRODUCIBILITY.md\n"
-            "  - Issues:                 https://github.com/BillyChern/GSSC-S2D2/issues\n"
+            "Build it locally instead:\n" + _MANUAL_ROUTES
+        )
+
+
+def _fetch(snapshot_download, label: str, repo_id: str, **kwargs) -> None:
+    """One snapshot_download, with every failure turned into the documented pointer.
+
+    ``_ensure_url_configured`` guards exactly one shape of unavailability -- a
+    ``[PLACEHOLDER]`` URL -- and only ``DATAPORT_URL`` has that shape. The two Hugging
+    Face repo ids are real-LOOKING strings, so they sail past that guard and any problem
+    reaching them (repo missing, gated, network down, no auth token, hub API change)
+    surfaced as a raw ``huggingface_hub`` traceback: precisely the outcome the guard's
+    docstring, README.md, docs/MODEL_ZOO.md and examples/quickstart.ipynb all promise the
+    user will not get. Catching ``BaseException`` rather than ``Exception`` is deliberate:
+    huggingface_hub has shipped error classes built through ``__new__`` that do not
+    inherit the usual way, and a fix that only covers the errors we predicted is the same
+    defect one release later.
+    """
+    try:
+        snapshot_download(repo_id=repo_id, **kwargs)
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException as exc:                      # noqa: BLE001 - see docstring
+        reason = f"{type(exc).__name__}: {exc}".strip()
+        sys.exit(
+            f"\n{label}: could not download from the Hugging Face repo '{repo_id}'.\n"
+            f"  reason: {reason.splitlines()[0][:300] if reason else 'unknown error'}\n"
+            "Common causes: no network or a blocking proxy; the repo requires "
+            "`huggingface-cli login`; or a stale huggingface_hub.\n"
+            "Get the assets another way:\n" + _MANUAL_ROUTES
         )
 
 
@@ -101,31 +136,32 @@ def main() -> None:
 
     if args.checkpoints or args.all:
         logger.info("Downloading checkpoints from %s ...", HF_REPO_MODELS)
-        snapshot_download(repo_id=HF_REPO_MODELS, local_dir=root / "checkpoints")
+        _fetch(snapshot_download, "Checkpoints", HF_REPO_MODELS,
+               local_dir=root / "checkpoints")
     # snapshot_download preserves the matched pattern prefix in the output tree,
     # so the local_dir must be `root` (not `root / "<name>"`) or the files land
     # at root/<name>/<name>/... (double-nested). The allow_patterns prefix is the
     # single directory level we want.
     if args.predictions or args.all:
         logger.info("Downloading SCPNet predictions from %s ...", HF_REPO_DATA)
-        snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
-                          allow_patterns=["scpnet_predictions/*"],
-                          local_dir=root)
+        _fetch(snapshot_download, "Datasets (predictions)", HF_REPO_DATA,
+               repo_type="dataset", allow_patterns=["scpnet_predictions/*"],
+               local_dir=root)
     if args.js3c_predictions or args.all:
         logger.info("Downloading JS3C-Net predictions from %s ...", HF_REPO_DATA)
-        snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
-                          allow_patterns=["js3cnet_predictions/*"],
-                          local_dir=root)
+        _fetch(snapshot_download, "Datasets (JS3C-Net predictions)", HF_REPO_DATA,
+               repo_type="dataset", allow_patterns=["js3cnet_predictions/*"],
+               local_dir=root)
     if args.lmscnet_predictions or args.all:
         logger.info("Downloading LMSCNet predictions from %s ...", HF_REPO_DATA)
-        snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
-                          allow_patterns=["lmscnet_predictions/*"],
-                          local_dir=root)
+        _fetch(snapshot_download, "Datasets (LMSCNet predictions)", HF_REPO_DATA,
+               repo_type="dataset", allow_patterns=["lmscnet_predictions/*"],
+               local_dir=root)
     if args.object_bank or args.all:
         logger.info("Downloading object bank from %s ...", HF_REPO_DATA)
-        snapshot_download(repo_id=HF_REPO_DATA, repo_type="dataset",
-                          allow_patterns=["object_bank/*"],
-                          local_dir=root)
+        _fetch(snapshot_download, "Datasets (object bank)", HF_REPO_DATA,
+               repo_type="dataset", allow_patterns=["object_bank/*"],
+               local_dir=root)
     if args.synthetic_pool:
         logger.info("Synthetic pool '%s' is hosted on IEEE DataPort.", args.synthetic_pool)
         logger.info("  -> %s", DATAPORT_URL)

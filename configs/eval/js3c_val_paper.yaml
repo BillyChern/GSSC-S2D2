@@ -1,4 +1,4 @@
-_paper_table: "tab:main_results row 91 + supplementary tab:supp_b6_val (paper protocol)"
+_paper_table: "supplementary tab:supp_b6_val (the JS3C-Net + S2D2 cross-base block); the main-paper cross-base entry is tab:portable_s2d2"
 _description: |
   JS3C-Net cross-base eval reproducing the paper's supplementary tab:supp_b6_val
   protocol exactly: N=1 Algo2 sampling with GT-BEV conditioning (loaded from

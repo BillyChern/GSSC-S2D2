@@ -49,12 +49,36 @@ Out of scope (do not report as security issues):
 GSSC-S2D2 loads checkpoints with `torch.load(..., weights_only=False)`
 because the saved state carries optimizer + EMA buffers that are not
 representable in `weights_only=True` mode. **Only load checkpoints from
-sources you trust** -- running an attacker-supplied `.pt` file is
-equivalent to running attacker-supplied code.
+sources you trust** -- running an attacker-supplied `.pt` / `.pth` file is
+equivalent to running attacker-supplied code. The released weights are
+`model.safetensors`, a format that cannot carry executable payloads; the one
+pickle in the release is the third-party `scpnet_v2_port.pth` base, and it is
+covered by the same digest below.
 
-Published checkpoints will ship with SHA256 hashes documented in
-[docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) on release. Verify before loading:
+### Verifying what you downloaded
+
+Every released checkpoint has a published SHA256 digest. The per-file table is
+[docs/MODEL_ZOO.md](docs/MODEL_ZOO.md); the same digests ship as one
+`checksums.txt` at the root of the Hugging Face checkpoints repo, so the check is a
+single command with a verdict rather than a digest you have to eyeball:
 
 ```bash
-sha256sum data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
+# Downloads into data/checkpoints/, checksums.txt included.
+python scripts/download_assets.py --checkpoints
+
+# The paths inside checksums.txt are rooted at `checkpoints/`, so run the check
+# from data/ -- the directory that CONTAINS checkpoints/.
+cd data && sha256sum -c checkpoints/checksums.txt
+```
+
+Every line must print `OK`, and `sha256sum` must exit 0. Do not load a file whose
+line prints `FAILED`, and do not dismiss a `FAILED open or read` line either --
+a file the manifest lists and your download does not have is an incomplete
+transfer, not a harmless difference.
+
+To check one file rather than all of them:
+
+```bash
+cd data && grep 'gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors' \
+    checkpoints/checksums.txt | sha256sum -c -
 ```

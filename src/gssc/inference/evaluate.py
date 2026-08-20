@@ -276,7 +276,7 @@ def run_evaluation(
         output: Optional path to dump per-class metrics as JSON.
         gpu: CUDA device id (default ``"0"``).
         steps: Correction-step count override; ``None`` uses the config default.
-        tta: TTA mode override; one of ``{"none", "flip_y", "d4"}``.
+        tta: TTA mode override; one of ``{"none", "d4"}``.
         metrics: Reserved for future safety-metric subset selection.
         keep_predictions: If True, keep the intermediate ``.label`` files
             in ``<data_root>/predictions/<config_name>/``. If False
@@ -327,6 +327,18 @@ def run_evaluation(
 
     n_steps = steps if steps is not None else int(cfg_steps)
     tta_mode = tta if tta is not None else str(cfg.get("tta", "none"))
+    if tta_mode not in ("none", "d4"):
+        # Fail before the banner: it prints `tta=<mode>`, and the dispatch below used to
+        # fall through to the plain no-TTA generator for anything that was not "d4"
+        # (`flip_y` was advertised in the CLI choices and documented in this docstring,
+        # but nothing anywhere dispatched on it). A mode with no implementation must
+        # never be reported as if it ran.
+        raise ValueError(
+            f"Unsupported TTA mode {tta_mode!r}. Implemented modes: 'none' (plain "
+            f"single-pass generation) and 'd4' (8-element dihedral group, "
+            f"gssc.inference.d4_tta). Refusing to run a different pipeline under this "
+            f"mode's name."
+        )
 
     logger.info("Eval config: %s", config)
     logger.info("Checkpoint: %s", ckpt_path)

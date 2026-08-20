@@ -25,8 +25,11 @@ Expected behavior:
 
 ## Checklist
 
-- [ ] `ruff check src/ scripts/ tests/` passes
-- [ ] `pytest tests/` passes (`<N>/<N>`)
+- [ ] `ruff check src/ tests/ scripts/` passes (the exact lint-CI command)
+- [ ] `pytest tests/ -v` passes (`<N>/<N>`); CI runs the same suite minus
+      `tests/test_tau_invariance.py`, which needs torch
+- [ ] If quoting the BEV secondary-task number: the 100-seeded-frame protocol is stated
+      alongside it
 - [ ] If touching the eval path: `python scripts/eval.py eval/val_1step --checkpoint ... → 38.54`
 - [ ] If touching docs/README: rendered locally and links resolve
 - [ ] No new `[URL]` placeholders introduced

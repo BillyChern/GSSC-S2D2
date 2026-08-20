@@ -44,9 +44,11 @@ states in five places that we hold no test-server score for the bare port.
 
 ## JS3C-Net cross-base (added v1.1.0)
 
-The v1.1.0 cross-base reproduction (paper tab:portable_s2d2, +3.32 pp val
-mIoU under the official `semantic-kitti-api` with GT BEV) uses JS3C-Net
-(Yan et al. 2021, AAAI) as a *prediction-only* alternative base.
+The v1.1.0 cross-base reproduction (paper tab:portable_s2d2, whose headline for
+this base is **+1.6 pp** val mIoU with derived BEV) uses JS3C-Net
+(Yan et al. 2021, AAAI) as a *prediction-only* alternative base. The +3.32 pp
+figure this section used to lead with is our own GT-BEV diagnostic delta, not a
+value the paper prints; see the three-number box below.
 
 * Original: [JS3C-Net](https://github.com/yanx27/JS3C-Net) (AAAI 2021)
 * Our reader: `src/gssc/models/js3c_base.py` — a thin per-frame `.npy` loader.

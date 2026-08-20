@@ -8,7 +8,7 @@ from ``configs/infer/<name>.yaml``:
 ================  =====  ================  =====  ====  ====================================
 config            split  gen sequences     steps  tta   paper row
 ================  =====  ================  =====  ====  ====================================
-infer/val_1step   val    08                1      none  tab:perclass (val per-class)
+infer/val_1step   val    08                1      none  tab:perclass_delta (val per-class)
 infer/val_d4tta   val    08                1      d4    tab:main_results (val + D4 TTA)
 infer/test_d4tta  test   11..21 (hidden)   4      d4    tab:main_results (39.2 test row)
 ================  =====  ================  =====  ====  ====================================
@@ -100,7 +100,10 @@ def main() -> None:
                    help="Override config correction_steps (1, 4, 100)")
     p.add_argument("--tau", type=float, default=1.0,
                    help="Sampling temperature on the denoiser logits; provably inert at steps=1")
-    p.add_argument("--tta", choices=["none", "flip_y", "d4"], default=None,
+    # "flip_y" is deliberately NOT offered: every consumer of this value is a two-way
+    # d4/else dispatch, so the mode ran no augmentation at all while the banner printed
+    # tta=flip_y and the resulting number read as a flip-TTA measurement.
+    p.add_argument("--tta", choices=["none", "d4"], default=None,
                    help="Override config tta mode")
     p.add_argument("--dry-run", action="store_true",
                    help="Resolve + print the command without launching it (no GPU).")

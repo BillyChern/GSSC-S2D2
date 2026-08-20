@@ -31,8 +31,9 @@ two pillars are scoped as follows:
   pools ship as data.
   The
   synthetic pool itself is consumed by the single-frame data-scaling configs, whose
-  sweep is reported in prose in supplementary App. C. Tab. VII is the MULTI-frame
-  sweep and does not ship its per-row checkpoints.
+  sweep is reported in prose in supplementary App. C-B. Tab. VII (`tab:data_scaling`,
+  in that same subsection) is the MULTI-frame sweep and does not ship its per-row
+  checkpoints.
 * **SGSC** (*Semantic-guided Generative Scene Completion*, the from-noise
   regime, **30.54 % val mIoU**) is **intentionally out of scope for this
   release**: no SGSC checkpoint or from-noise sampler is shipped, mirroring the
@@ -182,7 +183,7 @@ quantity that should reproduce cleanly across retrains is therefore the
 **per-class delta of S²D² over the SCPNet base under the same spconv build**,
 not the absolute mIoU.
 
-Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step; this retrain's own measurements, which preserve the released checkpoint's per-class delta structure except for the one seed-sensitive class, motorcyclist — paper supp tab:supp_retrain_deltas):
+Per-class deltas vs. SCPNet base under this retrain (val seq 08, 1-step; this retrain's own measurements, which preserve the released checkpoint's per-class delta structure except for the one seed-sensitive class, motorcyclist — paper main Tab. II, `tab:perclass_delta`, "Retrain Δ" column; the supplementary label earlier revisions of this file cited for these deltas does not exist in the paper):
 car +1.0, motorcycle +0.2, truck +5.4, other-veh +2.3, person +1.9,
 bicyclist +5.2, motorcyclist +0.3, road +4.3, parking +2.3, traffic-sign +5.8;
 **overall +1.9%** (vs. the released checkpoint's +2.4%, the gap being motorcyclist's
@@ -242,9 +243,9 @@ paper.
 | Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10). The released LMSCNet `model_ema.safetensors` ships complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint workaround is needed |
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
-| single-frame data scaling (no paper table; Tab. VII is the multi-frame sweep and ships no per-row checkpoints) | Per-row checkpoint, e.g. `python scripts/eval.py eval/data_scaling_sf --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step100000/model_ema.safetensors` (canonical per-row config; identical N=1 protocol to `eval/val_1step`) | See MODEL_ZOO.md |
-| Supp. tab:train_timesteps_ablation (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` (multi-row; run each `gssc_timesteps/` checkpoint via `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`) | T=10: 37.83, T=50: 37.92, T=100-skewed: 38.18, T=100-uniform: 38.54 |
-| Tab. tab:bev_results (BEV) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` (or `python scripts/reproduce_table.py tab:bev_results`) | 36.1 BEV mIoU |
+| single-frame data scaling (no paper table; Tab. VII is the multi-frame sweep and ships no per-row checkpoints) | Per-row checkpoint, e.g. `python scripts/eval.py eval/data_scaling_sf --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step72000/model_ema.safetensors` (canonical per-row config; identical N=1 protocol to `eval/val_1step`) | See MODEL_ZOO.md |
+| Training-timestep sweep (Supp. App. C-A prose; the paper prints no timestep table, and the label earlier revisions cited for one does not exist) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` — a driver CLI key, not a paper label (multi-row; run each `gssc_timesteps/` checkpoint via `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`) | T=100-uniform 38.54 and T=100-skewed 38.18 are the pair the paper discusses (it prints the latter as 38.2); T=10 37.83 and T=50 37.92 are internal runs the paper deliberately omits as degenerate |
+| Tab. tab:bev_results (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors` | 36.1 BEV mIoU (= 34.8 parameter-free projection + 1.3 refinement), scored by the training-time 2D BEV evaluator on 100 fixed val samples (seed 42) — a different instrument from the full-validation 3D rows above, so the two are not comparable. See `docs/MODEL_ZOO.md` ("BEV second task") for why the checkpoint earlier revisions named here was the wrong model |
 | Fig. 4 / Fig. 5 (qualitative) | Single-frame qualitative demo: `examples/quickstart.ipynb` | — |
 | Supp. per-frame VRU regression (shipped base) | `python scripts/perframe_vru.py --voxels <seq08>/voxels --base data/scpnet_predictions/08 --refined <N=1 dump>/sequences/08/predictions --gate` | person 301/1,255 (24.0%), bicyclist 185/788 (23.5%), motorcyclist 32/74 (43.2%) |
 

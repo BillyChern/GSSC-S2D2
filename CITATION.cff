@@ -11,7 +11,7 @@ authors:
 url: "https://github.com/BillyChern/GSSC-S2D2"
 license: Apache-2.0
 version: 2.3.8
-date-released: 2026-08-12
+date-released: 2026-08-13
 preferred-citation:
   type: article
   title: "Generative Semantic Scene Completion through Modeling the Underlying Geometry and Semantics in Point Clouds"

@@ -2,7 +2,7 @@ _paper_table: tab:perclass_delta (main-paper Tab. II)
 _description: |
   Single correction-step (N=1) inference on SemanticKITTI val (sequence 08).
   Writes .label files only; score them with scripts/eval.py or the official
-  semantic_kitti_api. Used to materialise the tab:perclass per-class predictions.
+  semantic_kitti_api. Used to materialise the tab:perclass_delta per-class predictions.
 
   Consumed by scripts/infer.py: `split: val` -> generator --split valid (seq 08);
   `correction_steps: 1` -> --cold_steps 1; `tta: none` -> generate_predictions

@@ -7,7 +7,15 @@ assignees: BillyChern
 ---
 
 ## Which number?
-<!-- e.g. "Tab. I 38.54% val mIoU at 1-step S2D2 correction sampling" or "Tab. XV 36.09% BEV". -->
+<!-- e.g. "Tab. I 38.54 % val mIoU at 1-step S2D2 correction sampling". -->
+
+> **Before filing a BEV secondary-task (main paper § IV-D, 34.8 -> 36.1) mismatch:** that row is
+> measured with the *training-time 2D BEV evaluator on 100 fixed val samples (seed 42)*,
+> **not** the 4071-frame semantic-kitti-api protocol, and it comes from
+> `data/checkpoints/bev/bev_s2d2_scpnet/`. A full-val number is not comparable to it,
+> and neither is a `--max-frames 100` run: the published sample is a seeded draw over a
+> differently-filtered frame list. See `docs/MODEL_ZOO.md` and the checkpoint's own
+> `config.json`; the supplement states the same protocol in prose next to Tab. XXI.
 
 ## Reproduction command
 
@@ -26,11 +34,17 @@ python scripts/eval.py eval/val_1step \
 
 ## Have you verified the asset hashes?
 
+`checksums.txt` ships at the root of the Hugging Face checkpoints repo, so this is a
+verdict, not a digest you have to eyeball. Paths inside it are rooted at `checkpoints/`,
+so run it from the directory that CONTAINS `checkpoints/`:
+
 ```bash
-sha256sum data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
+cd data && sha256sum -c checkpoints/checksums.txt
 ```
 
-Expected: see [docs/MODEL_ZOO.md](../docs/MODEL_ZOO.md).
+- [ ] every line printed `OK`
+
+Per-file digests are also tabulated in [docs/MODEL_ZOO.md](../../docs/MODEL_ZOO.md).
 
 ## Environment
 

@@ -28,8 +28,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -76,38 +76,6 @@ def _build_label_to_train_lut() -> np.ndarray:
     return lut
 
 
-def _assert_bound(name: str, result: object, ckpt_path: object) -> None:
-    """Refuse to score a module whose weights did not fully bind.
-
-    ``load_state_dict(strict=False)`` is required here (EMA shadows may omit
-    non-float buffers) but it also silently tolerates an architecture that does not
-    match the checkpoint. That is how this path came to reconstruct the denoiser at
-    ``input_resolution=64`` / ``cond_channels=128`` against a 256/64 checkpoint and
-    still return a number: 48 attention tensors stayed at initialisation.
-
-    Args:
-        name: Module label used in the error message.
-        result: The ``_IncompatibleKeys`` returned by ``load_state_dict``.
-        ckpt_path: Checkpoint being loaded, echoed so the message is actionable.
-
-    Raises:
-        RuntimeError: If any key is missing or unexpected.
-    """
-    missing = list(getattr(result, "missing_keys", []))
-    unexpected = list(getattr(result, "unexpected_keys", []))
-    if not missing and not unexpected:
-        logger.info("%s: all weights bound", name)
-        return
-    raise RuntimeError(
-        f"{name}: {len(missing)} missing and {len(unexpected)} unexpected key(s) when "
-        f"loading {ckpt_path}. The architecture does not match the checkpoint, so any "
-        f"score from it would be meaningless. Check the reconstruction keys in the "
-        f"checkpoint's 'config' (input_resolution, model_size, conditioning_type, "
-        f"use_self_conditioning, lidar_channels). "
-        f"First missing: {missing[:3]}; first unexpected: {unexpected[:3]}"
-    )
-
-
 def evaluate_bev(
     checkpoint: str,
     data_root: str,
@@ -120,8 +88,9 @@ def evaluate_bev(
     """Run BEV S2D2 evaluation end-to-end.
 
     Args:
-        checkpoint: Path to a BEV diffusion checkpoint (``.pt`` from
-            ``train_bev_secondary.py``).
+        checkpoint: Path to a BEV diffusion checkpoint -- either the trainer's
+            ``.pt`` (``train_bev_secondary.py``) or the released
+            ``.safetensors`` beside its ``config.json``.
         data_root: Visitor data root containing ``SemanticKITTI/`` and
             ``scpnet_predictions/``.
         n_steps: S2D2 correction-sampling steps (1 = single forward pass).
@@ -171,6 +140,13 @@ def evaluate_bev(
     from gssc.models.bev_multinomial_diffusion_2d import MultinomialDiffusion2D
     from gssc.models.bev_unet_v2 import create_modular_bev_unet
 
+    # The published 36.09 % was produced by this metric object, so the evaluator uses
+    # the same one rather than a second IoU implementation. The previous local version
+    # scored `fp = (pred==c) & (gt!=c) & (gt!=0)`, which discards every false positive
+    # landing on a GT-empty cell and is therefore strictly more lenient.
+    from gssc.training.train_bev_secondary import BEVMetrics
+    from gssc.utils.checkpoint import assert_bound, config_value, load_checkpoint_config
+
     ckpt_path = Path(checkpoint).resolve()
     data_root_path = Path(data_root).resolve()
     if not ckpt_path.exists():
@@ -190,23 +166,35 @@ def evaluate_bev(
     logger.info("BEV eval: checkpoint=%s sequence=%s n_steps=%d device=%s",
                 ckpt_path, sequence, n_steps, device.type)
 
-    # Load checkpoint and reconstruct the BEV S2D2 model
-    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-    cfg = ckpt.get("config", {}) if isinstance(ckpt, dict) else {}
-    num_classes = int(cfg.get("num_classes", 20))
-    num_timesteps = int(cfg.get("num_timesteps", 100))
-    base_channels = int(cfg.get("base_channels", 128))
+    # Load checkpoint and reconstruct the BEV S2D2 model. Two shipped layouts:
+    #   * the trainer's ``.pt``  -- EMA sub-dicts plus an in-file ``config``;
+    #   * the asset bundle's ``.safetensors`` -- keys flattened to
+    #     ``"<state_dict_key>.<param>"``, architecture in the sibling ``config.json``.
+    if ckpt_path.suffix == ".safetensors":
+        from safetensors.torch import load_file
+
+        ckpt: dict[str, Any] = {}
+        for flat_key, tensor in load_file(str(ckpt_path)).items():
+            block, _, param = flat_key.partition(".")
+            ckpt.setdefault(block, {})[param] = tensor
+        logger.info("safetensors layout: %d block(s) %s", len(ckpt), sorted(ckpt))
+    else:
+        ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    cfg = load_checkpoint_config(ckpt_path, ckpt if isinstance(ckpt, dict) else None)
+    num_classes = config_value(cfg, "num_classes", 20)
+    num_timesteps = config_value(cfg, "num_timesteps", 100)
+    base_channels = config_value(cfg, "base_channels", 128)
     # The shipped BEV run uses cond_channels=64 and input_resolution=256. Both were
     # previously left at their defaults here (128 from this function, 64 from the UNet
     # factory), and load_state_dict(strict=False) accepted the result SILENTLY: 12
     # cond_proj tensors shape-mismatched and 48 attention tensors stayed at init, so the
     # eval scored a half-initialised model. Read the reconstruction spec from the
     # checkpoint, and keep the old values only as fallbacks for older files.
-    lidar_channels = int(cfg.get("lidar_channels", 128))
-    input_resolution = int(cfg.get("input_resolution", 64))
-    model_size = str(cfg.get("model_size", "base"))
-    conditioning_type = str(cfg.get("conditioning_type", "sum"))
-    use_self_conditioning = bool(cfg.get("use_self_conditioning", True))
+    lidar_channels = config_value(cfg, "lidar_channels", 128)
+    input_resolution = config_value(cfg, "input_resolution", 64)
+    model_size = config_value(cfg, "model_size", "base")
+    conditioning_type = config_value(cfg, "conditioning_type", "sum")
+    use_self_conditioning = config_value(cfg, "use_self_conditioning", True)
 
     # Build the 2D diffusion process (used for the schedule constants the
     # checkpoint was trained against — even though the headline 1-step
@@ -244,8 +232,8 @@ def evaluate_bev(
         den_res = denoiser.load_state_dict(ckpt["denoiser_state_dict"], strict=False)
         enc_res = lidar_encoder.load_state_dict(ckpt["lidar_encoder_state_dict"], strict=False)
         logger.info("Loaded training weights")
-    _assert_bound("denoiser", den_res, ckpt_path)
-    _assert_bound("lidar_encoder", enc_res, ckpt_path)
+    assert_bound("denoiser", den_res, ckpt_path)
+    assert_bound("lidar_encoder", enc_res, ckpt_path)
     denoiser.train(False)
     lidar_encoder.train(False)
 
@@ -256,9 +244,7 @@ def evaluate_bev(
     logger.info("Scoring %d frames from sequence %s", len(frame_files), sequence)
 
     label_to_train = _build_label_to_train_lut()
-    iou_accum: defaultdict[int, dict[str, int]] = defaultdict(
-        lambda: {"intersection": 0, "union": 0}
-    )
+    bev_metrics = BEVMetrics(num_classes=num_classes)
 
     for fpath in frame_files:
         frame_id = fpath.stem
@@ -298,24 +284,18 @@ def evaluate_bev(
                 x_t = x_hat
             pred_bev = x_t.squeeze(0).cpu().numpy().astype(np.int64)
 
-        # Accumulate per-class IoU
-        for c in range(20):
-            valid_gt = (gt_bev == c)
-            tp = int(((pred_bev == c) & valid_gt).sum())
-            fp = int(((pred_bev == c) & (gt_bev != c) & (gt_bev != 0)).sum())
-            fn = int(((pred_bev != c) & valid_gt).sum())
-            iou_accum[c]["intersection"] += tp
-            iou_accum[c]["union"] += tp + fp + fn
+        # Accumulate into the training-time confusion matrix (no invalid mask, exactly
+        # as run_algo2_on_samples does), so this evaluator and the published number
+        # share one IoU definition.
+        bev_metrics.update(pred_bev, gt_bev)
 
     # Aggregate
+    iou = bev_metrics.get_iou()
     metrics: dict[str, float] = {}
-    iou_values = []
-    for c in range(1, 20):
-        denom = iou_accum[c]["union"]
-        iou = (iou_accum[c]["intersection"] / denom * 100.0) if denom > 0 else 0.0
-        metrics[f"IoU_{CLASS_NAMES_19[c - 1]}"] = round(iou, 2)
-        iou_values.append(iou)
-    metrics["mIoU"] = round(float(np.mean(iou_values)), 2)
+    for c, value in sorted(iou["class_iou"].items()):
+        name = CLASS_NAMES_19[c - 1] if c - 1 < len(CLASS_NAMES_19) else f"class_{c}"
+        metrics[f"IoU_{name}"] = round(float(value) * 100.0, 2)
+    metrics["mIoU"] = round(float(iou["mIoU"]) * 100.0, 2)
     metrics["num_frames"] = float(len(frame_files))
 
     if output:
@@ -324,6 +304,12 @@ def evaluate_bev(
         out_path.write_text(json.dumps(metrics, indent=2))
         logger.info("Wrote BEV per-class metrics to %s", out_path)
 
-    logger.info("BEV mIoU: %.2f %% over 19 valid classes (seq %s, %d frames)",
-                metrics["mIoU"], sequence, int(metrics["num_frames"]))
+    logger.info("BEV mIoU: %.2f %% over %d valid classes (seq %s, %d frames)",
+                metrics["mIoU"], num_classes - 1, sequence, int(metrics["num_frames"]))
+    logger.info(
+        "Protocol: every frame of sequence %s, IoU by gssc.training.train_bev_secondary."
+        "BEVMetrics (no invalid mask). The published BEV figures (34.75 base -> 36.09 "
+        "refined) were scored by the SAME metric object but on 100 seeded val samples "
+        "(RandomState(42)) inside the trainer, so this frame set is not that one -- see "
+        "this function's docstring.", sequence)
     return metrics

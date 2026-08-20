@@ -1,4 +1,4 @@
-_paper_table: "tab:main_results row 91 (JS3C+S2D2, +D4 TTA)"
+_paper_table: "none. The paper reports no D4-TTA entry for the JS3C-Net base; its tabulated cross-base result is the N=1 entry in tab:portable_s2d2 and in supplementary tab:supp_b6_val."
 _description: |
   JS3C-Net cross-base eval at N=4 with D4 dihedral TTA. Expected val mIoU:
   >= 26.72% (TTA monotone gain over the N=1 row).

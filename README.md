@@ -15,7 +15,7 @@
 [![PyTorch 2.4](https://img.shields.io/badge/pytorch-2.4-orange.svg)](https://pytorch.org/)
 [![Code style: ruff](https://img.shields.io/badge/lint-ruff-46a2f1.svg)](https://github.com/astral-sh/ruff)
 [![Type checks: mypy](https://img.shields.io/badge/types-mypy-2A6DB2.svg)](https://mypy.readthedocs.io/)
-[![SemanticKITTI](https://img.shields.io/badge/SemanticKITTI-39.2%20mIoU-orange.svg)](https://www.codabench.org/competitions/13814/#/results-tab)
+[![SemanticKITTI](https://img.shields.io/badge/SemanticKITTI%20test-38.8%20mIoU%20%28N%3D1%2C%20no%20TTA%29-orange.svg)](https://www.codabench.org/competitions/13814/#/results-tab)
 
 **SemanticKITTI hidden test — 38.8 % mIoU** at the single-frame single-sample setting (*N* = 1, no TTA) — to our knowledge the best single-frame single-sample result on the leaderboard to date (+0.9 over TALoS, 37.9) — rising to **39.2 % mIoU** with four correction steps and *D*<sub>4</sub> TTA, a row the single-sample predicate excludes and which therefore carries no TALoS margin. The leaderboard entry is public on [Codabench](https://www.codabench.org/competitions/13814/#/results-tab).
 
@@ -28,7 +28,7 @@ The paper organises the method into three pillars that share one structured-sour
 * **S²D²** — *Structured Source Discrete Diffusion*: the one-step deployment regime that refines a frozen base SSC model's prediction — the headline 38.54 % val / 39.2 % test result and the focus of this repository.
 
 > [!IMPORTANT]
-> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation and no test-time adaptation, at a **+0.9 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 38.8) — equivalently **+2.1 pp** over the frozen SCPNet base on hidden test (36.7 → 38.8) and **+2.36 pp** on val seq 08 (36.17 → 38.54, single correction step). Those margins are the *N* = 1, no-TTA row, which is the only one the paper's `online, causal, single-sweep, single-sample` predicate admits. The 8-view *D*<sub>4</sub> ensemble row reads 39.2, and the paper excludes it from exactly this comparison — do not quote a TALoS margin off it. The correction step costs 107.2 ms, i.e. 9.33 FPS for the added pass alone; the paper is explicit that this is "an incremental pass, not a deployable rate", and that neither it nor the 3.23 FPS end-to-end pipeline matches the sensor's 10 Hz cadence. Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.3 BEV mIoU** over the base-derived BEV: 34.8 % → 36.1 % on val seq 08).
+> **One-pass refinement of a frozen base SSC model via discrete diffusion on the probability simplex.** No distillation and no test-time adaptation, at a **+0.9 absolute mIoU** hidden-test gain over the previous SOTA TALoS (37.9 → 38.8) — equivalently **+2.1 pp** over the frozen SCPNet base on hidden test (36.7 → 38.8) and **+2.36 pp** on val seq 08 (36.17 → 38.54, single correction step). Those margins are the *N* = 1, no-TTA row, which is the only one the paper's `online, causal, single-sweep, single-sample` predicate admits. The 8-view *D*<sub>4</sub> ensemble row reads 39.2, and the paper excludes it from exactly this comparison — do not quote a TALoS margin off it. The correction step costs 107.2 ms, i.e. 9.33 FPS for the added pass alone; the paper is explicit that this is "an incremental pass, not a deployable rate", and that neither it nor the 3.23 FPS end-to-end pipeline matches the sensor's 10 Hz cadence. Replaces the base argmax with one cheap correction step (validated on SCPNet) — and the same mechanism transfers to 2D BEV semantic segmentation (paper Sec. 4 secondary task, **+1.3 BEV mIoU** over the base-derived BEV: 34.8 % → 36.1 % on val seq 08, scored by the training-time 2D BEV evaluator on 100 fixed val frames (seed 42) — not the 4,071-frame `semantic-kitti-api` protocol every 3D number here is scored under).
 
 > [!TIP]
 > **In a hurry?** Skip to [Quick start](#quick-start-reproduce-3854--val-in-three-commands) for the 3-command reproduction recipe of the headline 38.54 % val mIoU. Total wall-clock: **~6 minutes** on a single H100 once the base predictions are local.
@@ -38,11 +38,14 @@ The paper organises the method into three pillars that share one structured-sour
 
 ### What's new
 
+* **2026-08-13** — Releases **v2.3.1 – v2.3.8**: a run of correction-only patch releases — no API, config or measured-value change. They removed a JS3C-Net cross-base figure that appears nowhere in the paper and restored **24.3 % (+1.6 pp)** as that base's headline; retracted the margins that had been quoted off the excluded 8-view *D*<sub>4</sub> row in favour of the predicate-satisfying **+0.9** (over TALoS) and **+2.1 pp** (over the frozen base); withdrew the "real-time" and "cheapest deployable" wording the paper explicitly disclaims; stopped three docs asserting a hidden-test measurement for our SCPNet port, which was never submitted to the scoring server; corrected an auxiliary-loss weight that two comments quoted 100× too high; recorded that the PS³ Jensen–Shannon filter ships as screened *data* rather than as code (the supplementary specifies it completely); priced a full 100K-iteration launch at ~90 GPU-h, the ~37 GPU-h figure being what reaches the released step-40000 checkpoint; and brought all four version declarations back in step so `uv lock --check` is clean. Per-release detail in [CHANGELOG.md](CHANGELOG.md).
+* **2026-08-12** — Release **v2.3.0**, the TPAMI submission snapshot. Adds `configs/infer/test_1step.yaml`, the hidden-test single-sample (*N* = 1) configuration — until then the **38.8 %** headline row had no runnable command while the *D*<sub>4</sub>-TTA row did. Also adds the per-frame VRU instrument (`scripts/perframe_vru.py`), DW-IoU (`src/gssc/utils/dw_iou.py`), a `--tau` flag so the paper's temperature-invariance claim can be checked rather than taken on trust, `configs/eval/round2_a.yaml`, and configs for ablation rows that previously had none (`train/{57k_mf,T10,T50,c1_lossmatched_t99}`). Fixes three recipes that could not run as advertised (an unbound `S3DSKDDataset`, `RareClassEnhancer` reading dropped paste-budget fields, and `eval/val_d4tta` set to `correction_steps: 1` where 4 is what reproduces the +*D*<sub>4</sub> val number), and corrects the retrain per-class deltas and the headline **+2.36 pp** val delta.
+* **2026-06-10** — Release **v2.2.0**: zero-shot cross-dataset evaluation. The frozen headline checkpoint transfers with no fine-tuning and no target labels — **SSCBench-KITTI-360** (val seq 06) **5.8 → 6.2 mIoU (+0.4)** and **18.1 → 19.5 CompIoU (+1.4)**; **SemanticPOSS** (val seq 02, TALoS Tab. 4 map) **1.0 → 6.5 mIoU (+5.5)** and **31.8 → 54.9 CompIoU (+23.1)** — via `scripts/eval_kitti360.py` and `scripts/eval_semanticposs.py`. Also reconciles every JS3C-Net cross-base figure across the docs to one labelled scheme, and re-exports the LMSCNet EMA checkpoint with its 45 BatchNorm buffers so it reproduces **16.6 %** val mIoU directly.
 * **2026-05-26** — Release **v2.1.0**: LMSCNet third-base support. Stacked on the lightweight dense-2D-CNN LMSCNet (Roldao et al., 3DV 2020), one-step S²D² lifts val mIoU **14.8 % → 16.6 % (+1.8 pp)** under the official `semantic-kitti-api` evaluator (paper tab:portable_s2d2; the LMSCNet base is re-scored from on-disk predictions, superseding the earlier 12.10 summary). Together with the v1.1.0 JS3C-Net row this gives three structurally different frozen bases (dense 2D CNN, point-voxel hybrid, sparse 3D CNN) all lifted by the same recipe and hyperparameters — base-agnostic by construction, not by tuning. Reproduce: `python scripts/reproduce_table.py tab:cross_base_lmsc`. We also trimmed the release surface: 22 unreferenced development modules were pruned, and the remaining V2/V3 FiLM denoiser variants are kept as clearly labeled research-reference prototypes (excluded from the public API and CI gating), so the dense-Conv3d headline path is the single supported surface.
 * **2026-05-18** — Release **v2.0.0**: remove the legacy SCPNet-specific BEV-derivation flag (the pre-v1.1.1 name of `--bev_from_base`) in favour of `--bev_from_base`. `base_pred_dir` is now the preferred config key (used by the JS3C-Net and LMSCNet bases); `scpnet_pred_dir` is still accepted and remains in the SCPNet configs for backward compatibility. Headline numerical artefacts unchanged.
 * **2026-05-14** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the point-voxel hybrid JS3C-Net (Yan et al., AAAI 2021), one-step S²D² lifts JS3C-Net val mIoU **22.7 % → 24.3 % (+1.6 pp)**, the paper's headline for this base (official `semantic-kitti-api`, derived BEV). The GT-BEV diagnostic for the same run reads **26.05 % (+3.3 pp)**, which the paper does not print; the same model under the paper's internal training-time evaluator reads **26.7 % (+4.0 pp)** (a continuity row), and the reproducible at-deploy number under the official `semantic-kitti-api` with derived BEV (what `scripts/reproduce_table.py` yields) is **24.3 % (+1.6 pp)** — see `docs/REPRODUCIBILITY.md`. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
 * **2026-04** — Public release **v1.0.0**. Headline checkpoint released under Apache 2.0; eval round-trip verified at 38.54 % val mIoU.
-* **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver). LiDAR-only BEV refinement at 36.1 % mIoU.
+* **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver, checkpoint `bev/bev_s2d2_scpnet`). LiDAR-only BEV refinement at 36.1 % mIoU, scored by the training-time 2D BEV evaluator on 100 fixed val frames (seed 42) — not the 4,071-frame `semantic-kitti-api` protocol.
 * **2026-03** — **39.2 %** mIoU on SemanticKITTI hidden test leaderboard — paper under review.
 
 ---
@@ -61,7 +64,7 @@ The paper organises the method into three pillars that share one structured-sour
   <img src="assets/architecture.png" width="92%" alt="S²D² simplex transport + 4-level dense 3D U-Net (Conv3d) denoiser" />
 </p>
 
-<sub><b>Top:</b> the learned velocity field <b>v</b><sub>θ</sub> = <i>f</i><sub>θ</sub>(<b>x</b><sub><i>t</i></sub>, <i>t</i>, <b>c</b>) − <b>x</b><sub>src</sub> transports the base prediction (gray cluster) toward the ground truth (orange cluster) in a single Euler step on the per-voxel simplex. <b>Middle:</b> <i>f</i><sub>θ</sub> is a 4-level dense 3D U-Net (Conv3d) (stages 256²×32 → 32²×4, channels 32 → 256, 16²×2 bottleneck with two Residual Blocks, mirror decoder) with additive <b>L</b>/<b>B</b> conditioning + time-AdaGN modulation at every level and three conditioning buses (timestep <i>t</i>, multi-scale LiDAR <b>L</b>, base-derived BEV <b>B</b>). <b>Bottom:</b> a representative rare-class recovery on SemanticKITTI val seq 08 frame 001390 — motorcyclist IoU lifts from 27.3 % to <b>41.5 %</b> with a single Euler step (<i>N</i>=1), a +14.2 point per-sample jump. Source: paper Fig. 3 (qualitative panel, frame 001390); the full-val per-class motorcyclist gain (4.1 → 12.3, +8.2) is tabulated in paper <code>tab:perclass</code>.</sub>
+<sub><b>Top:</b> the learned velocity field <b>v</b><sub>θ</sub> = <i>f</i><sub>θ</sub>(<b>x</b><sub><i>t</i></sub>, <i>t</i>, <b>c</b>) − <b>x</b><sub>src</sub> transports the base prediction (gray cluster) toward the ground truth (orange cluster) in a single Euler step on the per-voxel simplex. <b>Middle:</b> <i>f</i><sub>θ</sub> is a 4-level dense 3D U-Net (Conv3d) (stages 256²×32 → 32²×4, channels 32 → 256, 16²×2 bottleneck with two Residual Blocks, mirror decoder) with additive <b>L</b>/<b>B</b> conditioning + time-AdaGN modulation at every level and three conditioning buses (timestep <i>t</i>, multi-scale LiDAR <b>L</b>, base-derived BEV <b>B</b>). <b>Bottom:</b> a representative rare-class recovery on SemanticKITTI val seq 08 frame 001390 — motorcyclist IoU lifts from 27.3 % to <b>41.5 %</b> with a single Euler step (<i>N</i>=1), a +14.2 point per-sample jump. Source: paper Fig. 3 (qualitative panel, frame 001390); the full-val per-class motorcyclist gain (4.1 → 12.4, +8.3) is tabulated in paper <code>tab:perclass_delta</code>.</sub>
 
 ---
 
@@ -92,11 +95,11 @@ On full SemanticKITTI **val** seq 08 (note: val numbers below, distinct from the
 
 ### Per-class IoU on val seq 08 (single correction step, verified)
 
-<sub>From `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors`. Numbers below match the paper's per-class val table (`tab:perclass`) exactly.</sub>
+<sub>From `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors`. Numbers below are the paper's per-class val row for this checkpoint (SCPNet + S²D², *N* = 1), as printed in the supplementary's full per-class table (`tab:supp_portable_full`).</sub>
 
 | | car | bicycle | motorcycle | truck | other-veh. | person | bicyclist | motorcyclist | road | parking |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| **IoU** | 51.4 | 24.3 | 35.5 | 60.1 | 44.5 | 23.2 | 23.3 | 12.3 | 74.6 | 61.6 |
+| **IoU** | 51.4 | 24.3 | 35.5 | 60.1 | 44.5 | 23.2 | 23.2 | 12.4 | 74.6 | 61.6 |
 
 | | sidewalk | other-grnd | building | fence | vegetation | trunk | terrain | pole | traffic-sign | **mIoU** |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -143,9 +146,9 @@ Once the released assets are in place, that is the whole pipeline. Expected outp
 ------------------------------------------------------------
  Per-class IoU:
   bicycle               24.30 %
-  bicyclist             23.30 %
+  bicyclist             23.20 %
   car                   51.40 %
-  motorcyclist          12.30 %
+  motorcyclist          12.40 %
   pole                  37.80 %
   ...
 ============================================================
@@ -164,13 +167,17 @@ For the full hidden-test leaderboard submission flow (39.2 % via *D*<sub>4</sub>
 
 S²D² is not specific to 3D scene completion. The same correction-sampling
 mechanism, applied to a 2D BEV diffusion model, refines the SCPNet-derived
-base BEV map and lifts BEV mIoU from **34.3 %** (base-derived) to
-**36.1 %** (S²D²-refined) on val seq 08 — paper tab:bev_results.
+base BEV map and lifts BEV mIoU from **34.8 %** (the parameter-free
+base-derived projection) to **36.1 %** (S²D²-refined) on val seq 08, a
+**+1.3 pp** gain — paper tab:bev_results. Both figures are scored by the
+training-time 2D BEV evaluator on 100 fixed val frames (seed 42), *not* the
+4,071-frame `semantic-kitti-api` protocol every 3D number in this README uses,
+so they are not comparable with the 3D mIoU figures above.
 
 ```bash
 # After step 3 above (predictions already downloaded), eval the BEV pipeline:
 python scripts/eval.py eval/bev_secondary \
-    --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors
+    --checkpoint data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors
 ```
 
 To retrain the BEV-A checkpoint from scratch (~24 h on 1× H100):
@@ -187,7 +194,7 @@ checkpoint at N=1, single-frame, no TTA. On SSCBench-KITTI-360 val (seq 06,
 1,812 frames, 16 shared classes; same-sensor near-domain) S²D² lifts the SCPNet
 base from **5.8 → 6.2 mIoU (+0.4)** and **18.1 → 19.5 CompIoU (+1.4)**. On the
 harder cross-sensor SemanticPOSS val (seq 02, ≈500 frames, 11-class TALoS Tab. 4
-map) it lifts **1.0 → 6.6 mIoU (+5.5)** and **31.8 → 54.9 CompIoU (+23.1)**.
+map) it lifts **1.0 → 6.5 mIoU (+5.5)** and **31.8 → 54.9 CompIoU (+23.1)**.
 
 ```bash
 # SSCBench-KITTI-360 zero-shot (after provisioning per docs/DATASET.md)
@@ -217,9 +224,9 @@ GSSC-S2D2/
 │   ├── inference/                  # eval (3D SSC mIoU + Completion IoU, 2D BEV mIoU), D4 TTA, prediction generation
 │   └── utils/                      # config loader, seeding, registry
 ├── configs/                        # Hydra configs (one per recipe in the paper)
-│   ├── train/{0K_sf,10K_sf,20K_sf,31k_sf,31k_mf,57K_sf,57k_mf,T10,T50,T100skewed,bev_secondary,js3c_real,js3c_real_derived,js3c_real_gtbev,lmscnet_real}.yaml
-│   ├── eval/{val_1step,val_d4tta,step_sweep,timestep_ablation,data_scaling_sf,bev_secondary,js3c_val_1step,js3c_val_d4tta,js3c_val_paper,js3c_val_realistic,lmscnet_val_1step,kitti360_zeroshot_1step,semanticposs_seq02}.yaml
-│   └── infer/{test_d4tta,val_1step,val_d4tta}.yaml
+│   ├── train/{0K_sf,10K_sf,20K_sf,31k_sf,31k_mf,57K_sf,57k_mf,T10,T50,T100skewed,bev_secondary,c1_lossmatched_t99,js3c_real,js3c_real_derived,js3c_real_gtbev,lmscnet_real}.yaml
+│   ├── eval/{val_1step,val_d4tta,step_sweep,timestep_ablation,data_scaling_sf,dwiou_sweep,round2_a,bev_secondary,js3c_val_1step,js3c_val_d4tta,js3c_val_paper,js3c_val_realistic,lmscnet_val_1step,kitti360_zeroshot_1step,semanticposs_seq02}.yaml
+│   └── infer/{test_1step,test_d4tta,val_1step,val_d4tta}.yaml   # test_1step is the N=1 no-TTA hidden-test row
 ├── scripts/                        # one-command drivers
 │   ├── train.py
 │   ├── eval.py
@@ -264,13 +271,13 @@ The repo ships the exact recipe + checkpoint for every reported number.
 | Paper artefact | Command | Expected |
 |---|---|---|
 | `tab:main_results` (test mIoU + per-class) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/` then submit to [Codabench](https://www.codabench.org/competitions/13814/#/results-tab) | **39.2 %** test mIoU |
-| `tab:perclass` (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline>` | **38.54 %** val mIoU |
+| `tab:perclass_delta` (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint <headline>` | **38.54 %** val mIoU |
 | `tab:step_reduction` (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint <headline>` | 38.54 (N=1) … 38.65 (N=4 peak) … 38.16 (N=100) |
 | single-frame data scaling | `python scripts/reproduce_table.py data_scaling_sf` | 0K/10K/20K/31K/57K SF retrains. Tab. VII is the multi-frame sweep and does not ship its per-row checkpoints |
 | `tab:train_timesteps_curriculum` (training timesteps) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` | T=10/50/100-skewed/100-uniform |
 | `tab:portable_s2d2` (JS3C-Net cross-base) | `python scripts/reproduce_table.py tab:cross_base_js3c` | **24.3 %** val mIoU (paper headline for this base: derived BEV under the official `semantic-kitti-api`, +1.6 pp over the 22.7 % base, and what this command yields). Diagnostics, not the headline: **26.05 %** with GT BEV under the official api, and **26.7 %** under the paper's internal training-time evaluator — see `docs/REPRODUCIBILITY.md` |
 | `tab:portable_s2d2` (LMSCNet cross-base) | `python scripts/reproduce_table.py tab:cross_base_lmsc` | **16.6 %** val mIoU (derived BEV, official `semantic-kitti-api`; +1.8 pp over the 14.8 % on-disk-rescored base). The released LMSCNet `model_ema.safetensors` ships complete (278 tensors, 45 BN buffers) and reproduces 16.6 directly — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) |
-| `tab:bev_results` (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_perception_net/model.safetensors` | **36.1 %** BEV mIoU |
+| `tab:bev_results` (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors` | **36.1 %** BEV mIoU (34.8 % projection + 1.3), scored by the training-time 2D BEV evaluator on 100 fixed val frames (seed 42) — not the 4,071-frame `semantic-kitti-api` protocol used by every other row here |
 
 Full mapping with anticipated wall-clock and disk requirements: **[docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md)**.
 
@@ -319,7 +326,7 @@ The mathematical derivations are in App. A of the paper (`prop:forward`, `prop:p
 
 | What | Where | Size |
 |---|---|---|
-| Pretrained checkpoints (17 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face [`BillyChern/GSSC-S2D2-checkpoints`](https://huggingface.co/BillyChern/GSSC-S2D2-checkpoints) — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) | ≈ 4 GB |
+| Pretrained checkpoints (18 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face [`BillyChern/GSSC-S2D2-checkpoints`](https://huggingface.co/BillyChern/GSSC-S2D2-checkpoints) — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) | ≈ 4.9 GB |
 | Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face [`BillyChern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/BillyChern/GSSC-S2D2-datasets) — or reproduce locally via `scripts/dump_{js3c,lmscnet}_predictions.py`, see [docs/DATASET.md](docs/DATASET.md) | ≈ 414 GB total (SCPNet ~178 GB + JS3C-Net ~190 GB + LMSCNet ~46 GB; only ~135 GB needed for the SCPNet eval-only headline) |
 | Object bank (57,789 instances, 8 rare classes) | Hugging Face [`BillyChern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/BillyChern/GSSC-S2D2-datasets) — see [docs/DATASET.md](docs/DATASET.md) | 448 MB |
 | Synthetic pool (0K / 10K / 20K / 31K / 57K variants) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | ~128 GB (31K) – ~230 GB (57K), approx. |
@@ -348,7 +355,7 @@ Style conventions, commit conventions, and hard requirements: **[CONTRIBUTING.md
 ## FAQ
 
 **Q. Why use this over running SCPNet alone?**
-A. We add **+2.1 absolute mIoU** on the hidden test set with a single extra forward pass (107.2 ms marginal added-step latency on H100 — the same figure as the 9.33 FPS marginal throughput quoted above, since 1000 / 107.2 ≈ 9.33), no extra training data beyond what SCPNet was trained on, and no distillation. (+2.5 is the four-step, 8-view-ensemble row, so it is not what one extra pass buys.) The gains concentrate on safety-critical rare classes. For the **released checkpoint** these are motorcyclist +8.2, bicyclist +5.3, truck +5.4, other-vehicle +2.5, person +1.2 on val seq 08 (paper `tab:perclass`). A separate, independent spconv-v2 *from-scratch retrain* (documented in `docs/REPRODUCIBILITY.md`, not the shipped release weights) preserves this per-class delta structure on a different seed; motorcyclist is the one seed-sensitive class, dropping to +4.4 on the retrain while truck (+5.4), bicyclist (+5.3), other-vehicle (+2.5), and person (+1.2) stay put — so the retrain and the released-checkpoint numbers are two distinct runs but the deltas are reproducible up to that one seed-sensitive class (paper supp `tab:supp_retrain_deltas`).
+A. We add **+2.1 absolute mIoU** on the hidden test set with a single extra forward pass (107.2 ms marginal added-step latency on H100 — the same figure as the 9.33 FPS marginal throughput quoted above, since 1000 / 107.2 ≈ 9.33), no extra training data beyond what SCPNet was trained on, and no distillation. (+2.5 is the four-step, 8-view-ensemble row, so it is not what one extra pass buys.) The gains concentrate on safety-critical rare classes. For the **released checkpoint** these are motorcyclist +8.3, bicyclist +5.3, truck +5.3, other-vehicle +2.5, person +1.2 on val seq 08 (paper `tab:perclass_delta`, Released column). A separate, independent spconv-v2 *from-scratch retrain* (documented in `docs/REPRODUCIBILITY.md`, not the shipped release weights) holds most of that structure on a different seed — truck +5.4, bicyclist +5.2, other-vehicle +2.3, person +1.9, each within 0.7 pp of the released checkpoint — but **the motorcyclist gain does not reproduce**: it collapses from +8.3 to **+0.3**, and that single class accounts for 87 % of the retrain's lower overall delta (+1.9 against +2.36). Treat the rare-class gains as reproducible in structure, with motorcyclist as the documented seed-sensitive exception, not as a per-class guarantee (paper `tab:perclass_delta`, Retrain column).
 
 **Q. Can S²D² be applied to a different base SSC network?**
 A. Yes — the framework is base-model-agnostic. We provide a working SCPNet integration; switching to JS3C-Net or any other base requires only providing per-voxel categorical predictions as `x_src`. See [docs/BASELINES.md](docs/BASELINES.md).

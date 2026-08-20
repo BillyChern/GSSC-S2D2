@@ -1,4 +1,4 @@
-_paper_table: "tab:main_results LMSCNet cross-base row (third base after SCPNet and JS3C-Net)"
+_paper_table: "tab:portable_s2d2 (the LMSCNet base / +S2D2 pair -- the third base after SCPNet and JS3C-Net)"
 _description: |
   LMSCNet cross-base headline. Trains S2D2 on pre-dumped LMSCNet
   predictions using ONLY real sequences (00-07, 09, 10). No synthetic

@@ -1,4 +1,4 @@
-_paper_table: "tab:main_results / tab:portable_s2d2 (LMSCNet+S2D2 val mIoU at N=1, no TTA)"
+_paper_table: "tab:portable_s2d2 (main-paper Tab. III; the LMSCNet + S2D2 entry, 16.6 mIoU / +1.8 pp at N=1, no TTA)"
 _description: |
   Eval LMSCNet+S2D2 at N=1, no TTA, official semantic-kitti-api evaluator.
   Mirrors js3c_val_realistic.yaml: identical pipeline except base_pred_dir

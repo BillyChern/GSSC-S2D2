@@ -38,6 +38,7 @@ from tqdm import tqdm
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gssc.diffusion.multinomial import MultinomialDiffusion3DV2
 from gssc.models.s2d2_unet import SceneCompletionUNetSparse
+from gssc.utils.checkpoint import assert_bound, config_value, load_checkpoint_config
 
 logger = logging.getLogger(__name__)
 
@@ -97,27 +98,50 @@ def load_model(
     Supports both the v1.0.0 ``.pt`` layout (model_state_dict + ema_shadow)
     and the v1.1.0 ``.safetensors`` per-subdir layout (model_ema.safetensors
     holds the deployment weights directly).
+
+    The architecture and the noise schedule are read from whatever the checkpoint
+    declares about itself (its sibling ``config.json``, or ``ckpt["config"]``); the
+    literals below are only the fallback for a checkpoint that declares nothing.
+    Every shipped checkpoint declares exactly these values, so this is inert for
+    them and load-bearing for anything else. The load is then checked: a partial
+    ``strict=False`` load used to leave unmatched tensors at random initialisation
+    and still produce a plausible score.
+
+    Raises:
+        RuntimeError: If the weights do not fully bind to the architecture.
     """
     ckpt_str = str(ckpt_path)
-    model = SceneCompletionUNetSparse(
-        num_classes=20, base_channels=32, time_emb_dim=128,
-        lidar_base_channels=16, lidar_out_channels=32, lidar_in_channels=1,
-        no_bev=False, ssc_cond_channels=20, ssc_multiscale=False,
-    ).to(device)
-
+    ckpt = None
     if ckpt_str.endswith(".safetensors"):
         from safetensors.torch import load_file
         state_dict = load_file(ckpt_str)
-        model.load_state_dict(state_dict, strict=False)
     else:
         ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
-        model.load_state_dict(ckpt['model_state_dict'], strict=False)
-        if 'ema_shadow' in ckpt:
-            for name, p in model.named_parameters():
-                if name in ckpt['ema_shadow']:
-                    p.data.copy_(ckpt['ema_shadow'][name])
+        state_dict = ckpt['model_state_dict']
+
+    cfg = load_checkpoint_config(ckpt_path, ckpt)
+    model = SceneCompletionUNetSparse(
+        num_classes=config_value(cfg, 'num_classes', 20),
+        base_channels=config_value(cfg, 'base_channels', 32),
+        time_emb_dim=128,
+        lidar_base_channels=16, lidar_out_channels=32, lidar_in_channels=1,
+        no_bev=config_value(cfg, 'no_bev', False),
+        ssc_cond_channels=20,
+        ssc_multiscale=config_value(cfg, 'ssc_multiscale', False),
+    ).to(device)
+
+    load_result = model.load_state_dict(state_dict, strict=False)
+    assert_bound("model", load_result, ckpt_path)
+    if ckpt is not None and 'ema_shadow' in ckpt:
+        for name, p in model.named_parameters():
+            if name in ckpt['ema_shadow']:
+                p.data.copy_(ckpt['ema_shadow'][name])
     model.train(False)
-    diffusion = MultinomialDiffusion3DV2(num_classes=20, num_timesteps=100, beta_max=0.1).to(device)
+    diffusion = MultinomialDiffusion3DV2(
+        num_classes=config_value(cfg, 'num_classes', 20),
+        num_timesteps=config_value(cfg, 'num_timesteps', 100),
+        beta_max=config_value(cfg, 'beta_max', 0.1),
+    ).to(device)
     return model, diffusion
 
 

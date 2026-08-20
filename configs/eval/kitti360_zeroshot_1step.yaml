@@ -2,11 +2,23 @@
 #
 # Runs the SemanticKITTI-trained SCPNet+S²D² headline pipeline zero-shot on
 # SSCBench-KITTI360 val (scene 06, 1,812 frames) and scores against KITTI-360
-# 19-class voxel GT under the 16-shared-class intersection protocol.
+# voxel GT with the official SSCBench evaluate_completion.py.
+#
+# TWO MEANS, AND THEY DIFFER. The official scorer's own headline is the mean over
+# ALL 18 KITTI-360 classes; other-structure and other-object are among them and a
+# SemanticKITTI-trained model can never emit either, so they are structurally 0 and
+# drag that mean down. The paper quotes the mean over the 16 shared
+# SemanticKITTI-cap-KITTI-360 classes. scripts/eval_kitti360.py prints BOTH, each
+# labelled with its class set, and takes the 16-class one as the headline.
 #
 # This config is consumed by scripts/eval_kitti360.py (NOT the SemanticKITTI
 # scripts/eval.py, which is hardcoded to seq 08 + the SemanticKITTI learning_map).
-_paper_table: "tab:portable_s2d2 (SSCBench-KITTI360 zero-shot row)"
+_paper_table: >-
+  none as a table. The KITTI-360 transfer is reported in main-paper prose
+  (sec:crossdataset); its per-class panel is supplementary
+  tab:supp_crossdataset_perclass, whose left panel is the 16 shared classes.
+  It is NOT a row of tab:portable_s2d2, which tabulates three frozen bases on
+  SemanticKITTI only.
 _description: >
   Zero-shot SCPNet (SemanticKITTI-trained) -> S²D² (gssc_31k_mf_step40000) on
   SSCBench-KITTI360 val. SCPNet predictions are remapped SemanticKITTI->KITTI360

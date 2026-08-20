@@ -1,9 +1,9 @@
 # Model Zoo
 
-All checkpoints are released under Apache-2.0. The Hugging Face Hub mirror
-(`scripts/download_assets.py --checkpoints`) is released upon paper
-publication; until then the download command exits with the manual-download
-instructions in `docs/DATASET.md`.
+All checkpoints are released under Apache-2.0 and mirrored on the Hugging Face
+Hub at [`BillyChern/GSSC-S2D2-checkpoints`](https://huggingface.co/BillyChern/GSSC-S2D2-checkpoints).
+Fetch them with `python scripts/download_assets.py --checkpoints` (~4 GB total);
+`docs/DATASET.md` documents manual provisioning as the alternative route.
 
 ## Layout (since v1.1.0)
 
@@ -144,29 +144,43 @@ Reproduction requires `data/js3cnet_predictions/` (190 GB real + synth; download
 
 These are single-frame-**trained** retrains that sweep the synthetic-pool volume.
 They are a companion to — not the source of — the paper's `tab:data_scaling`
-(Supp §E), which reports the **headline** configuration (multi-frame-trained,
+(supplementary **Table VII**, App. C-B), which reports the **headline** configuration (multi-frame-trained,
 `T=100`-uniform, `N=1` deployment): 0K 37.7 → 10K 38.1 → 20K 38.3 → **32K 38.54
 (headline)** → 57K 38.4, monotonically increasing through 32K. The `N=1` column
 below is each single-frame checkpoint's own measured value, distinct from the
-multi-frame `tab:data_scaling` cells above.
+multi-frame `tab:data_scaling` cells above. The paper carries this single-frame
+sweep as prose in the same appendix subsection (App. C-B), not as a table: it
+prints 0K 38.2, 10K/20K 38.1, 32K 38.4, 57K 37.7, which is what the rows below
+round to.
 
 | Subdir | Synthetic pool | Val mIoU (N=1 / peak) | Config |
 |---|---|---|---|
-| `gssc_sf/gssc_0K_sf_step100000/`  | None (real only)         | 38.18 / 38.46 (N=5)  | `configs/train/0K_sf.yaml`  |
-| `gssc_sf/gssc_10K_sf_step100000/` | 10K synthetic            | 38.06 / 38.50 (N=10) | `configs/train/10K_sf.yaml` |
-| `gssc_sf/gssc_20K_sf_step100000/` | 20K synthetic            | 38.14 / 38.49 (N=5)  | `configs/train/20K_sf.yaml` |
-| `gssc_sf/gssc_31K_sf_step100000/` | 31K synthetic            | 38.42 / 38.49 (N=2-5)| `configs/train/31k_sf.yaml` |
-| `gssc_sf/gssc_57K_sf_step100000/` | 57K synthetic            | 37.66 / 38.05 (N=5)  | `configs/train/57K_sf.yaml` |
+| `gssc_sf/gssc_0K_sf_step93000/`  | None (real only)         | 38.18 / 38.46 (N=5)  | `configs/train/0K_sf.yaml`  |
+| `gssc_sf/gssc_10K_sf_step87000/` | 10K synthetic            | 38.06 / 38.50 (N=10) | `configs/train/10K_sf.yaml` |
+| `gssc_sf/gssc_20K_sf_step85000/` | 20K synthetic            | 38.14 / 38.49 (N=5)  | `configs/train/20K_sf.yaml` |
+| `gssc_sf/gssc_31K_sf_step72000/` | 31K synthetic            | 38.42 / 38.49 (N=2-5)| `configs/train/31k_sf.yaml` |
+| `gssc_sf/gssc_57K_sf_step69000/` | 57K synthetic            | 37.66 / 38.05 (N=5)  | `configs/train/57K_sf.yaml` |
 
 > **Copy these names verbatim — the casing is intentionally mixed.** The
-> checkpoint subdirs use an uppercase `K` (e.g. `gssc_31K_sf_step100000`),
+> checkpoint subdirs use an uppercase `K` (e.g. `gssc_31K_sf_step72000`),
 > but the `31K` row's training config is lowercase, `configs/train/31k_sf.yaml`
 > (the `0K`/`20K`/`57K` configs keep the uppercase `K`). Do not "normalize" the
 > case by analogy or you will hit a missing-file error.
 
-## Training-timestep ablations (Supp `tab:train_timesteps_ablation`)
+## Training-timestep ablations (internal runs; no paper table)
 
-| Subdir | Schedule | Val mIoU | Config |
+> **No paper table backs these three rows, and the supplementary table label
+> earlier revisions of this file cited does not exist in the paper at all.**
+> Supplementary App. C-A reports only the two
+> `T=100` schedules — the uniform headline at 38.54 % against a `t=T`-skewed
+> variant at 38.2 % — and says the shorter schedules were *trained and omitted
+> rather than reported*, because the implementation fixes β linear on
+> [1e-4, 0.1] irrespective of `T`, so a smaller `T` never drives the forward
+> process to the source and the model is then queried from a state it never
+> saw. Treat the `T=10` / `T=50` checkpoints below as internal ablation runs,
+> not as paper values.
+
+| Subdir | Schedule | Val mIoU (internal) | Config |
 |---|---|---|---|
 | `gssc_timesteps/gssc_T10/`         | T=10 uniform            | 37.83 | `configs/train/T10.yaml`         |
 | `gssc_timesteps/gssc_T50/`         | T=50 uniform            | 37.92 | `configs/train/T50.yaml`         |
@@ -185,10 +199,35 @@ Pyramid checkpoints do not use EMA; each subdir ships
 
 ## BEV second task (tab:bev_results)
 
-| Subdir | Task | Pipeline mIoU | Config |
+| Subdir | Task | Pipeline mIoU (training-time 2D BEV evaluator, 100 fixed val samples, seed 42) | Config |
 |---|---|---|---|
-| `bev/bev_perception_net/` | LiDAR-only BEV refinement (S²D² applied to BEV) | **36.1** (34.3 base + 1.8 refinement) | `configs/train/bev_secondary.yaml` |
+| `bev/bev_s2d2_scpnet/` | LiDAR-only BEV refinement (2D S²D² on the base-derived BEV) | **36.1** = 34.8 parameter-free projection + 1.3 refinement | `configs/train/bev_secondary.yaml` |
 | `bev/bev_direct_l3_deeper/` | Supp BEV ablation (deeper 3D-direct baseline) | n/a (ablation only) | one-off internal ablation; recipe not released (no shipped config) |
+
+**Read the protocol before comparing this row to anything.** The BEV numbers are
+scored by the training-time 2D BEV evaluator on 100 fixed val samples (seed 42),
+over the 19 evaluation classes with class 0 excluded — a different instrument
+from the full-validation 3D scoring used everywhere else in this file, and the
+paper says so in its own supplementary BEV appendix. The two are not
+commensurable; do not read 36.1 as a 3D-protocol number. The checkpoint's
+`config.json` records the same protocol string and the unrounded pair it
+produced (internal measurement: 34.75 base projection, 36.09 refined).
+
+> **The BEV row moved checkpoints in this release.** Earlier revisions pointed
+> this row at `bev/bev_perception_net/` and quoted a "34.3 base + 1.8
+> refinement" split. Both were wrong: `bev_perception_net` is a different model
+> from an earlier BEV experiment, it did not produce the paper's row, and the
+> BEV evaluator cannot even load it
+> under this release's config (its own `config.json` describes it as a
+> lightweight 938K-param 2D refinement net). The model behind the paper's row is
+> `bev/bev_s2d2_scpnet/`, and the split the paper prints is 34.8 + 1.3.
+
+Run it with the explicit checkpoint path:
+
+```bash
+python scripts/eval.py eval/bev_secondary \
+    --checkpoint data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors
+```
 
 ## SCPNet base (frozen)
 
@@ -272,9 +311,13 @@ python scripts/eval.py eval/lmscnet_val_1step \
 Or reproduce a specific paper table with the all-in-one driver::
 
 ```bash
-# 38.54% val headline (paper label tab:portable_s2d2); the driver's CLI key for
-# this checkpoint is tab:perclass (an alias of tab:main_results in the paper).
-python scripts/reproduce_table.py tab:perclass             # 38.54% val (paper tab:portable_s2d2)
+# The strings below are reproduce_table.py CLI KEYS, not paper label names.
+# The driver's tab:perclass key resolves to the paper's per-class val table
+# (labelled tab:perclass_delta, main Tab. II); its tab:cross_base_js3c and
+# tab:cross_base_lmsc keys resolve to per-base rows of tab:portable_s2d2.
+python scripts/reproduce_table.py tab:perclass             # 38.54% val (paper tab:perclass_delta)
 python scripts/reproduce_table.py tab:cross_base_js3c      # 24.3% val, the paper headline (derived BEV, tab:portable_s2d2)
-python scripts/reproduce_table.py tab:bev_results          # 36.1% BEV (paper tab:bev_results)
+# BEV: 36.1, measured by the training-time 2D BEV evaluator on 100 fixed val
+# samples (seed 42) — see the BEV section above before quoting it.
+python scripts/reproduce_table.py tab:bev_results
 ```

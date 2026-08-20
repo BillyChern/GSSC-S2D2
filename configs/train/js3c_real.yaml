@@ -1,6 +1,6 @@
-_paper_table: "tab:main_results rows 90-91, supp tab:supp_b6_val (cross-base headline)"
+_paper_table: "tab:portable_s2d2 (the JS3C-Net base / +S2D2 pair) and supplementary tab:supp_b6_val (cross-base headline)"
 _description: |
-  JS3C-Net cross-base headline (paper Tab. III row 91). Trains S2D2 on
+  JS3C-Net cross-base headline (main-paper Tab. III, the JS3C-Net pair). Trains S2D2 on
   pre-dumped JS3C-Net predictions using ONLY real sequences (00-07, 09, 10).
   No synthetic pool: JS3C-Net's segmentation head treats the voxel-derived
   fake point cloud as out-of-distribution (paper supp § H), so the synth-31K

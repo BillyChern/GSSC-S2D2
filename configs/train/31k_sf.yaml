@@ -1,4 +1,7 @@
-_paper_table: tab:data_scaling (31K SF row), tab:step_reduction_sf
+_paper_table: tab:data_scaling (the 31K entry of the synthetic-pool scaling sweep)
+#              The single-frame step-reduction sweep this config used to claim is not
+#              tabulated in the paper; the tabulated sweep is tab:step_reduction, which
+#              is the multi-frame headline checkpoint, not this run.
 _description: 31K single-frame retrain. Used for the data-scaling table.
 data_root: data
 model_type: sparse_full

@@ -3374,6 +3374,11 @@ def main():
                               '38.54%%. Pass --seed=None to disable seeding (not '
                               'recommended; produces a different trajectory).'))
 
+    # Every boolean flag also gets a hidden ``--no_<dest>`` twin, so a YAML config can
+    # switch OFF a flag that defaults to on (configs/ -> gssc.utils.config_loader).
+    from gssc.utils.config_loader import add_boolean_negations
+    add_boolean_negations(parser)
+
     args = parser.parse_args()
 
     # Seed only when explicitly requested. The published gssc_31k_mf headline

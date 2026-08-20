@@ -1,4 +1,4 @@
-_paper_table: "tab:main_results row 91 (realistic deployment variant)"
+_paper_table: "tab:portable_s2d2 (main-paper Tab. III; the JS3C-Net + S2D2 entry, 24.3 mIoU / +1.6 pp -- the protocol-matched official-evaluator number)"
 _description: |
   JS3C-Net cross-base eval under realistic deployment conditions: N=1 Algo2
   sampling with BEV derived from the JS3C-Net 3D prediction (no GT leakage).
