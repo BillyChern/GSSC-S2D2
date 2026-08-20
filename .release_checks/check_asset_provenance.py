@@ -62,6 +62,15 @@ STATUS WHEN WRITTEN (2026-08-20 ~03:00 UTC)
         while recording nothing, so the value must resolve in GSSC-S2D2.
     P8  five gssc_sf subdirs are named *_step100000 and record global_step
         93000 / 87000 / 85000 / 72000 / 69000.
+
+  P5's producing_code STAND-IN IS NOW VERIFIED (2026-08-20, later the same day).
+  P5 lets a COMPLETE producing_code record substitute for a revision on artefacts
+  that predate the release repo. That was accepted on the record's own say-so, and
+  it was too wide: deleting the revision field from all 18 configs -- D3 reinstated
+  in full -- left P5 reporting ONE failure, 17 slipping through the stand-in. The
+  excuse is now falsified before it is granted: if the tree holding the source
+  checkpoint answers `git rev-parse`, a dated revision was recordable and the
+  stand-in is refused. It is granted only where the gate cannot prove otherwise.
 """
 
 from __future__ import annotations
@@ -590,6 +599,13 @@ def p5_code_revision(w: World) -> List[str]:
             # release repo cannot carry a release-repo revision, so a COMPLETE
             # producing_code record stands in its place. Anything newer must have one.
             if _predates_release_repo(w, d) and _complete_producing_code(cfg):
+                refuted = _producing_code_substitute_refuted(w, d, cfg)
+                if refuted is None:
+                    continue
+                bad.append(f"{cj}: records no code revision, and its producing_code "
+                           f"record cannot stand in for one -- {refuted} is present "
+                           f"and answers `git rev-parse`, so a dated revision WAS "
+                           f"recordable for this artefact")
                 continue
             # A checkpoint whose originating run no longer exists cannot carry a dated
             # revision, and inventing one would be worse than admitting it. The config
@@ -617,7 +633,8 @@ def p5_code_revision(w: World) -> List[str]:
             if r.returncode == 0:
                 break
         else:
-            if _predates_release_repo(w, d) and _complete_producing_code(cfg):
+            if (_predates_release_repo(w, d) and _complete_producing_code(cfg)
+                    and _producing_code_substitute_refuted(w, d, cfg) is None):
                 continue
             bad.append(f"{cj}: records code revision {rev[:60]!r}, which neither "
                        f"{REPO} nor {RESEARCH_REPO} can resolve -- not a provenance record")
@@ -634,6 +651,25 @@ def _release_repo_birth() -> float:
     return float(out[0]) if out and out[0].strip() else float("inf")
 
 
+def _resolved_source(w: "World", d: Path) -> Optional[Path]:
+    """The first source artefact this checkpoint's own RUN_FIELDS resolve to on disk,
+    in RUN_FIELDS order (most specific first). None when nothing resolves."""
+    try:
+        cfg = w.read_json(d / "config.json")
+    except Exception:                                            # noqa: BLE001
+        cfg = {}
+    for f in RUN_FIELDS:
+        for src in (cfg, cfg.get("train_config") if isinstance(cfg.get("train_config"), dict) else {}):
+            v = src.get(f) if isinstance(src, dict) else None
+            if not v:
+                continue
+            for base in (RESEARCH_REPO, REPO, ASSETS):
+                cand = base / str(v)
+                if cand.is_file():
+                    return cand
+    return None
+
+
 def _predates_release_repo(w: "World", d: Path) -> bool:
     """True when the TRAINING artefact predates the release repo.
 
@@ -646,22 +682,64 @@ def _predates_release_repo(w: "World", d: Path) -> bool:
     keeps the gate red rather than excusing a checkpoint on a wrong date).
     """
     birth = _release_repo_birth()
-    try:
-        cfg = w.read_json(d / "config.json")
-    except Exception:                                            # noqa: BLE001
-        cfg = {}
-    for f in RUN_FIELDS:
-        for src in (cfg, cfg.get("train_config") if isinstance(cfg.get("train_config"), dict) else {}):
-            v = src.get(f) if isinstance(src, dict) else None
-            if not v:
-                continue
-            for base in (Path("/workspace/Semantic_Scene_Completion_LiDAR"), REPO, ASSETS):
-                cand = base / str(v)
-                if cand.is_file():
-                    return cand.stat().st_mtime < birth
+    src = _resolved_source(w, d)
+    if src is not None:
+        return src.stat().st_mtime < birth
     weights = [f for f in d.iterdir()
                if f.is_file() and f.suffix in (".safetensors", ".pt", ".pth")]
     return bool(weights) and all(f.stat().st_mtime < birth for f in weights)
+
+
+def _queryable_trees() -> List[Path]:
+    """The trees this gate resolves revisions in, filtered to the ones that answer a
+    git query right now. Measured per run, never assumed: on a machine where the
+    research checkout is absent, it drops out and the substitute below stands."""
+    out = []
+    for repo in (REPO, RESEARCH_REPO):
+        r = subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", "-q", "HEAD"],
+                           capture_output=True)
+        if r.returncode == 0:
+            out.append(repo)
+    return out
+
+
+def _producing_code_substitute_refuted(w: "World", d: Path,
+                                       cfg: dict) -> Optional[Path]:
+    """Falsify the excuse a producing_code block stands on.
+
+    Accepting producing_code INSTEAD of a revision rests on an implicit claim: that no
+    dated revision could have been recorded for this artefact. That claim is
+    falsifiable, and this falsifies it -- the same discipline
+    _unrecoverable_verified() applies to provenance_unrecoverable. If the tree that
+    actually holds the source checkpoint is sitting here and answers `git rev-parse`,
+    then a revision WAS recordable -- and on 2026-08-20, 17 of the 18 shipped configs
+    proved it by carrying one that resolves there.
+
+    Why this had to be added (measured 2026-08-20): the excuse was believed, not
+    checked. Deleting the revision field from ALL 18 configs -- defect D3 reinstated
+    in full, which is the entire reason p5 exists -- left p5 reporting exactly ONE
+    failure. The stand-in was hiding the defect it was written to stand in for.
+
+    Returns the tree that refutes the claim, or None when the gate cannot refute it:
+    no source resolves into a tree it can query AND the block names a producing repo
+    that is not one of them (a third-party codebase). That residual is deliberate --
+    the gate refuses an excuse only when it can prove it false.
+    """
+    trees = _queryable_trees()
+    src = _resolved_source(w, d)
+    if src is not None:
+        for tree in trees:
+            try:
+                src.relative_to(tree)
+            except ValueError:
+                continue
+            return tree
+    pc = cfg.get("producing_code")
+    named = str(pc.get("repo", "")) if isinstance(pc, dict) else ""
+    for tree in trees:
+        if tree.name.lower() in named.lower():
+            return tree
+    return None
 
 
 def _complete_producing_code(cfg: dict) -> bool:
@@ -974,6 +1052,15 @@ def _prestate_p5(w: World) -> None:
 
 
 def _mut_p5_strip(w: World) -> str:
+    """Delete the revision record outright, leaving producing_code standing.
+
+    This arm reported MISSED for as long as it existed, and the injection was never
+    the reason: the override lands (the config really does come back with zero
+    REV_FIELDS), the gate really does read it. The gate ACCEPTED it, on an unverified
+    producing_code excuse. That was the defect -- see
+    _producing_code_substitute_refuted(). The fault is a genuine one (D3 reinstated on
+    this checkpoint) and the gate now says so.
+    """
     d = checkpoint_dirs(w)[0]
     cj = d / "config.json"
     cfg = {k: v for k, v in w.read_json(cj).items() if k not in REV_FIELDS}
@@ -983,6 +1070,12 @@ def _mut_p5_strip(w: World) -> str:
 
 
 PRESTATES = {"config-declares-producing-code-revision": _prestate_p5}
+# A check may have MORE THAN ONE way to be broken, and p5 has exactly two: the record
+# is absent, or the record is present but resolves to nothing. Both are injected and
+# BOTH must trip. They used to be registered as MUTATIONS[p5] and STRIP_MUTATIONS[p5],
+# and the runner picked `STRIP_MUTATIONS.get(name) or MUTATIONS[name]` -- so
+# registering the second one silently retired the first. _mut_p5 was dead code that
+# nothing ran, and the arm that did run was the one the gate excused.
 STRIP_MUTATIONS = {"config-declares-producing-code-revision": _mut_p5_strip}
 
 
@@ -999,21 +1092,28 @@ def selftest() -> int:
                   f"{sorted(base)[0]})")
             missed.append(name)
             continue
-        w = World()
-        if pre:
-            pre(w)
-        try:
-            target = (STRIP_MUTATIONS.get(name) or MUTATIONS[name])(w)
-        except (AssertionError, StopIteration) as e:
-            print(f"  MISSED   {name}   (fault not injectable: {e})")
+        # EVERY registered fault for this check, each on a fresh World, and every one
+        # of them must trip. Selecting one and discarding the rest is how _mut_p5
+        # stopped running.
+        faults = [m for m in (STRIP_MUTATIONS.get(name), MUTATIONS.get(name)) if m]
+        why: Optional[str] = None
+        for mut in faults:
+            w = World()
+            if pre:
+                pre(w)
+            try:
+                target = mut(w)
+            except (AssertionError, StopIteration) as e:
+                why = f"fault {mut.__name__} not injectable: {e}"
+                break
+            if not [d for d in set(fn(w)) - base if target in d]:
+                why = f"fault {mut.__name__} on {target} produced no new failure"
+                break
+        if why:
+            print(f"  MISSED   {name}   ({why})")
             missed.append(name)
-            continue
-        new = [d for d in set(fn(w)) - base if target in d]
-        if new:
-            print(f"  TRIPPED  {name}")
         else:
-            print(f"  MISSED   {name}   (fault on {target} produced no new failure)")
-            missed.append(name)
+            print(f"  TRIPPED  {name}   ({len(faults)} fault(s))")
     n = len(CHECKS)
     if missed:
         print(f"SELFTEST FAILED: {n - len(missed)}/{n} checks provably fail when broken; "
