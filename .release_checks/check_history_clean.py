@@ -1,74 +1,70 @@
 #!/usr/bin/env python3
 """GATE: no release-stop marker survives anywhere in git history.
 
-THE DEFECT THIS GATE EXISTS FOR
--------------------------------
-Blob ``995e1af``, path ``.migration_audit.local.md``, whose FIRST LINE reads
+THE DEFECT CLASS THIS GATE EXISTS FOR
+-------------------------------------
+An internal working file -- the kind that carries a "strip before public release" header and
+a strip-list of things that must never ship -- was committed, then removed with ``git rm``.
+That moved it out of the WORKTREE and out of nothing else. A deletion commit is a change to
+the tip, not to history: the blob stayed reachable from every tag cut before it, and it had
+already been pushed. Every gate that reads the worktree reported the repository as clean.
 
-    "# GSSC-S2D2 Migration Audit (working file — strip before public release)"
+RESOLVED 2026-08-20 by a history rewrite (``git filter-repo --invert-paths --path <file>``),
+a re-cut of all affected tags, and a force-push. The gate stays because the defect class
+recurs: the next working file will look just as harmless at the tip.
 
-and which carries a section headed "## Privacy / strip-list (must grep before public
-push)", was added in ``2112d7a`` ("P4-P6: assets staging + privacy sweep + final polish")
-and deleted in ``1b24856`` ("chore: gitignore migration audit + remove leaked working
-file").  Measured 2026-08-20:
-
-  * the blob is still reachable: ``git cat-file -p 995e1af`` prints it in full;
-  * ``git tag --contains 2112d7a`` = ALL FOURTEEN tags, v1.0.0-rc1 .. v2.3.8 -- including
-    v2.3.8, the tag the paper pins;
-  * ``git branch -r --contains 2112d7a`` = ``origin/main``, i.e. it is already PUSHED.
-
-The file names the 230 GB / 178 GB private asset paths, the internal launcher scripts, and
-a strip-list of files that were never meant to ship.  `git rm` moved it out of the WORKTREE
-and out of nothing else.  This is the whole point: a deletion commit is a change to the tip,
-not to history, and every gate that reads the worktree reports the repository as clean.
+Deliberately NOT recorded here: the offending blob's hash, its commit ids, its first line,
+or its section headings. This file ships in the public repository, and a force-push does not
+delete objects from the remote -- an orphaned commit stays fetchable by anyone holding its
+sha until the host garbage-collects. Publishing the forensics of a purge alongside the purge
+hands out the key to it. Provenance lives in the release runbook, outside the repo.
 
 WHY THE DETECTOR IS TWO-CHANNEL (PATH *AND* CONTENT)
 ----------------------------------------------------
-The path ``.migration_audit.local.md`` is itself the tell -- a ``.local.`` infix is the
-convention this repo uses for "never ship this" (six ``.gitignore`` revisions say so in
-prose).  A content-only detector would have missed a working file that happened to carry no
-marker sentence; a path-only detector misses a leak inside an ordinary-looking filename.
-Both channels run, and a hit on either fails.
+A ``.local.`` infix is the convention this repo uses for "never ship this" (six ``.gitignore``
+revisions say so in prose), so the path alone can be the tell. A content-only detector would
+miss a working file carrying no marker sentence; a path-only detector misses a leak inside an
+ordinary-looking filename. Both channels run, and a hit on either fails.
 
-CALIBRATION -- EVERY MARKER BELOW WAS MEASURED OVER ALL 978 TEXT BLOBS IN THIS HISTORY
---------------------------------------------------------------------------------------
-Markers were not guessed.  Candidates were run over the whole object graph and the noisy
-ones were REMOVED, with the measurement recorded here so nobody re-adds them:
+CALIBRATION -- EVERY MARKER BELOW WAS MEASURED OVER THE WHOLE OBJECT GRAPH
+-------------------------------------------------------------------------
+Markers were not guessed. Candidates were run over every text blob in the history and the
+noisy ones REMOVED, with the measurement recorded here so nobody re-adds them:
 
-  KEPT (1 hit each, all of them blob 995e1af):
-      "strip before public release", "strip-list", "working file", "before public push"
-  KEPT (0 hits today -- they guard classes this repo has not yet leaked):
+  KEPT: "strip before public release", "strip-list", "working file", "before public push",
       "do not commit", "internal only", "private note", "TODO ... before release",
-      "delete/remove before release", "for author eyes only", "WIP ... do not ..."
-  REJECTED, "not (yet) public": 47 hits, every one of them the LEGITIMATE README/CHANGELOG
-      sentence "Assets are not yet public."  A gate that fails on an accurate availability
-      statement is noise, and this harness has already had to remove that class of noise
-      once (see the paper harness's check_availability_parity docstring).
-  EXEMPTED, "local-only" / "never publish": 6 hits, all six ``.gitignore`` revisions, all
-      six of them COMMENTS DESCRIBING WHAT IS EXCLUDED ("# Local-only retrain / debug
-      scratch (never publish)").  An ignore file is the MECHANISM for not leaking; scanning
-      it as if it were a leak inverts the gate.  Exempted by path, with the reason stated.
+      "delete/remove before release", "for author eyes only", "WIP ... do not ...".
+      All now score 0 hits -- they guard classes this repo is currently free of.
+  REJECTED, "not (yet) public": 47 hits, every one the LEGITIMATE README/CHANGELOG sentence
+      "Assets are not yet public." A gate that fails on an accurate availability statement is
+      noise, and this harness has already had to remove that class of noise once (see the
+      paper harness's check_availability_parity docstring).
+  EXEMPTED, "local-only" / "never publish": 6 hits, all six ``.gitignore`` revisions, all six
+      COMMENTS DESCRIBING WHAT IS EXCLUDED ("# Local-only retrain / debug scratch (never
+      publish)"). An ignore file is the MECHANISM for not leaking; scanning it as if it were a
+      leak inverts the gate. Exempted by path, with the reason stated.
 
-The exemption table is an allowlist of EXEMPTIONS, never of TARGETS.  An allowlist of
-targets fails silent -- whatever is not listed is never examined.  This one fails loud:
-every marker hit is reported unless a listed path claims it, so a new working file is
-flagged the day it appears.
+The exemption table is an allowlist of EXEMPTIONS, never of TARGETS. An allowlist of targets
+fails silent -- whatever is not listed is never examined. This one fails loud: every marker
+hit is reported unless a listed path claims it, so a new working file is flagged the day it
+appears.
 
 SCOPE, STATED SO THE GREEN IS HONEST
 ------------------------------------
-  * Blobs only.  COMMIT MESSAGES are not scanned: ``1b24856``'s own subject contains the
-    word "leaked" and rewriting history is not what this gate asks for.
+  * Blobs only. COMMIT MESSAGES are not scanned; rewriting them is not what this gate asks for.
   * Binary blobs (undecodable as UTF-8) are counted and reported, never silently skipped.
   * A blob over ``MAX_BLOB_BYTES`` is reported as UNSCANNED rather than passed.
+  * Reachability only. This gate reads the LOCAL object graph, so it cannot see an object that
+    survives on the remote with no ref pointing at it. After any purge, test the remote
+    directly -- fetch the old sha into a throwaway clone -- before flipping to public.
 
 DIRECTION OF THE FIX -- READ BEFORE "FIXING"
 --------------------------------------------
-There is no worktree edit that makes CHECK A pass.  Passing it requires REWRITING HISTORY
-(``git filter-repo --invert-paths --path .migration_audit.local.md``), re-tagging all
-fourteen tags, and a force-push -- and the paper pins v2.3.8, so the retag must preserve
-that name.  Anything less leaves the blob fetchable by anyone who clones the repo.
-THIS GATE IS THE ONE THAT GUARDS FLIPPING THE REPOSITORY TO PUBLIC.  It is expected to be
-RED until that rewrite happens; a green here obtained by editing the worktree is a lie.
+There is no worktree edit that makes CHECK A pass. Passing it requires REWRITING HISTORY,
+re-tagging every affected tag, and a force-push -- and the paper pins a tag by NAME, so the
+retag must preserve that name. Anything less leaves the blob fetchable by anyone who clones.
+THIS GATE IS THE ONE THAT GUARDS FLIPPING THE REPOSITORY TO PUBLIC. A green obtained by
+editing the worktree is a lie.
 """
 
 from __future__ import annotations
@@ -95,12 +91,12 @@ MAX_BLOB_BYTES = 3_000_000
 # so every pattern allows filler where filler is plausible.
 # --------------------------------------------------------------------------------------
 CONTENT_MARKERS: Dict[str, str] = {
-    # The live defect, verbatim from 995e1af line 1.
+    # Derived from the header line of the working file this gate was written for.
     "strip-before-public-release": r"\b(?:strip|delete|remove|purge|drop)\b[^\n]{0,40}?"
                                    r"\bbefore\b[^\n]{0,40}?"
                                    r"\b(?:public|release|releasing|publish|publishing|push|"
                                    r"submission|submitting|open[- ]?sourc\w*)\b",
-    # The section heading in the same blob.
+    # A section heading that file carried.
     "strip-list": r"\bstrip[-\s]?list\b",
     # "(working file — strip before public release)"; "scratch notes"; "notes to self".
     "working-scratch-file": r"\b(?:working|scratch|throwaway|temp(?:orary)?)\s+"
