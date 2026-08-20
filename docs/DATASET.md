@@ -402,7 +402,7 @@ The pool is built by the Paired Sparse–Dense Scene Synthesis (PS³) pipeline:
    (`src/gssc/data/lidar_resampler_v2.py`), producing the `_voxels` half of the
    pair.
 
-## Checkpoints (~4 GB)
+## Checkpoints (~4.9 GB)
 
 ```bash
 python scripts/download_assets.py --checkpoints
@@ -420,7 +420,7 @@ python scripts/download_assets.py --checkpoints
 | Object bank | `data/object_bank/` | 448 MB |
 | Synthetic pool 31K | `data/synthetic_pool_31K/` | ~128 GB uncompressed (approx.) |
 | Synthetic pool 57K (`tab:data_scaling` 57K row) | `data/synthetic_pool_57K/` | ~230 GB uncompressed (approx.) |
-| Pretrained checkpoints | `data/checkpoints/` | ~4 GB |
+| Pretrained checkpoints | `data/checkpoints/` | ~4.9 GB (4.58 GiB) |
 | **Total (eval-only, SCPNet headline)** | | **~135 GB** |
 | **Total (eval-only, +cross-base JS3C)** | | **~325 GB** (135 GB SCPNet subset + 190 GB JS3C-Net real + synth) |
 | **Total (eval-only, +cross-base LMSCNet)** | | **~181 GB** (135 GB SCPNet subset + 46 GB LMSCNet train+val08) |

@@ -126,14 +126,9 @@ def run_s2d2_and_writeback(dataset: SemanticPossSSCDataset, scpnet_dir: Path,
     """Stages 2-3: S²D² correction + SemanticKITTI->POSS projection + .label writeback."""
     from gssc.diffusion.multinomial import MultinomialDiffusion3DV2
     from gssc.models.s2d2_unet import SceneCompletionUNetSparse
+    from gssc.utils.checkpoint import assert_bound, config_value, load_checkpoint_config
 
     device = torch.device(f"cuda:{gpu}")
-
-    model = SceneCompletionUNetSparse(
-        num_classes=20, base_channels=32, time_emb_dim=128,
-        lidar_base_channels=16, lidar_out_channels=32, lidar_in_channels=1,
-        no_bev=False, ssc_cond_channels=20, ssc_multiscale=False,
-    ).to(device)
 
     # EMA deployment weights, mirroring scripts/eval_kitti360.py run_s2d2_and_writeback:
     #   * safetensors (released v1.1.0 model_ema.safetensors) is already a full
@@ -144,16 +139,37 @@ def run_s2d2_and_writeback(dataset: SemanticPossSSCDataset, scpnet_dir: Path,
     #     overwrite every learnable param present in ema_shadow with its EMA value.
     #     This is the canonical EMA-inference state; using model_state_dict alone
     #     would silently deploy the NON-EMA raw weights.
+    ckpt = None
     if checkpoint.endswith(".safetensors"):
         from safetensors.torch import load_file
-        model.load_state_dict(load_file(checkpoint), strict=False)
+        state_dict = load_file(checkpoint)
     else:
         ckpt = torch.load(checkpoint, map_location="cpu", weights_only=False)
-        load_res = model.load_state_dict(ckpt["model_state_dict"], strict=False)
-        logger.info(
-            "Loaded model_state_dict: %d missing, %d unexpected.",
-            len(load_res.missing_keys), len(load_res.unexpected_keys),
-        )
+        state_dict = ckpt["model_state_dict"]
+
+    # Architecture from whatever the checkpoint declares about itself (its sibling
+    # config.json, or ckpt["config"]); the literals below are only the fallback for a
+    # checkpoint that declares nothing. Same source as gssc.inference.d4_tta.load_model,
+    # so this zero-shot driver cannot drift from the SemanticKITTI path whose number the
+    # cross-dataset claim is compared against.
+    cfg = load_checkpoint_config(checkpoint, ckpt)
+    model = SceneCompletionUNetSparse(
+        num_classes=config_value(cfg, "num_classes", 20),
+        base_channels=config_value(cfg, "base_channels", 32),
+        time_emb_dim=128,
+        lidar_base_channels=16, lidar_out_channels=32, lidar_in_channels=1,
+        no_bev=config_value(cfg, "no_bev", False),
+        ssc_cond_channels=20,
+        ssc_multiscale=config_value(cfg, "ssc_multiscale", False),
+    ).to(device)
+
+    # strict=False is kept (EMA shadows may omit non-float buffers) but the result is
+    # CHECKED, not logged: an architecture that does not match the checkpoint used to
+    # load silently, leave the unmatched tensors at random initialisation, and still
+    # print a plausible zero-shot mIoU. A warning does not stop that number.
+    load_res = model.load_state_dict(state_dict, strict=False)
+    assert_bound("model", load_res, checkpoint)
+    if ckpt is not None:
         if "ema_shadow" in ckpt and ckpt["ema_shadow"] is not None:
             swapped = 0
             for name, param in model.named_parameters():
@@ -168,8 +184,11 @@ def run_s2d2_and_writeback(dataset: SemanticPossSSCDataset, scpnet_dir: Path,
             logger.warning("No ema_shadow in checkpoint; deploying RAW model_state_dict weights.")
     model.train(False)
 
-    diffusion = MultinomialDiffusion3DV2(num_classes=20, num_timesteps=100,
-                                         beta_max=0.1).to(device)
+    diffusion = MultinomialDiffusion3DV2(
+        num_classes=config_value(cfg, "num_classes", 20),
+        num_timesteps=config_value(cfg, "num_timesteps", 100),
+        beta_max=config_value(cfg, "beta_max", 0.1),
+    ).to(device)
 
     for f in dataset.frames:
         seq, frame_id = f["sequence"], f["frame_id"]

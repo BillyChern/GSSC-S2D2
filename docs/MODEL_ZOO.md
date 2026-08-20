@@ -2,7 +2,7 @@
 
 All checkpoints are released under Apache-2.0 and mirrored on the Hugging Face
 Hub at [`BillyChern/GSSC-S2D2-checkpoints`](https://huggingface.co/BillyChern/GSSC-S2D2-checkpoints).
-Fetch them with `python scripts/download_assets.py --checkpoints` (~4 GB total);
+Fetch them with `python scripts/download_assets.py --checkpoints` (~4.9 GB total, 4.58 GiB);
 `docs/DATASET.md` documents manual provisioning as the alternative route.
 
 ## Layout (since v1.1.0)
@@ -44,6 +44,93 @@ column below and the "~265 MB" figures in this doc refer to the full subdir; the
 
 The legacy SCPNet base ships as a flat `scpnet_v2_port.pth` (third-party
 convention, kept as-is).
+
+## Checkpoint SHA256 digests
+
+`scripts/eval.py` and `scripts/infer.py` load checkpoints with
+`torch.load(..., weights_only=False)` for the third-party `scpnet_v2_port.pth`
+base, so a tampered file is arbitrary code execution. `SECURITY.md` sends you
+here; this is the table it means. **Verify before loading.**
+
+The same digests ship as `checksums.txt` at the root of the Hugging Face
+checkpoints repo, so the whole set can be checked in one command that returns a
+verdict rather than a digest you have to compare by eye:
+
+```bash
+# Downloads into data/checkpoints/, checksums.txt included.
+python scripts/download_assets.py --checkpoints
+
+# Paths inside checksums.txt are rooted at `checkpoints/`, so run the check from
+# data/ -- the directory that CONTAINS checkpoints/.
+cd data && sha256sum -c checkpoints/checksums.txt
+```
+
+Every line must print `OK` and `sha256sum` must exit 0. A `FAILED` line, or a
+`FAILED open or read` line, means do not load that file. The table below is the
+per-file form of the same data, for verifying a single checkpoint you fetched by
+hand:
+
+```bash
+sha256sum data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
+```
+
+Paths are relative to the download root (`data/checkpoints/`). This covers every
+file the checkpoint payload ships; digests were generated from the assets
+checksums file, not transcribed.
+
+| File (relative to the download root) | SHA256 |
+|---|---|
+| `MANIFEST.txt` | `4d05afd9dc1006bcfc5183631fe14d15abd6779c5ab1c9622d832386223ab942` |
+| `bev/bev_direct_l3_deeper/config.json` | `83d34868e0169dece91feeff2c01d532ef9a00c2ce6e744154fb1de540981fc6` |
+| `bev/bev_direct_l3_deeper/model.safetensors` | `6a6f1aa1a72da78e624b9575510d6aed8f44753be461db2281f2e2666b5a3d75` |
+| `bev/bev_perception_net/config.json` | `6deea4d5fd0515d218575997159cec5d1dbe28ca0c815a9938154d66ed9f5cae` |
+| `bev/bev_perception_net/model.safetensors` | `6be1db3c557e5504793c998da86b10c0be2f0878b2a81632f82b774d6936d03d` |
+| `bev/bev_s2d2_scpnet/config.json` | `babf70ebba9a1d1997a7e0ee4a40b1923aa3d55fc92a72e87d73960533ff5ed5` |
+| `bev/bev_s2d2_scpnet/model.pt` | `46fcdb6fbdd9d4087c987b80ec514179625200417e67c71687a93ba036235111` |
+| `bev/bev_s2d2_scpnet/model.safetensors` | `bd4002ccc22833481662212530d2a1d072afdfc039386d129cbfc2522c1ad881` |
+| `gssc_js3c/gssc_js3c_s2d2_real/config.json` | `1c5d11e7012a1edb791b97b68764b5bdf1b47eea4e35e6cba3ac9ed304a3b6b3` |
+| `gssc_js3c/gssc_js3c_s2d2_real/model.safetensors` | `877e04ffdc0578078648ee5e5f219d2bc1c4e290ad3c45ada4d6d7d6a3aceed2` |
+| `gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | `c8743c7f5aeb37e243778374ff8d49a049c9920a66db4aec86f50c15104539dd` |
+| `gssc_lmsc/gssc_lmsc_s2d2_real/config.json` | `7a9dee38e52df18ab49799e28fbc3ab14c7c37ae7e5e7558b3654977c3616330` |
+| `gssc_lmsc/gssc_lmsc_s2d2_real/model.safetensors` | `7228e3339b0e4b31a1f83cfef66d22871e59cd4c97fe8527487863e7931a4a73` |
+| `gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | `ed6a0aa825ef83e6b20ab0e1016757e28a0bd1781b88b3b97b2c59c8704c0cfa` |
+| `gssc_mf/gssc_31k_mf_step40000/config.json` | `f4e7cb22e577964ed3790d4388d8689f7d630ef9280f237d7e86ebe9fec082dd` |
+| `gssc_mf/gssc_31k_mf_step40000/model.safetensors` | `487bb5af5bfc0d50d008d0ad8c462f73b4428305ade33af100feaaafb2704c40` |
+| `gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | `3f80852d7c2db72571df66dc79c6add7dac50292815af883a20b460535a5193c` |
+| `gssc_mf/gssc_57k_mf_step40000/config.json` | `c982809c14efac14ac2b6797eb0ceba998bc6d0fa3f64efee22a6d50a1a25b03` |
+| `gssc_mf/gssc_57k_mf_step40000/model.safetensors` | `84ca0e67fd95d753855243a04e54612d706edf49dc4f2cc2d62f24d16ce3b324` |
+| `gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | `7bd49c0b15667e7019a810b16dd80ae59760881ee077dbee5413e2bbb7f66382` |
+| `gssc_sf/gssc_0K_sf_step93000/config.json` | `2494dd03c7e0b1a36d41086e3515ab6f08b2a53ce1ed07251637ac84ce7c63e7` |
+| `gssc_sf/gssc_0K_sf_step93000/model.safetensors` | `a3468c5565c3822381b349531d43c2ea5659cc7ac65bc3378bf77696a8762917` |
+| `gssc_sf/gssc_0K_sf_step93000/model_ema.safetensors` | `5c10ffeeebe4164e1ff5f1a771f2df998f165b2351421a90f5281a831b50c20a` |
+| `gssc_sf/gssc_10K_sf_step87000/config.json` | `a614d11a74a5006542651239e223cf28171553f12e8dafc2e63100db4d189b56` |
+| `gssc_sf/gssc_10K_sf_step87000/model.safetensors` | `e6d4a540a0fc248ea6fc0fa9f2aca17eb5c7936f8e2a072ef039da6099c12264` |
+| `gssc_sf/gssc_10K_sf_step87000/model_ema.safetensors` | `792e146146885f4292e47cab63d0463c5f09aea1971508371f01cd01db895f94` |
+| `gssc_sf/gssc_20K_sf_step85000/config.json` | `b05a3c2aee9aec9e85b33f455a99048d76ead565a8cf463eeb7877a22d7f8407` |
+| `gssc_sf/gssc_20K_sf_step85000/model.safetensors` | `150cfb7e233e93692fc8524b6eaf3247885e7a1dbf14e49fb87c1ee5fe6e0019` |
+| `gssc_sf/gssc_20K_sf_step85000/model_ema.safetensors` | `59c740da2106cdd5a3adb6862d2d51e946acf53268579b0bdb71b25f6a9558d9` |
+| `gssc_sf/gssc_31K_sf_step72000/config.json` | `0e5b8a4b84f2981eda62b9cc8969b63f3456e24e6e1576c727251e989190b7a8` |
+| `gssc_sf/gssc_31K_sf_step72000/model.safetensors` | `2629234a6af325ef89c56f0427e088d932d4c7573fa278f672e2fa13dca8daa1` |
+| `gssc_sf/gssc_31K_sf_step72000/model_ema.safetensors` | `2f0459d784c4f437b9e52fb2bcfa603876af269c6651ae8762774929aeeb9b31` |
+| `gssc_sf/gssc_57K_sf_step69000/config.json` | `49312471306715af626092d8e2a4b2a46b8946d579e5fac823c987a444acaf26` |
+| `gssc_sf/gssc_57K_sf_step69000/model.safetensors` | `8dfb3a19c45015f85386f4fa7db6f238ee2f03184619da767362359732ab55f1` |
+| `gssc_sf/gssc_57K_sf_step69000/model_ema.safetensors` | `36e3b7548ddc288230ee46c8536f652fa309fa55cdf2e386140b1cd6e0d9ab50` |
+| `gssc_timesteps/gssc_T10/config.json` | `1433e1487bcf80c9b73fae47f8b7e0f6507a73a9d7237e56813a91e188c88ddb` |
+| `gssc_timesteps/gssc_T10/model.safetensors` | `6e9e0f00e4f163636ebe7ad4e2d8955ed4225df42cd909251d17d530b3f597f8` |
+| `gssc_timesteps/gssc_T10/model_ema.safetensors` | `5273dea905bf73fb6b46e0d0fe06bb0edc947dff7b37b357b087cdc62a280515` |
+| `gssc_timesteps/gssc_T100skewed/config.json` | `7760a75e3375abfdfc296de844f0b207176281eeefa8e9fc44df5f030660023d` |
+| `gssc_timesteps/gssc_T100skewed/model.safetensors` | `9fee2ebfb6cfc736f2d60bebb84f686b4d0b0adaeb4959744fabcf2b5122fe5e` |
+| `gssc_timesteps/gssc_T100skewed/model_ema.safetensors` | `14f842d2015ff8e4b3941392776f156da92d84ddd0727c3391ce91b38682a604` |
+| `gssc_timesteps/gssc_T50/config.json` | `5418c94f39ef3e9ab0167e457c18c123b886b29805c4d1e490acef0f3c223af4` |
+| `gssc_timesteps/gssc_T50/model.safetensors` | `b187dcb74eb06fdb5d23a30d6299a9ecb193a8a4c6073da641cc919ca36a7d8c` |
+| `gssc_timesteps/gssc_T50/model_ema.safetensors` | `3f9fa9b36cdba98be0d3407d25b921f7711a2981116dad0d5209088c51e7c11a` |
+| `pyramid/pyramid_s1/config.json` | `912842656a3a54969dd9922c5cb502863dcf24843c894482453ccfdf8f2d34fe` |
+| `pyramid/pyramid_s1/model.safetensors` | `faae021aa4be483ff2d099af698a3d548d78812b534b1c48581e958cc78f0584` |
+| `pyramid/pyramid_s2/config.json` | `955198fb793bfd78691059a30cc074a71c23689e2111e570f2e0b6ff6f19bf9a` |
+| `pyramid/pyramid_s2/model.safetensors` | `2b7755e500d409a8dd86de06d8eba9d62a8ef96609ecbbf10f7dd8f37ef01692` |
+| `pyramid/pyramid_s3/config.json` | `f7b94967a3cf78259dd2e28c986f58b5b1c5f69cbb561c2d47e8a648e6b7e3cc` |
+| `pyramid/pyramid_s3/model.safetensors` | `698afc2acb62c100878a3446e25c15e633263f0cf1c554bcf186a2974f8b2c14` |
+| `scpnet_v2_port.pth` | `f2d1cb27f4285690b2f8322e6a87e6631cc1af26e25d006758f7ff65587ed106` |
 
 ## Headline scene-completion checkpoints
 
@@ -220,7 +307,9 @@ produced (internal measurement: 34.75 base projection, 36.09 refined).
 > BEV evaluator cannot even load it
 > under this release's config (its own `config.json` describes it as a
 > lightweight 938K-param 2D refinement net). The model behind the paper's row is
-> `bev/bev_s2d2_scpnet/`, and the split the paper prints is 34.8 + 1.3.
+> `bev/bev_s2d2_scpnet/`, and the split the paper prints is 34.8 + 1.3 --
+> both halves under the training-time 2D BEV evaluator on 100 fixed val samples
+> (seed 42), not the 4,071-frame `semantic-kitti-api` protocol.
 
 Run it with the explicit checkpoint path:
 
@@ -311,12 +400,12 @@ python scripts/eval.py eval/lmscnet_val_1step \
 Or reproduce a specific paper table with the all-in-one driver::
 
 ```bash
-# The strings below are reproduce_table.py CLI KEYS, not paper label names.
-# The driver's tab:perclass key resolves to the paper's per-class val table
-# (labelled tab:perclass_delta, main Tab. II); its tab:cross_base_js3c and
-# tab:cross_base_lmsc keys resolve to per-base rows of tab:portable_s2d2.
-python scripts/reproduce_table.py tab:perclass             # 38.54% val (paper tab:perclass_delta)
-python scripts/reproduce_table.py tab:cross_base_js3c      # 24.3% val, the paper headline (derived BEV, tab:portable_s2d2)
+# The driver accepts the paper's own table labels, which is the form used here.
+python scripts/reproduce_table.py tab:perclass_delta       # 38.54% val (main Tab. II, per-class val)
+# tab:portable_s2d2 is the cross-base table; the driver reproduces its LMSCNet
+# row (16.59% val) and its JS3C-Net row (24.3% val, the paper headline for that
+# base, derived BEV) in one run, so both prediction dumps must be on disk.
+python scripts/reproduce_table.py tab:portable_s2d2
 # BEV: 36.1, measured by the training-time 2D BEV evaluator on 100 fixed val
 # samples (seed 42) — see the BEV section above before quoting it.
 python scripts/reproduce_table.py tab:bev_results

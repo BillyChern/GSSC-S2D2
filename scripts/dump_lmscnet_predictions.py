@@ -54,8 +54,12 @@ import numpy as np
 import torch
 
 # Repo root (scripts/ -> repo). Used to anchor repo-relative argument defaults
-# so the script is reproducible on any machine, not just the author's box.
+# so the script is reproducible on any machine, not just the author's box, and to make
+# `gssc` importable from a plain checkout (matching scripts/eval.py).
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
+from gssc.utils.checkpoint import assert_bound
 
 logger = logging.getLogger("dump_lmscnet")
 
@@ -112,11 +116,15 @@ def load_lmscnet_model(weights_path, device):
     ckpt = torch.load(weights_path, map_location="cpu", weights_only=False)
     state_dict = ckpt["model"] if isinstance(ckpt, dict) and "model" in ckpt else ckpt
     cleaned = {(k[len("module."):] if k.startswith("module.") else k): v for k, v in state_dict.items()}
-    missing, unexpected = model.load_state_dict(cleaned, strict=False)
-    if missing:
-        logger.warning("Missing keys: %s", missing[:5])
-    if unexpected:
-        logger.warning("Unexpected keys: %s", unexpected[:5])
+    # strict=False is kept because the upstream checkpoint may carry a DataParallel
+    # "module." prefix (stripped above) rather than because a partial load is acceptable.
+    # The result is CHECKED, not warned about: a warning does not stop the run, so a
+    # class_num / input_dimensions mismatch would leave part of the network at random
+    # initialisation and still dump a full set of plausible-looking .npy predictions
+    # that then feed Tab. III as if they were LMSCNet's. Measured against the released
+    # LMSCNet.pth this binds 0 missing / 0 unexpected, so the guard is inert for it.
+    load_res = model.load_state_dict(cleaned, strict=False)
+    assert_bound("lmscnet", load_res, weights_path)
     model.to(device)
     model.train(False)  # inference mode (set training=False)
     return model

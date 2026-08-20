@@ -89,12 +89,13 @@ python scripts/eval.py eval/js3c_val_d4tta \
 > `bev_from_base: true`). See `docs/REPRODUCIBILITY.md` and `docs/MODEL_ZOO.md`
 > for the full GT-vs-derived breakdown.
 
-The all-in-one driver runs the same eval with a pre-flight check on the
-JS3C predictions (`tab:cross_base_js3c` is the `reproduce_table.py` command
-key for the JS3C-Net row of the paper's cross-base table `tab:portable_s2d2`):
+The all-in-one driver takes the paper's cross-base table label directly and
+runs the same eval with a pre-flight check on each base's predictions. The
+label covers more than this section: it reproduces the LMSCNet row and then the
+JS3C-Net row, so it needs both prediction dumps on disk.
 
 ```bash
-python scripts/reproduce_table.py tab:cross_base_js3c
+python scripts/reproduce_table.py tab:portable_s2d2
 ```
 
 ## LMSCNet cross-base (paper tab:portable_s2d2, third base)
@@ -115,13 +116,13 @@ python scripts/eval.py eval/lmscnet_val_1step \
 
 LMSCNet conditions on a derived BEV (`bev_from_base: true`, height-pooled
 from LMSCNet's own 3D prediction — never GT BEV), so 16.59 % is already an
-at-deploy number with no GT-BEV oracle caveat. The all-in-one driver runs
-the same eval with a pre-flight check on the LMSCNet predictions
-(`tab:cross_base_lmsc` is the `reproduce_table.py` command key for the
-LMSCNet row of the paper's cross-base table `tab:portable_s2d2`):
+at-deploy number with no GT-BEV oracle caveat. The all-in-one driver reaches
+this row through the same paper label as the JS3C-Net section above
+(`tab:portable_s2d2`), which reproduces the LMSCNet row and the JS3C-Net row in
+one go, each behind a pre-flight check on that base's predictions:
 
 ```bash
-python scripts/reproduce_table.py tab:cross_base_lmsc
+python scripts/reproduce_table.py tab:portable_s2d2
 ```
 
 ## Single-frame demo

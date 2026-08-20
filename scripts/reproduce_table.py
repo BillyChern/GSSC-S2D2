@@ -11,11 +11,16 @@ config.json}`` (HF convention). Inference defaults to ``model_ema.safetensors``.
 
 Examples::
 
-    python scripts/reproduce_table.py tab:perclass
+    python scripts/reproduce_table.py tab:perclass_delta
     python scripts/reproduce_table.py tab:main_results
-    python scripts/reproduce_table.py tab:cross_base_js3c   # cross-base v1.1.0
-    python scripts/reproduce_table.py tab:cross_base_lmsc   # cross-base v2.1.0
+    python scripts/reproduce_table.py cross_base_js3c   # cross-base v1.1.0
+    python scripts/reproduce_table.py cross_base_lmsc   # cross-base v2.1.0
     python scripts/reproduce_table.py tab:bev_results
+
+A ``tab:``-prefixed name here is a LABEL THE PAPER DEFINES (\label{...} in main.tex or
+supplementary.tex). Driver entries the paper has no float for carry a bare name instead
+(``cross_base_js3c``, ``cross_base_lmsc``, ``train_timesteps_curriculum``,
+``data_scaling_sf``), so a ``tab:`` string in this file always resolves in the paper.
 """
 
 from __future__ import annotations
@@ -29,10 +34,10 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 TABLE_MAP: dict[str, dict[str, Any]] = {
-    "tab:perclass":         {"config": "eval/val_1step",     "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou per_class completion_iou"},
+    "tab:perclass_delta":   {"config": "eval/val_1step",     "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou per_class completion_iou"},
     "tab:main_results":     {"config": "infer/test_d4tta",   "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou per_class completion_iou", "submit": True},
     "tab:step_reduction":   {"config": "eval/step_sweep",    "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou completion_iou"},
-    "tab:train_timesteps_curriculum": {"config": "eval/timestep_ablation", "checkpoint": "[gssc_timesteps/gssc_T10|gssc_timesteps/gssc_T50|gssc_timesteps/gssc_T100skewed|gssc_mf/gssc_31k_mf_step40000]", "metrics": "miou"},
+    "train_timesteps_curriculum": {"config": "eval/timestep_ablation", "checkpoint": "[gssc_timesteps/gssc_T10|gssc_timesteps/gssc_T50|gssc_timesteps/gssc_T100skewed|gssc_mf/gssc_31k_mf_step40000]", "metrics": "miou"},
     # The 36.1% BEV entry was produced by bev/bev_s2d2_scpnet, NOT by
     # bev/bev_perception_net (a different, 938K-param 2D refinement model that the BEV
     # evaluator cannot load). "protocol" is printed with the recipe because this row is
@@ -45,7 +50,7 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
     # headline 31K multi-frame checkpoint ships, so it cannot be regenerated. What the released
     # per-row checkpoints reproduce is the SINGLE-frame sweep reported in prose in supp. App. C.
     "data_scaling_sf":      {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step{93000,87000,85000,72000,69000}]", "metrics": "miou"},
-    "tab:cross_base_js3c":  {
+    "cross_base_js3c":      {
         # JS3C-Net cross-base. The PAPER'S headline for this base is 24.32
         # (derived BEV, official semantic-kitti-api, +1.59 pp), which
         # eval/js3c_val_realistic reproduces. 26.05 is a GT-BEV DIAGNOSTIC
@@ -63,7 +68,7 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
         "base_kind": "js3c",
         "expected_mIoU": 24.32,
     },
-    "tab:cross_base_lmsc":  {
+    "cross_base_lmsc":      {
         "config": "eval/lmscnet_val_1step",
         "checkpoint": "gssc_lmsc/gssc_lmsc_s2d2_real",
         "metrics": "miou per_class completion_iou",
@@ -155,13 +160,18 @@ def _resolve_checkpoint(ckpt_dir: Path, name: str, prefer_ema: bool = True) -> P
     )
 
 
-# Aliases: the labels as they appear in the paper, mapped onto the keys above. Additive by design --
-# the original keys keep working. Two paper labels have no 1:1 key and are handled explicitly:
-# tab:portable_s2d2 spans three bases, so it resolves to the per-base keys and reports both; and the
-# training-timestep comparison is no longer a table in the paper (it was folded into prose in
-# Appendix C), so its key is kept for the experiment but carries no paper label.
+# Aliases: additional names that resolve onto the keys above, so short driver names keep working
+# beside the paper labels. tab:portable_s2d2 has no 1:1 key -- it spans three bases -- so it lives
+# in MULTI_KEY_LABELS and reports each per-base entry in turn.
+#
+# The training-timestep comparison is NOT a table in the paper: the sweep is reported in prose in
+# supplementary Appendix C-A ("Training schedule and reaction-time budgets"). Its driver key is
+# therefore the bare `train_timesteps_curriculum`, not a tab: label -- revisions up to 2026-08-18
+# advertised it with a tab: prefix, and no \label in the paper defines that name. The two
+# cross-base entries are the same case: the paper prints them as rows of tab:portable_s2d2, so the
+# per-base driver keys are bare names and the paper label reaches both.
 PAPER_LABEL_ALIASES: dict[str, str] = {
-    "tab:perclass_delta": "tab:perclass",          # main Table II
+    "perclass": "tab:perclass_delta",              # short driver name for main Table II
 }
 UNREPRODUCIBLE: dict[str, str] = {
     "tab:data_scaling": (
@@ -171,7 +181,7 @@ UNREPRODUCIBLE: dict[str, str] = {
     ),
 }
 MULTI_KEY_LABELS: dict[str, list[str]] = {
-    "tab:portable_s2d2": ["tab:cross_base_lmsc", "tab:cross_base_js3c"],
+    "tab:portable_s2d2": ["cross_base_lmsc", "cross_base_js3c"],
 }
 
 

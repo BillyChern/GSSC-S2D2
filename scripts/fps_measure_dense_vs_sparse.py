@@ -36,6 +36,7 @@ from gssc.models.s2d2_unet import (
     timestep_embedding,
 )
 from gssc.models.sparse_lidar_encoder import SparseLiDAREncoder
+from gssc.utils.checkpoint import assert_bound, config_value, load_checkpoint_config
 
 _ALGO = ConvAlgo.Native
 
@@ -255,17 +256,18 @@ class SceneCompletionUNetSparseBody(nn.Module):
 
 
 # ---------------------------------------------------------------------------
-def make_inputs():
+def make_inputs(num_classes: int = K):
     g = torch.Generator(device=DEVICE).manual_seed(42)
     # sparse lidar occupancy
     lidar = (torch.rand(1, 1, H, W, D, generator=g, device=DEVICE) < OCC_FRAC).float()
     # ssc_pred: ~5% occupied dense semantic one-hot (the base completion has more mass)
     occ = (torch.rand(1, H, W, D, generator=g, device=DEVICE) < 0.05)
-    cls = torch.randint(1, K, (1, H, W, D), generator=g, device=DEVICE)
+    cls = torch.randint(1, num_classes, (1, H, W, D), generator=g, device=DEVICE)
     cls = cls * occ.long()
-    ssc_pred = F.one_hot(cls, K).permute(0, 4, 1, 2, 3).float()
+    ssc_pred = F.one_hot(cls, num_classes).permute(0, 4, 1, 2, 3).float()
     x_t = ssc_pred.clone()  # N=1 starts from base one-hot (see sample_algo2)
-    bev = F.one_hot(torch.randint(0, K, (1, H, W), generator=g, device=DEVICE), K)
+    bev = F.one_hot(
+        torch.randint(0, num_classes, (1, H, W), generator=g, device=DEVICE), num_classes)
     bev = bev.permute(0, 3, 1, 2).float()
     t = torch.full((1,), 99, device=DEVICE, dtype=torch.long)
     return dict(x_t=x_t, t=t, bev=bev, lidar=lidar, ssc_pred=ssc_pred)
@@ -311,35 +313,65 @@ def main():
     ap.add_argument("--iters", type=int, default=100)
     args = ap.parse_args()
 
+    # Read the headline checkpoint FIRST: it declares both the weights and the
+    # architecture to time. Timing is weight-independent, so a checkpoint that cannot be
+    # READ legitimately degrades to default init -- but a checkpoint that IS read and
+    # does not match the architecture must not be papered over, because the report
+    # labels these numbers as the deployed model's.
+    ckpt_cfg: dict = {}
+    state_dict = None
+    ck = None
+    try:
+        if args.ckpt.endswith(".safetensors"):
+            from safetensors.torch import load_file
+            state_dict = load_file(args.ckpt)
+        else:
+            ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
+            # model_state_dict carries the BN buffers that ema_shadow (learnable params
+            # only) omits. Taking ema_shadow ALONE, as this script used to, left 30
+            # buffers at random initialisation while still reporting "loaded headline
+            # weights"; the EMA params are swapped in over the full state below instead.
+            state_dict = ck["model_state_dict"]
+        ckpt_cfg = load_checkpoint_config(args.ckpt, ck)
+    except (OSError, KeyError, ValueError) as e:
+        print(f"\n[dense] WARNING: could not read checkpoint ({e}); using default init.")
+
+    # Architecture from the checkpoint's own declaration (sibling config.json, or
+    # ckpt["config"]); the literals are the fallback for a checkpoint that declares
+    # nothing. Same source as gssc.inference.d4_tta.load_model, so the model that gets
+    # timed here is the model that gets deployed there. Both arms of the comparison read
+    # the same two values, which is what keeps the parameter match honest.
+    num_classes = config_value(ckpt_cfg, "num_classes", K)
+    base_channels = config_value(ckpt_cfg, "base_channels", 32)
+
     print("=" * 70)
-    print("S2D2 denoiser per-step inference FPS @ 256x256x32, K=20, B=1, fp32")
+    print(f"S2D2 denoiser per-step inference FPS @ {H}x{W}x{D}, K={num_classes}, B=1, fp32")
     print(f"device: {torch.cuda.get_device_name(0)} | torch {torch.__version__} | spconv {_SPCONV_VERSION}")
     print(f"warmup={args.warmup} timed={args.iters} | sparse-lidar occ={OCC_FRAC:.0%}")
     print("=" * 70)
 
-    inputs = make_inputs()
+    inputs = make_inputs(num_classes)
 
     # ---- (a) DENSE headline ----
     dense = SceneCompletionUNetSparse(
-        num_classes=20, base_channels=32, time_emb_dim=128,
+        num_classes=num_classes, base_channels=base_channels, time_emb_dim=128,
         lidar_base_channels=16, lidar_out_channels=32, lidar_in_channels=1,
-        no_bev=False, ssc_cond_channels=20, ssc_multiscale=False)
-    # load headline EMA weights (exact shipped checkpoint). Timing is
-    # weight-independent; loading just makes the report faithful to the deployed
-    # model. Supports both the released .safetensors and the .pt training ckpt.
-    try:
-        if args.ckpt.endswith(".safetensors"):
-            from safetensors.torch import load_file
-            sd = load_file(args.ckpt)
-        else:
-            ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
-            sd = ck.get("ema_shadow") or ck.get("model_state_dict")
-        missing, unexpected = dense.load_state_dict(sd, strict=False)
-        loaded = len(sd) - len(unexpected)
-        print(f"\n[dense] loaded headline weights: matched~{loaded}/{len(dense.state_dict())} "
-              f"(missing={len(missing)}, unexpected={len(unexpected)})")
-    except Exception as e:
-        print(f"\n[dense] WARNING: could not load checkpoint ({e}); using default init.")
+        no_bev=config_value(ckpt_cfg, "no_bev", False), ssc_cond_channels=num_classes,
+        ssc_multiscale=config_value(ckpt_cfg, "ssc_multiscale", False))
+    if state_dict is not None:
+        # strict=False is kept (EMA shadows may omit non-float buffers) but the result is
+        # CHECKED, deliberately OUTSIDE the try above: timing a half-initialised network
+        # and captioning it "headline weights" misreports what was measured.
+        load_res = dense.load_state_dict(state_dict, strict=False)
+        assert_bound("dense", load_res, args.ckpt)
+        swapped = 0
+        if ck is not None and ck.get("ema_shadow"):
+            for name, param in dense.named_parameters():
+                if name in ck["ema_shadow"]:
+                    param.data.copy_(ck["ema_shadow"][name])
+                    swapped += 1
+        print(f"\n[dense] loaded headline weights: {len(dense.state_dict())} tensors bound"
+              f"{f', {swapped} EMA params swapped in' if swapped else ''}")
     r_dense = time_model(dense, inputs, "DENSE headline (Conv3d U-Net + sparse LiDAR aux)",
                          args.warmup, args.iters)
     del dense
@@ -347,7 +379,7 @@ def main():
 
     # ---- (b) SPARSE-3D-U-Net matched params ----
     sparse = SceneCompletionUNetSparseBody(
-        num_classes=20, base_channels=32, time_emb_dim=128,
+        num_classes=num_classes, base_channels=base_channels, time_emb_dim=128,
         lidar_base_channels=16, lidar_out_channels=32)
     r_sparse = time_model(sparse, inputs, "SPARSE 3D U-Net (matched params, spconv body)",
                           args.warmup, args.iters)

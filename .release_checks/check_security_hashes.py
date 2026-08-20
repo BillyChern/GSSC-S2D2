@@ -86,7 +86,7 @@ from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple
 REPO = Path("/workspace/GSSC-S2D2")
 ASSETS = Path("/workspace/GSSC-S2D2-assets")
 SECURITY = REPO / "SECURITY.md"
-ASSETS_CHECKSUMS = ASSETS / "checksums.txt"
+ASSETS_CHECKSUMS = None  # resolved by _locate() below, after ASSETS is defined
 PAYLOAD = ASSETS / "checkpoints"          # what `huggingface-cli upload <repo> checkpoints/` sends
 
 HEX64 = re.compile(r"\b[0-9a-f]{64}\b")
@@ -114,6 +114,42 @@ class Leaf(NamedTuple):
 
 
 # --------------------------------------------------------------------------- readers
+
+
+def _locate(name: str) -> Path:
+    """Find `name` anywhere in the asset bundle, preferring the upload payload.
+
+    It used to be pinned to the bundle root. It now lives inside checkpoints/ so that
+    it actually ships; hardcoding either location makes the gate report "missing" for
+    a file that is present and correct, which is a gate defect, not a release defect.
+    """
+    inside = ASSETS / "checkpoints" / name
+    if inside.exists():
+        return inside
+    root = ASSETS / name
+    if root.exists():
+        return root
+    hits = sorted(ASSETS.rglob(name))
+    hits = [h for h in hits if "_superseded_" not in h.as_posix()]
+    return hits[0] if hits else inside
+
+
+ASSETS_CHECKSUMS = _locate("checksums.txt")
+CHECKSUM_BASE = ASSETS_CHECKSUMS.parent   # sha256sum -c resolves relative to this
+
+
+def _payload_rel(rel: str) -> str:
+    """A leaf path expressed relative to the checksums file's own directory.
+
+    Leaves are tracked ASSETS-relative ("checkpoints/bev/x"), but a checksums file
+    that ships INSIDE the payload lists them payload-relative ("bev/x") -- which is
+    what `sha256sum -c` needs at the download root. Comparing the two spellings
+    directly made every entry look absent.
+    """
+    pre = CHECKSUM_BASE.relative_to(ASSETS).as_posix()
+    if pre in (".", "") or not rel.startswith(pre + "/"):
+        return rel
+    return rel[len(pre) + 1:]
 
 
 def read_docs(repo: Path) -> Dict[str, str]:
@@ -173,8 +209,8 @@ def recompute(leaves: Sequence[Leaf], recorded: Dict[str, str],
     been filtered out by a released-only scan.
     """
     out: Dict[str, Optional[str]] = {}
-    for rel in recorded:
-        p = assets_root / rel
+    for rel in recorded:   # keys are relative to CHECKSUM_BASE
+        p = CHECKSUM_BASE / rel        # recorded keys are payload-relative
         if not p.is_file():
             out[rel] = None
             continue
@@ -243,12 +279,12 @@ def evaluate(security: str, docs: Dict[str, str], assets_ck: Dict[str, str],
 
     # -- 3. RELATIONSHIP, not constant: every leaf's real digest appears in the docs ---------
     pub_hex = {h[2] for h in pub}
-    unpublished = [l for l in leaves if assets_ck.get(l.rel, "\0") not in pub_hex]
+    unpublished = [l for l in leaves if assets_ck.get(_payload_rel(l.rel), "\0") not in pub_hex]
     res["every_released_checkpoint_has_published_hash"] = (
         not unpublished,
         f"{len(unpublished)}/{len(leaves)} released checkpoint file(s) have no published SHA256 "
         f"in any repo doc, e.g. {unpublished[0].rel if unpublished else ''} "
-        f"(hash {assets_ck.get(unpublished[0].rel, 'ALSO ABSENT FROM checksums.txt') if unpublished else ''})"
+        f"(hash {assets_ck.get(_payload_rel(unpublished[0].rel), 'ALSO ABSENT FROM checksums.txt') if unpublished else ''})"
         f" -- publish them in {target or 'docs/MODEL_ZOO.md'}",
     )
 
@@ -256,8 +292,8 @@ def evaluate(security: str, docs: Dict[str, str], assets_ck: Dict[str, str],
     keyed = [(d, n, hx, _key_of(ctx, leaves)) for d, n, hx, ctx in pub]
     keyed = [(d, n, hx, k) for d, n, hx, k in keyed if k]
     wrong = [f"{d}:{n} publishes {hx[:12]}... for {k}, but the assets record "
-             f"{assets_ck.get(k, '<nothing>')[:12]}..."
-             for d, n, hx, k in keyed if assets_ck.get(k) != hx]
+             f"{assets_ck.get(_payload_rel(k), '<nothing>')[:12]}..."
+             for d, n, hx, k in keyed if assets_ck.get(_payload_rel(k)) != hx]
     res["published_hashes_match_assets"] = (
         bool(keyed) and not wrong,
         "; ".join(wrong) if wrong else
@@ -266,7 +302,7 @@ def evaluate(security: str, docs: Dict[str, str], assets_ck: Dict[str, str],
     )
 
     # -- 5. the reference side must be complete ---------------------------------------------
-    uncovered = [l.rel for l in leaves if l.rel not in assets_ck]
+    uncovered = [l.rel for l in leaves if _payload_rel(l.rel) not in assets_ck]
     res["assets_checksums_cover_released_leaves"] = (
         not uncovered,
         f"{ASSETS_CHECKSUMS} omits {len(uncovered)} file(s) that the upload payload ships: "
@@ -293,6 +329,8 @@ def evaluate(security: str, docs: Dict[str, str], assets_ck: Dict[str, str],
     )
 
     # -- 8. ...and it must cover the files the user actually got -----------------------------
+    # shipped_ck is keyed as it will be read at the download root (payload-relative);
+    # leaves are tracked bundle-relative. Compare in one spelling.
     covered = [l.rel for l in leaves if l.rel in shipped_ck]
     ghosts = [p for p in shipped_ck if not any(p == l.rel for l in leaves)]
     res["shipped_checksums_cover_released_files"] = (
@@ -365,19 +403,20 @@ def _repaired(security, docs, assets_ck, shipped_ck, leaves, rec, meta, repo_fil
         if actual is not None:
             fixed_ck[rel] = actual                      # heal the stale entries
     for leaf in leaves:                                 # heal the uncovered ones
-        if leaf.rel not in fixed_ck:
-            h = hashlib.sha256((ASSETS / leaf.rel).read_bytes()).hexdigest() \
+        if _payload_rel(leaf.rel) not in fixed_ck:
+            h = hashlib.sha256((CHECKSUM_BASE / _payload_rel(leaf.rel)).read_bytes()).hexdigest() \
                 if leaf.size <= HASH_CAP_BYTES else "f" * 64
-            fixed_ck[leaf.rel] = h
+            fixed_ck[_payload_rel(leaf.rel)] = h
     zoo = "# Model Zoo\n\n| File | SHA256 |\n|---|---|\n" + "".join(
-        f"| `{l.rel}` | `{fixed_ck[l.rel]}` |\n" for l in leaves)
+        f"| `{l.rel}` | `{fixed_ck[_payload_rel(l.rel)]}` |\n" for l in leaves)
     zoo += "\nVerify everything you downloaded:\n\n```bash\nsha256sum -c checksums.txt\n```\n"
     fixed_docs = dict(docs)
     fixed_docs["docs/MODEL_ZOO.md"] = zoo
-    fixed_shipped = {l.rel: fixed_ck[l.rel] for l in leaves}
+    fixed_shipped = {l.rel: fixed_ck[_payload_rel(l.rel)] for l in leaves}
     fixed_rec = {k: (fixed_ck[k] if v is not None else None) for k, v in rec.items()}
     for l in leaves:
-        fixed_rec.setdefault(l.rel, fixed_ck[l.rel] if l.size <= HASH_CAP_BYTES else None)
+        fixed_rec.setdefault(_payload_rel(l.rel),
+                             fixed_ck[_payload_rel(l.rel)] if l.size <= HASH_CAP_BYTES else None)
     return (security, fixed_docs, fixed_ck, fixed_shipped, leaves, fixed_rec,
             meta or ["checksums.txt"], repo_files)
 
@@ -411,7 +450,9 @@ def selftest() -> int:
 
     def wrong_doc_hash() -> Dict[str, str]:
         target = leaves[0].rel
-        good = ck[target]
+        # ck is keyed payload-relative (that is what ships at the download root),
+        # while leaves are tracked bundle-relative.
+        good = ck[_payload_rel(target)]
         bad = ("a" * 64) if good != "a" * 64 else "b" * 64
         out = {k: v.replace(good, bad) for k, v in docs.items()}
         return _assert_changed(docs, out, "wrong-hash")
@@ -429,7 +470,8 @@ def selftest() -> int:
             lambda: with_(docs=wrong_doc_hash()),
         "assets_checksums_cover_released_leaves":
             lambda: with_(assets_ck=_assert_changed(
-                ck, {k: v for k, v in ck.items() if k != leaves[0].rel}, "uncover")),
+                ck, {k: v for k, v in ck.items()
+                     if k != _payload_rel(leaves[0].rel)}, "uncover")),
         "assets_checksums_are_current":
             lambda: with_(assets_ck=_assert_changed(
                 ck, {**ck, next(k for k, v in rec.items() if v is not None): "c" * 64},

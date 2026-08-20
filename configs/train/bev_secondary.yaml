@@ -1,5 +1,5 @@
 _paper_table: "tab:bev_results (secondary task, BEV-A run)"
-_description: "BEV-A: S2D2 BEV refinement on SCPNet base, 100K steps, N=1 correction-sampling deployment. Reproduces 36.09% BEV mIoU on SemanticKITTI val seq 08."
+_description: "BEV-A: S2D2 BEV refinement on SCPNet base, 100K steps, N=1 correction-sampling deployment. Reproduces 36.09% BEV mIoU on SemanticKITTI val seq 08. Measured by the training-time 2D BEV evaluator on 100 fixed val frames (seed 42), not the 4,071-frame semantic-kitti-api protocol used by the 3D configs."
 task: bev
 data_root: data
 pred_bev_dir: data/scpnet_predictions

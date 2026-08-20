@@ -30,11 +30,21 @@ jobs:
         run: pip install pytest "pyyaml>=6.0" "numpy>=1.26,<2"
 
       - name: Run the CPU-runnable test suite
-        # Everything that needs torch/spconv guards itself with pytest.importorskip and
-        # SKIPS here; the GPU pipelines are covered by the V4/V5 integration runs in
-        # docs/REPRODUCIBILITY.md. tests/test_tau_invariance.py is the one file that
-        # imports torch at module scope without importorskip, so it cannot be collected
-        # in a torch-free job -- drop the --ignore once it guards its import.
+        # What this badge covers, measured on a fresh python3.10 venv holding ONLY the
+        # three distributions installed above: 42 tests execute, 34 skip, exit 0. The
+        # whole suite is 116 cases, so this job runs 36 % of it; the remainder needs
+        # torch 2.4 + spconv and is covered by the V4 / V5 integration runs in
+        # docs/REPRODUCIBILITY.md. Every torch- or spconv-dependent file guards BOTH
+        # imports with pytest.importorskip, so on this runner they skip instead of
+        # erroring at collection -- guarding only torch is not enough, because the
+        # d4_tta / generate_predictions / js3c_base modules reach spconv through
+        # gssc.models.s2d2_unet and a collection error aborts the entire run.
+        #
+        # tests/test_tau_invariance.py is the one file that imports torch at module
+        # scope without importorskip, so it cannot be collected in a torch-free job.
+        # Dropping the --ignore needs the matching CONTRIBUTING.md "Tests" row to move
+        # with it: that row quotes this command verbatim and .release_checks/
+        # check_ci_honesty.py compares the two.
         run: |
           PYTHONPATH=src python -m pytest tests/ \
             --ignore=tests/test_tau_invariance.py \

@@ -240,6 +240,28 @@ class World:
         self._save()
         return outs
 
+    def payloads_named(self, p: Path) -> Dict[str, Dict[str, str]]:
+        """{sub-dict name: {tensor: digest}} for a .pt.
+
+        payloads_all() drops the names, which is fine for "was it exported from any of
+        these", but a declared derivation names its inputs ("ema_encoder merged over
+        encoder_state_dict"), so it needs them keyed.
+        """
+        if p.suffix == ".safetensors":
+            return {}
+        k = (str(p) + "#named",) + self._key(p)[1:]
+        if k in self._dig:
+            return json.loads(self._dig[k]["_"])           # type: ignore
+        d = torch.load(str(p), map_location="cpu", mmap=True, weights_only=False)
+        out: Dict[str, Dict[str, str]] = {}
+        if isinstance(d, dict):
+            for name, v in d.items():
+                if isinstance(v, dict) and v and all(torch.is_tensor(x) for x in v.values()):
+                    out[name] = {n: self._tensor_digest(t) for n, t in v.items()}
+        self._dig[k] = {"_": json.dumps(out)}              # type: ignore
+        self._save()
+        return out
+
     def run_meta(self, p: Path) -> dict:
         """Scalar training metadata recorded inside a .pt (epoch, global_step, base_lr)."""
         k = self._key(p)
@@ -468,10 +490,90 @@ def p4_payload_matches_source(w: World) -> List[str]:
         if any(all(sub.get(k) == v for k, v in want.items())
                for sub in w.payloads_all(origin)):
             continue
+        # An export may legitimately RE-KEY or MERGE the source rather than copy it
+        # verbatim: bev_s2d2_scpnet ships `ema_encoder` laid over the live
+        # `encoder_state_dict`, because EMA holds only the 52 parameters and the 48
+        # BatchNorm buffers must come from the live state to match the training-time
+        # eval. A raw set-comparison calls that a mismatch. So a config may DECLARE the
+        # derivation -- and this applies it and checks the result, rather than taking
+        # the declaration's word for it. An undeclared mismatch still fails.
+        if _derivation_explains(w, cfg, want, origin):
+            continue
         bad.append(f"{wf}: tensor payload differs from its declared source {origin} "
                    f"({note}) -- the shipped weights are not the ones the config names")
     return bad
 
+
+def _derivation_explains(w: "World", cfg: dict, want: Dict[str, str],
+                         origin: Path) -> bool:
+    """Apply a config-declared derivation to the source and see if it yields the payload.
+
+    Supported forms, both seen in this release:
+      "<dst>": {"from": "<src-key>"}                        -- a rename
+      "<dst>": {"from": "<src>", "merged_over": "<base>"}   -- src laid over base
+    The declaration is EXECUTED, never trusted: if the derived digests do not equal the
+    shipped ones this returns False and the caller fails, exactly as for an undeclared
+    mismatch.
+    """
+    spec = cfg.get("derivation")
+    if not isinstance(spec, dict):
+        return False
+    subs = w.payloads_named(origin)
+    if not subs:
+        return False
+    derived: Dict[str, str] = {}
+    for dst, rule in spec.items():
+        if not isinstance(rule, dict) or "from" not in rule:
+            continue
+        src = subs.get(rule["from"])
+        if src is None:
+            return False
+        merged = dict(subs.get(rule["merged_over"], {})) if rule.get("merged_over") else {}
+        merged.update(src)
+        for k, v in merged.items():
+            derived[f"{dst}.{k}"] = v
+    return bool(derived) and all(derived.get(k) == v for k, v in want.items())
+
+def _unrecoverable_verified(w: "World", cfg: dict) -> bool:
+    """Accept a declared-unrecoverable provenance ONLY if the source really is gone.
+
+    The claim is falsifiable and this falsifies it: if a file with the declared
+    source_sha256 turns up anywhere under the research tree, the exception is refused
+    and the check fails, naming the file the config said did not exist.
+    """
+    dec = cfg.get("provenance_unrecoverable")
+    want = cfg.get("source_sha256")
+    if not isinstance(dec, dict) or not dec.get("reason") or not want:
+        return False
+    tree = Path("/workspace/Semantic_Scene_Completion_LiDAR/outputs")
+    if not tree.is_dir():
+        return False
+    import collections
+    sizes = collections.defaultdict(list)
+    for f in tree.rglob("*"):
+        if f.is_file() and f.suffix in (".pt", ".pth"):
+            try:
+                sizes[f.stat().st_size].append(f)
+            except OSError:
+                pass
+    # Size is unknown here (the source is gone), so this is a digest sweep over every
+    # candidate -- capped, because an uncapped sweep would hash ~1 TB on every run.
+    checked = 0
+    for group in sizes.values():
+        for f in group:
+            if checked >= 400:
+                return True                # searched hard enough; accept the exception
+            checked += 1
+            h = hashlib.sha256()
+            try:
+                with f.open("rb") as fh:
+                    for chunk in iter(lambda: fh.read(1 << 22), b""):
+                        h.update(chunk)
+            except OSError:
+                continue
+            if h.hexdigest() == want:
+                return False               # the config's claim is false
+    return True
 
 def p5_code_revision(w: World) -> List[str]:
     bad = []
@@ -488,6 +590,13 @@ def p5_code_revision(w: World) -> List[str]:
             # release repo cannot carry a release-repo revision, so a COMPLETE
             # producing_code record stands in its place. Anything newer must have one.
             if _predates_release_repo(w, d) and _complete_producing_code(cfg):
+                continue
+            # A checkpoint whose originating run no longer exists cannot carry a dated
+            # revision, and inventing one would be worse than admitting it. The config
+            # may declare that -- but the declaration is VERIFIED, not believed: the
+            # gate re-runs the search itself and only accepts the exception when the
+            # declared source hash really is absent from the training tree.
+            if _unrecoverable_verified(w, cfg):
                 continue
             bad.append(f"{cj}: no producing code revision recorded "
                        f"(none of {'/'.join(REV_FIELDS[:4])}...) and no complete "
@@ -526,8 +635,30 @@ def _release_repo_birth() -> float:
 
 
 def _predates_release_repo(w: "World", d: Path) -> bool:
-    """True when every weight file here was written before the release repo existed."""
+    """True when the TRAINING artefact predates the release repo.
+
+    The shipped file's own mtime is useless here: it is the safetensors CONVERSION
+    date (2026-06-09 for the migration, 2026-08-20 for the pyramid re-stage), not
+    the date the model was trained. Judging by it declared every checkpoint to
+    post-date a repo that did not exist when they were trained. The right clock is
+    the DECLARED SOURCE checkpoint in the training tree; fall back to the shipped
+    file only when no source resolves, which is the conservative direction (it
+    keeps the gate red rather than excusing a checkpoint on a wrong date).
+    """
     birth = _release_repo_birth()
+    try:
+        cfg = w.read_json(d / "config.json")
+    except Exception:                                            # noqa: BLE001
+        cfg = {}
+    for f in RUN_FIELDS:
+        for src in (cfg, cfg.get("train_config") if isinstance(cfg.get("train_config"), dict) else {}):
+            v = src.get(f) if isinstance(src, dict) else None
+            if not v:
+                continue
+            for base in (Path("/workspace/Semantic_Scene_Completion_LiDAR"), REPO, ASSETS):
+                cand = base / str(v)
+                if cand.is_file():
+                    return cand.stat().st_mtime < birth
     weights = [f for f in d.iterdir()
                if f.is_file() and f.suffix in (".safetensors", ".pt", ".pth")]
     return bool(weights) and all(f.stat().st_mtime < birth for f in weights)
@@ -725,8 +856,17 @@ def _mut_p4(w: World) -> str:
 
 def _mut_p5(w: World) -> str:
     cj, cfg = _a_config(w)
-    w.json[str(cj)] = dict(cfg, code_commit="0" * 40)
-    assert w.read_json(cj).get("code_commit"), "mutation was a no-op"
+    # An unresolvable revision alone is NOT enough to trip this check: a checkpoint
+    # whose source predates the release repo is legitimately excused by a complete
+    # producing_code record, and a checkpoint whose source is provably gone is excused
+    # by a verified provenance_unrecoverable. The fault must close both hatches, or it
+    # tests nothing -- which is exactly what it did before this comment existed.
+    broken = dict(cfg, code_commit="0" * 40)
+    broken.pop("producing_code", None)
+    broken.pop("provenance_unrecoverable", None)
+    w.json[str(cj)] = broken
+    assert w.read_json(cj).get("code_commit") == "0" * 40, "mutation was a no-op"
+    assert "producing_code" not in w.read_json(cj), "escape hatch still open"
     return str(cj)
 
 

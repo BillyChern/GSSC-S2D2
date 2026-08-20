@@ -244,7 +244,7 @@ paper.
 | Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | single-frame data scaling (no paper table; Tab. VII is the multi-frame sweep and ships no per-row checkpoints) | Per-row checkpoint, e.g. `python scripts/eval.py eval/data_scaling_sf --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step72000/model_ema.safetensors` (canonical per-row config; identical N=1 protocol to `eval/val_1step`) | See MODEL_ZOO.md |
-| Training-timestep sweep (Supp. App. C-A prose; the paper prints no timestep table, and the label earlier revisions cited for one does not exist) | `python scripts/reproduce_table.py tab:train_timesteps_curriculum` — a driver CLI key, not a paper label (multi-row; run each `gssc_timesteps/` checkpoint via `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`) | T=100-uniform 38.54 and T=100-skewed 38.18 are the pair the paper discusses (it prints the latter as 38.2); T=10 37.83 and T=50 37.92 are internal runs the paper deliberately omits as degenerate |
+| Training-timestep sweep (reported as prose in supplementary Appendix C-A, "Training schedule and reaction-time budgets"; the paper prints no table for it) | The paper has no table for this sweep, so there is no table label to reproduce and the all-in-one driver is not the route. Run each `gssc_timesteps/` checkpoint yourself: `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>` (one invocation per row) | T=100-uniform 38.54 and T=100-skewed 38.18 are the pair the paper discusses (it prints the latter as 38.2); T=10 37.83 and T=50 37.92 are internal runs the paper deliberately omits as degenerate |
 | Tab. tab:bev_results (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors` | 36.1 BEV mIoU (= 34.8 parameter-free projection + 1.3 refinement), scored by the training-time 2D BEV evaluator on 100 fixed val samples (seed 42) — a different instrument from the full-validation 3D rows above, so the two are not comparable. See `docs/MODEL_ZOO.md` ("BEV second task") for why the checkpoint earlier revisions named here was the wrong model |
 | Fig. 4 / Fig. 5 (qualitative) | Single-frame qualitative demo: `examples/quickstart.ipynb` | — |
 | Supp. per-frame VRU regression (shipped base) | `python scripts/perframe_vru.py --voxels <seq08>/voxels --base data/scpnet_predictions/08 --refined <N=1 dump>/sequences/08/predictions --gate` | person 301/1,255 (24.0%), bicyclist 185/788 (23.5%), motorcyclist 32/74 (43.2%) |
@@ -338,12 +338,12 @@ python scripts/eval.py eval/js3c_val_d4tta \
 # → expect ≥ 24.32 % (TTA monotone gain on the realistic-deploy variant).
 ```
 
-Or use the all-in-one driver (`tab:cross_base_js3c` is the
-`reproduce_table.py` command key for the JS3C-Net row of the paper's
-cross-base table `tab:portable_s2d2`):
+Or use the all-in-one driver, which takes the paper's cross-base table label
+`tab:portable_s2d2` directly. It reproduces that table's LMSCNet row and its
+JS3C-Net row in one run, so both prediction dumps must be on disk:
 
 ```bash
-python scripts/reproduce_table.py tab:cross_base_js3c
+python scripts/reproduce_table.py tab:portable_s2d2
 ```
 
 ### Known gap on the synthetic pool
@@ -422,12 +422,12 @@ seed BEV is always height-pooled from LMSCNet's own 3D prediction
 (`bev_from_base: true`, never GT BEV), so 16.59 % is already the at-deploy
 number.
 
-Or use the all-in-one driver (`tab:cross_base_lmsc` is the
-`reproduce_table.py` command key for the LMSCNet row of the paper's
-cross-base table `tab:portable_s2d2`):
+Or use the all-in-one driver under the same paper label as the JS3C-Net
+section above -- `tab:portable_s2d2` reproduces this LMSCNet row and the
+JS3C-Net row together:
 
 ```bash
-python scripts/reproduce_table.py tab:cross_base_lmsc
+python scripts/reproduce_table.py tab:portable_s2d2
 ```
 
 ## Determinism caveats

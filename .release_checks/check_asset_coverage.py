@@ -153,6 +153,12 @@ class World:
 
 # ----------------------------------------------------------------------- harvesting
 
+def _locate_manifest() -> Path:
+    """The manifest moved into checkpoints/ so it ships with the payload."""
+    inside = ASSETS / "checkpoints" / "MANIFEST.txt"
+    return inside if inside.exists() else ASSETS / "MANIFEST.txt"
+
+
 def references(w: World) -> Dict[str, List[str]]:
     """'fam/name' -> ['<file>:<line>', ...] over every documentation surface."""
     hits: Dict[str, List[str]] = {k: [] for k in w.checkpoint_dirs()}
@@ -166,7 +172,7 @@ def references(w: World) -> Dict[str, List[str]]:
 
 
 def manifest_listed(w: World) -> Tuple[Set[str], Optional[Path]]:
-    man = ASSETS / "MANIFEST.txt"
+    man = _locate_manifest()
     if not w.exists(man):
         return set(), None
     listed: Set[str] = set()

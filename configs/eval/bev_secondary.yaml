@@ -1,5 +1,5 @@
 _paper_table: "tab:bev_results (supplementary Tab. XXI, LiDAR-only BEV secondary task; the refined-BEV entry, 36.1%)"
-_description: "LiDAR-only BEV refinement via S2D2: SCPNet-derived base BEV -> S2D2 BEV diffusion -> refined BEV. Expected 36.09% BEV mIoU on SemanticKITTI val seq 08."
+_description: "LiDAR-only BEV refinement via S2D2: SCPNet-derived base BEV -> S2D2 BEV diffusion -> refined BEV. Expected 36.09% BEV mIoU on SemanticKITTI val seq 08. Measured by the training-time 2D BEV evaluator on 100 fixed val frames (seed 42), not the 4,071-frame semantic-kitti-api protocol used by the 3D configs."
 # PROTOCOL -- this number is NOT the 4,071-frame semantic-kitti-api protocol the 3D
 # configs use, and must never be compared against a 3D mIoU. Per the checkpoint's own
 # config.json ("eval_protocol"), it is the training-time 2D BEV evaluator over 100

@@ -11,6 +11,15 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
+# torch alone is not a sufficient guard here. The module under test reaches
+# gssc.models.s2d2_unet -> gssc.models.sparse_lidar_encoder:17, which does
+# `import spconv.pytorch` at module scope, and spconv ships only CUDA-specific
+# wheels -- so "torch installed, spconv not" is the ordinary contributor setup.
+# Without this line that combination does not skip: the file dies AT COLLECTION
+# and aborts the entire run (measured on a clean py3.10 venv with CPU torch 2.4.0
+# and no spconv: `3 errors during collection`, exit 2, zero tests executed).
+pytest.importorskip("spconv")
+
 import numpy as np
 
 from gssc.inference.d4_tta import (

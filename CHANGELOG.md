@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 under the policy stated below.
 
+Two early entries — **1.0.0** and **1.1.0** — are headed *untagged historical release*.
+They document what shipped on those dates, but this repository carries no matching git
+tag, so `git checkout v1.0.0` / `git checkout v1.1.0` will fail. Every other entry has a
+tag of the same name (`git tag` lists them).
+
 ## Versioning policy
 
 - **MAJOR** version (`2.0.0`) — Breaking changes to:
@@ -335,7 +340,7 @@ is **v2.3.1**.
 - **`scripts/dump_lmscnet_predictions.py`**, **`src/gssc/models/lmscnet_base.py`** (`.npy` reader), **`configs/train/lmscnet_real.yaml`**, **`configs/eval/lmscnet_val_1step.yaml`** — together they let any visitor reproduce the paper's third cross-base result, **LMSCNet → +S²D² = 16.6 % val mIoU (+1.8 pp over the 14.8 % LMSCNet base)**, under the official `semantic-kitti-api` evaluator (the LMSCNet base is re-scored from on-disk predictions, superseding the earlier 12.10 % summary).
 - **`base_kind` Literal** in `src/gssc/data/semantickitti.py` now accepts `'lmscnet'` alongside `'scpnet'` and `'js3c'`.
 - **`tests/test_lmscnet_base.py`** — 4 unit tests (shape/dtype loading, error paths for shape mismatch / out-of-range / missing-file, uint8 → int64 upcast, base_kind Literal regression guard).
-- **`scripts/reproduce_table.py tab:cross_base_lmsc`** — one-command repro for the LMSCNet+S²D² row; generalises `_check_js3c_predictions` to `_check_base_predictions(dir, base_kind)` driven by a new `BASE_DUMPER_INFO` table so adding future cross-bases needs only a config + a dict row.
+- **`scripts/reproduce_table.py`, LMSCNet cross-base entry point** — one-command repro for the LMSCNet+S²D² row of the paper's `tab:portable_s2d2` (invoke it by that paper label, which dispatches every cross-base row; the per-base driver key is a CLI name, not a paper label); generalises `_check_js3c_predictions` to `_check_base_predictions(dir, base_kind)` driven by a new `BASE_DUMPER_INFO` table so adding future cross-bases needs only a config + a dict row.
 - **`docs/MODEL_ZOO.md`** reframes the *Cross-base headline* section as a 3-row table (LMSCNet | JS3C-Net | SCPNet) instead of just listing JS3C.
 
 ### Removed
@@ -356,7 +361,12 @@ is **v2.3.1**.
 ### Changed
 - **Flag rename**: the legacy SCPNet-specific BEV-derivation flag → `--bev_from_base` (training, eval, and inference CLIs; identical YAML key `bev_from_base:`). The semantic was always "derive BEV by height-pooling the base 3D prediction (whichever base is wired in via `--base_pred_dir` / `--base_kind`)"; the SCPNet-specific name predates the JS3C-Net cross-base support. The old flag still works via a `DeprecationWarning`-emitting shim (`gssc.utils.compat.resolve_bev_from_base`) and is slated for removal in v2.0.0. Mirrors the v1.1.0 `scpnet_pred_dir` → `base_pred_dir` migration.
 
-## [1.1.0] — 2026-05-14
+## [1.1.0 — untagged historical release] — 2026-05-14
+
+> **No `v1.1.0` git tag exists in this repository, so this release cannot be checked out.**
+> The entry is kept as the historical record of what shipped on that date. The tags that
+> bracket it are `v1.0.0-rc1` (2026-04-25) and `v1.1.1` (2026-05-18); `v1.1.1` is the first
+> checkout-able point that contains this work.
 
 ### Added — JS3C-Net cross-base support
 
@@ -396,7 +406,7 @@ is **v2.3.1**.
 - `tests/test_js3c_base.py` — four tests covering predictions reader,
   D4 TTA symmetry on JS3C inputs, cold-diffusion forward determinism,
   and the `scpnet_pred_dir` deprecation alias.
-- `scripts/reproduce_table.py tab:cross_base_js3c` — single-command
+- `scripts/reproduce_table.py`, JS3C-Net cross-base entry point — single-command
   reproduction of the cross-base headline (with pre-flight check that
   prints the exact dumper command if `js3cnet_predictions/` is empty).
 - New release checkpoint `gssc_js3c/gssc_js3c_s2d2_real/` (paper Tab.
@@ -541,7 +551,12 @@ is **v2.3.1**.
 - Configs with `:` in `_paper_table`/`_description` fields are
   now properly quoted (was a YAML scanner error).
 
-## [1.0.0] — 2026-04-26
+## [1.0.0 — untagged historical release] — 2026-04-26
+
+> **No `v1.0.0` git tag exists in this repository, so this release cannot be checked out.**
+> The entry is kept as the historical record of the first public release. The only tag from
+> that period is the pre-release `v1.0.0-rc1` (2026-04-25); the first final tag in the
+> repository is `v1.1.1` (2026-05-18).
 
 ### Added
 - Initial public release.

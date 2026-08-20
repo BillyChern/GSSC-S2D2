@@ -43,6 +43,12 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+# Repo root (scripts/ -> repo); make `gssc` importable from a plain checkout, matching
+# scripts/eval.py. js3c_repo_context() later prepends the JS3C clone at index 0, which is
+# what lets `models.*` resolve to JS3C's own modules; `gssc` does not collide with it.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT / "src"))
+
 logger = logging.getLogger("gssc.dump_js3c")
 
 
@@ -125,6 +131,8 @@ def load_js3c_model(log_dir: Path, repo: Path):
     import torch
     from torch import nn
 
+    from gssc.utils.checkpoint import assert_bound
+
     with (log_dir / "args.txt").open() as f:
         config = json.load(f)
     config["GENERAL"]["debug"] = False
@@ -199,7 +207,16 @@ def load_js3c_model(log_dir: Path, repo: Path):
         raise FileNotFoundError(f"No model*.pth in {log_dir}")
     logger.info("loading JS3C-Net checkpoint: %s", ckpts[-1])
     state = torch.load(ckpts[-1], map_location="cuda")
-    model.load_state_dict(state, strict=False)
+    # strict=False is kept because this wrapper is reconstructed from args.txt rather
+    # than imported from upstream, so a config drift would show up as unmatched keys
+    # instead of a crash. The result is therefore CHECKED: silently accepting a partial
+    # load would leave part of the segmentation or completion head at random
+    # initialisation and still dump a full set of plausible-looking .npy predictions,
+    # which then feed Tab. III as if they were JS3C-Net's. Upstream's own
+    # test_kitti_ssc.py loads this checkpoint with strict=True against an
+    # attribute-identical class, so this guard is inert for the released weights.
+    load_res = model.load_state_dict(state, strict=False)
+    assert_bound("js3c_net", load_res, ckpts[-1])
     return model, config
 
 
