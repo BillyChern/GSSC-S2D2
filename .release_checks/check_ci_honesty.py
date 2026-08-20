@@ -264,7 +264,7 @@ def _probe_files(sandbox: Path, sentinel: Path) -> None:
     that inline override is why this is not simply an exported PYTHONPATH.)
     """
     blocker = '''
-import os, sys, importlib.abc, traceback, pathlib
+import os, sys, importlib.abc, importlib.machinery, traceback, pathlib
 _repo = os.environ.get("CLEAN_RUNNER_REPO")
 _allow = set(os.environ.get("CLEAN_RUNNER_ALLOW", "").split(",")) | set(sys.stdlib_module_names)
 _sent = os.environ.get("CLEAN_RUNNER_SENTINEL")
@@ -272,11 +272,37 @@ if _sent:
     pathlib.Path(_sent).write_text("loaded")
 
 
+def _needs_install(name, path):
+    """True only when `name` resolves to an INSTALLED DISTRIBUTION.
+
+    A name-only allowlist is not enough. `sys.stdlib_module_names` omits the generated
+    per-platform data modules -- `_sysconfigdata__x86_64-linux-gnu`, which sysconfig
+    imports lazily -- so it blocked a module that ships WITH the interpreter and that no
+    `pip install` line could ever declare. That cost one spurious test failure and a
+    false FAIL for this entire gate on 2026-08-20; a real clean venv holding only the
+    three declared distributions ran the same command green.
+
+    What `pip install` actually governs is site-packages, so that is what gets tested.
+    PathFinder is used rather than importlib.util.find_spec because it does not consult
+    sys.meta_path and so cannot recurse back into this finder.
+    """
+    try:
+        spec = importlib.machinery.PathFinder.find_spec(name, path)
+    except (ImportError, AttributeError, ValueError):
+        return False
+    origin = getattr(spec, "origin", None) if spec is not None else None
+    if not origin or origin in ("built-in", "frozen", "namespace"):
+        return False
+    return "site-packages" in origin or "dist-packages" in origin
+
+
 class _Blocker(importlib.abc.MetaPathFinder):
     def find_spec(self, name, path=None, target=None):
         top = name.split(".")[0]
         if top in _allow:
             return None
+        if not _needs_install(name, path):
+            return None      # stdlib, builtin, or repo-local: no install declares it
         # Innermost repo frame first: the OUTERMOST one is the test file, but the module
         # that actually does the undeclared import is usually several frames deeper
         # (tests/test_evaluate_parser.py:14 -> gssc/inference/evaluate_bev.py:34 ->
@@ -325,7 +351,14 @@ def run_script(script: str, cwd: Path, extra_env: Optional[Dict[str, str]] = Non
     # It is the actionable line and it is NOT near the end of pytest output, so hoist it:
     # a detail string that only says "1 error during collection" sends the author hunting.
     marked = [l for l in lines if "[clean-runner]" in l]
-    tail = (marked[:1] + lines[-4:]) if marked else lines[-4:]
+    # An import the suite HANDLES (pytest.importorskip -> SKIPPED) is the probe working as
+    # designed, not a defect; only an UNHANDLED one is. Ranking a benign SKIPPED line first
+    # pushed the real failure past the 400-char cut, so the detail string showed pytest's
+    # syntax-highlighted echo of this module's own source -- `%r` placeholders and all --
+    # and read like the gate was broken rather than like a test was failing.
+    hot = [l for l in marked if "FAILED" in l or "ERROR" in l or l.startswith("E ")]
+    lead = (hot or [l for l in marked if "SKIPPED" not in l] or marked)[:1]
+    tail = lead + lines[-4:]
     return (p.returncode, " | ".join(tail)[:400])
 
 
@@ -643,18 +676,31 @@ def selftest() -> int:
     expect("command forced to exit 3", run(f1, tmp=tmp / "t1"),
            "workflow_commands_exit_zero", True)
 
-    # --- FAULT 2 (C2): widen the declared install set to include numpy/torch and the
-    # cleanroom run must go GREEN; that is the control proving the probe is what makes the
-    # live check red, not some unrelated breakage.
+    # --- FAULT 2 (C2): NARROW the declared install set -- drop numpy, which
+    # gssc/inference/evaluate_bev.py imports at module scope -- and the cleanroom run must
+    # go RED.
+    #
+    # POLARITY. This arm used to assert the LIVE workflow was red, because at the time it
+    # was: test.yml declared `pytest pyyaml` and the suite died at collection on a runner
+    # without numpy. That made the "fault" arm a restatement of the defect, so the moment
+    # the defect was fixed the arm inverted and the selftest reported FIXTURE DRIFT. A
+    # selftest has to inject a fault into a HEALTHY fixture; asserting that today's bug is
+    # still present is a regression test wearing a selftest's clothes.
     f2 = tmp / "f2"
     shutil.copytree(base, f2)
     test_wf = f2 / ".github/workflows/test.yml"
     b2 = test_wf.read_text()
-    a2 = b2.replace("pip install pytest pyyaml",
-                    "pip install pytest pyyaml numpy torch spconv")
-    assert a2 != b2, "FIXTURE DRIFT: test.yml no longer reads `pip install pytest pyyaml`"
+    a2 = b2.replace('pip install pytest "pyyaml>=6.0" "numpy>=1.26,<2"',
+                    'pip install pytest "pyyaml>=6.0"')
+    assert a2 != b2, ("FIXTURE DRIFT: test.yml's install step no longer reads "
+                      '`pip install pytest "pyyaml>=6.0" "numpy>=1.26,<2"`')
     test_wf.write_text(a2)
-    g2 = run(f2, tmp=tmp / "t2")
+    expect("numpy dropped from the declared installs", run(f2, tmp=tmp / "t2"),
+           "workflow_commands_survive_declared_deps", True)
+    # ...and the control: UNCHANGED, the same check must be GREEN. Without it, a probe
+    # broken in a way that reddens everything would satisfy the fault arm above and look
+    # like a working selftest.
+    g2 = run(base, tmp=tmp / "t2b")
     got2 = dict((n, ok) for n, ok, _ in g2.results)["workflow_commands_survive_declared_deps"]
     if got2:
         print("  TRIPPED  control_declared_deps_green_when_deps_declared")
@@ -663,9 +709,6 @@ def selftest() -> int:
             "workflow_commands_survive_declared_deps", "")
         print(f"  MISSED   control_declared_deps_green_when_deps_declared   ({det[:200]})")
         missed += 1
-    # ...and unchanged, the live install set must be RED (the D2 defect itself).
-    expect("declared installs = pytest pyyaml only", run(base, tmp=tmp / "t2b"),
-           "workflow_commands_survive_declared_deps", True)
 
     # --- FAULT 3 (C3): add a CI-enforced row no workflow backs.
     f3 = tmp / "f3"
