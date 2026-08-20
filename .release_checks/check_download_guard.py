@@ -66,7 +66,19 @@ unreachable repo exits with the docs/DATASET.md pointer. Do NOT "fix" this by so
 three documents: the documents describe the behaviour a user should get, and
 `docs/MODEL_ZOO.md:6` is the specification.
 
-STATUS ON 2026-08-20: FAILS, by design. 5 of 9 checks fail on the shipped artefacts.
+STATUS. The fix above LANDED: `scripts/download_assets.py:_fetch` now wraps every
+`snapshot_download` in a broad handler that `sys.exit`s with `_MANUAL_ROUTES`, so all 9
+checks pass on the shipped artefacts (re-measured 2026-08-20 after the fix). The gate is
+kept as a regression guard: it fails again the moment any mode loses that pointer.
+
+WHERE THE SELFTEST ROTTED. Until 2026-08-20 the selftest built its healthy fixture by
+APPENDING a simulated release guard (`_GUARD`) to the still-broken shipped script, and
+injected its faults into that appended block -- and, for the three promise checks, used
+"measure the shipped script" AS the fault. When the real fix landed inside `_fetch`, the
+appended block became dead code and the shipped script became healthy, so five of nine
+faults stopped reaching anything the gate measures while still reading like injections.
+Every fault now disables BOTH guards -- the one that ships in `_fetch` and the appended
+one -- and is asserted to actually perturb the probe before its check is graded.
 """
 
 from __future__ import annotations
@@ -462,6 +474,26 @@ def main() -> None:              # release guard under test by check_download_gu
 '''
 
 
+def _untrapped(src: str) -> str:
+    """Fixture whose Hugging Face modes die inside the hub, exactly as the pre-fix script did.
+
+    TWO mutations because there are now TWO guards on that path, and faulting either one alone
+    changes nothing observable:
+
+      * the SHIPPED guard -- `_fetch`'s `try:` around `snapshot_download` -- is hoisted off the
+        call, so the sentinel escapes `_fetch` instead of becoming a `sys.exit` pointer;
+      * the APPENDED `_GUARD` wrapper is made to re-raise instead of exiting.
+
+    `--synthetic-pool` is untouched and stays graceful (it never reaches the hub), which is
+    faithful to the original defect: the modes a first-time user runs are the broken ones.
+    """
+    src = _mutate(src,
+                  r"^    try:\n        snapshot_download\(repo_id=repo_id, \*\*kwargs\)$",
+                  "    snapshot_download(repo_id=repo_id, **kwargs)\n    try:\n        pass",
+                  "tb-inner")
+    return _mutate(src, r"raise SystemExit\(_GUARD_MSG\)", "raise", "tb-outer")
+
+
 def selftest() -> int:
     real = DOWNLOADER.read_text(encoding="utf-8")
     docs = read_docs()
@@ -480,21 +512,51 @@ def selftest() -> int:
     fixed.write_text(fixed_src, encoding="utf-8")
 
     base = measure(fixed, base_dir, docs, modes)
-    missed = 0
+    missed: List[str] = []
     pre_bad = [n for n in ORDER if not base[n][0]]
     for n in pre_bad:
         print(f"  MISSED   {n}   (fails on the REPAIRED fixture: {base[n][1]})")
-    missed += len(pre_bad)
+    missed.extend(pre_bad)
+
+    # ONE non-graceful fixture, shared by the three promise checks. Probed here and re-fed to
+    # `evaluate` per document below: one probe pair instead of three, and it lets each document
+    # be ISOLATED (see the promise branch). The assert is the point of the rewrite -- the old
+    # promise fault was "measure the shipped script", which silently became a no-op the day the
+    # shipped script was fixed. A fixture that is still graceful cannot fault anything, and this
+    # says so loudly instead of grading three vacuous arms.
+    prom_dir = _sandbox("promise")
+    prom = prom_dir / "download_assets.py"
+    prom.write_text(_untrapped(fixed_src), encoding="utf-8")
+    p_before = repo_snapshot(REPO)
+    p_runs = probe(prom, modes, "raise", prom_dir / "raise")
+    p_rec = probe(prom, modes, "record", prom_dir / "record")
+    p_after = repo_snapshot(REPO)
+    assert [r.label for r in p_runs if not graceful(r)], (
+        "promise fixture is still graceful on every mode, so the promise checks would be asked "
+        "to detect a defect that is not there -- the fault stopped reaching the code path")
 
     # Each fault perturbs a real input: the script source, the probe's patch mode, or the
     # snapshot pair. Never a check's own return value.
+    #
+    # EVERY SOURCE FAULT MUST DISABLE BOTH GUARDS. The graceful path is two-deep now: the
+    # `try/except BaseException` that ships inside `_fetch`, and the `_GUARD` wrapper this
+    # selftest appends. `every_mode_exits_nonzero` and `no_mode_emits_bare_traceback` used to
+    # mutate the wrapper ALONE; once the real fix landed in `_fetch` the wrapper was dead code,
+    # the mutated fixture behaved identically to the healthy one (measured: rc=1, pointer
+    # present, no traceback -- on both), and both arms reported MISSED forever.
     src_faults = {
         "every_mode_exits_nonzero":
-            lambda s: _mutate(s, r"raise SystemExit\(_GUARD_MSG\)", "raise SystemExit(0)", "rc"),
+            # Warn-and-continue: the ordinary way a failure path decays. Both the placeholder
+            # bail and the `_fetch` handler log instead of exiting, and the wrapper exits 0, so
+            # the pointer is still printed and nothing is raised -- ONLY the exit code moves,
+            # which keeps this arm from passing on some neighbouring check's fault.
+            lambda s: _mutate(
+                _mutate(s, r"sys\.exit\((?!0\))", "logger.error(", "rc-inner", count=0),
+                r"raise SystemExit\(_GUARD_MSG\)", "raise SystemExit(0)", "rc-outer"),
         "every_mode_names_dataset_md":
             lambda s: _mutate(s, re.escape(POINTER), "docs/ELSEWHERE.md", "ptr", count=0),
         "no_mode_emits_bare_traceback":
-            lambda s: _mutate(s, r"raise SystemExit\(_GUARD_MSG\)", "raise", "tb"),
+            _untrapped,
         "modes_parsed":
             lambda s: _mutate(s, r'action="store_true"', 'action="count"', "modes", count=0),
     }
@@ -530,35 +592,51 @@ def selftest() -> int:
             doc = {"promise_readme_matches_code": "README.md",
                    "promise_model_zoo_matches_code": "docs/MODEL_ZOO.md",
                    "promise_quickstart_matches_code": "examples/quickstart.ipynb"}[name]
+            # Fault = the non-graceful fixture above (code that does not deliver the pointer)
+            # judged against the REAL documents. Both halves are real inputs; nothing is
+            # doctored. This replaces "measure the shipped script", which stopped being a fault
+            # the moment the shipped script started delivering the pointer.
+            #
+            # And the documents are ISOLATED, because an arm named for one document must be
+            # shown to READ that document: every OTHER doc is blanked except the one sibling
+            # that supplies the specification a shape-(b) arm needs (`keep_spec`). Without
+            # isolation all three arms would trip off `offenders` alone and a cross-wired arm
+            # -- README's check keyed on MODEL_ZOO's text -- would pass unnoticed.
+            keep_spec = next((o for o in PROMISE_DOCS
+                              if o != doc and promise_sites(docs.get(o, ""), _join(o))), None)
+            iso = {o: (t if o in (doc, keep_spec) else "") for o, t in docs.items()}
             # A promise check is LIVE if the doc either promises the pointer itself (shape a)
             # or merely describes the downloader while a sibling doc specifies the pointer
             # (shape b -- README.md). Requiring shape (a) here reported README as vacuous on
             # first run, which was the selftest mis-modelling the check, not the check failing.
-            text = docs.get(doc, "")
-            sib = any(promise_sites(docs.get(d, ""), _join(d))
-                      for d in PROMISE_DOCS if d != doc)
+            # Evaluated on `iso`, i.e. on exactly what `evaluate` is about to see.
+            text = iso.get(doc, "")
+            sib = any(promise_sites(iso.get(o, ""), _join(o))
+                      for o in PROMISE_DOCS if o != doc)
             live = bool(promise_sites(text, _join(doc))) or \
                 (bool(downloader_sites(text, _join(doc))) and sib)
             if not live:
                 print(f"  MISSED   {name}   (no promise and no sibling spec for {doc}: the "
                       f"check is vacuous -- re-point it or delete it)")
-                missed += 1
+                missed.append(name)
                 continue
-            # Fault: measure the SHIPPED script (which does not deliver the promise) against
-            # the same real document. A real input swap, not a doctored verdict.
-            d = _sandbox(name)
-            p = d / "download_assets.py"
-            p.write_text(real, encoding="utf-8")
-            got = measure(p, d, docs, modes)
+            got = evaluate(modes, p_runs, p_rec, p_before, p_after, iso)
 
         if got[name][0]:
-            missed += 1
+            missed.append(name)
             print(f"  MISSED   {name}")
         else:
             print(f"  TRIPPED  {name}")
 
-    print(f"SELFTEST OK: {len(ORDER) - missed}/{len(ORDER)} checks provably fail when broken")
-    return 1 if missed else 0
+    # The label must agree with the exit code. This line used to print "SELFTEST OK" and then
+    # return 1, so a run with five dead arms announced OK -- the one word a reader skims for.
+    n = len(ORDER)
+    if missed:
+        print(f"SELFTEST FAILED: {n - len(missed)}/{n} checks provably fail when broken; "
+              f"missed: {', '.join(missed)}")
+        return 1
+    print(f"SELFTEST OK: {n}/{n} checks provably fail when broken")
+    return 0
 
 
 def main() -> int:
