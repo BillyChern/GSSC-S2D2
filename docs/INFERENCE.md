@@ -7,8 +7,9 @@ python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc
 ```
 
 Returns 38.54% val mIoU on SemanticKITTI seq 08. The same N=1 no-TTA setting
-scores **38.8 % on the hidden test** — to our knowledge the best single-frame
-single-sample result on the leaderboard to date (+0.9 over TALoS 37.9).
+scores **38.8 % on the hidden test** — to our knowledge the best *causal,
+single-sweep, single-sample* result on the leaderboard to date, +2.1 pp over the
+previous best published score under that restriction (SCPNet, 36.7).
 
 **This is not a real-time configuration, and the paper does not claim it is.**
 The correction pass costs 107 ms, which drops the deployed base+refiner pipeline

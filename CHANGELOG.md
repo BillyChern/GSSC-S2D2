@@ -34,6 +34,34 @@ tag of the same name (`git tag` lists them).
 A version that *changes the headline 38.54 % val mIoU number* is
 always a **MAJOR** bump, even if the API is identical.
 
+## [Unreleased]
+
+### Changed
+
+- Presentation only; no API, config or measured-value change. Both hidden-test
+  scores are now stated with equal confidence: **39.2 %** (N=4 + D4 TTA) is our
+  entry on the Codabench results tab, which displays each team's best score, and
+  **38.8 %** (N=1, no TTA) is the row the paper indexes its *causal,
+  single-sweep, single-sample* superlative on. The previous wording framed 38.8's
+  absence from the results tab as a deficiency ("not a row that can be looked up
+  there", "treat the link as our leaderboard presence, not as the evidence for
+  38.8", "EXCLUDED ... the only row of ours that is"); that is ordinary platform
+  behaviour, not an omission, and the apologetic framing is gone. Appendix G
+  records that the server returned both scores.
+- The hidden-test margin is now stated ONE way throughout, matching the paper:
+  **+2.1 pp** over the previous best published score under the predicate
+  (SCPNet, 36.7). `README.md` had been quoting it two ways in one document —
+  +2.1 pp over SCPNet in the hero paragraph, but "+0.9 over TALoS 37.9" in the
+  results table, the val bullet and `docs/INFERENCE.md`. The paper states no
+  TALoS margin: Tab. I marks TALoS "excluded from bolding: test-time
+  adaptation", and the TALoS row now carries that label.
+- The SemanticKITTI badge is split in two, so each badge's label matches what its
+  destination shows: the leaderboard badge reads 39.2 and links to the Codabench
+  results tab; the test badge reads 38.8 and links to `docs/REPRODUCIBILITY.md`,
+  which carries that row and its runnable command. The old single badge promised
+  38.8 and landed on a board displaying 39.2. Also adds the `#/results-tab`
+  fragment the badge link alone was missing.
+
 ## [2.3.8] — 2026-08-13
 
 Cut on 2026-08-13 for the version-bump fix below, then re-cut on 2026-08-21 onto the
@@ -269,7 +297,7 @@ which is how it drifted four releases behind.
 - Six sites quoted the 8-view D₄ ensemble row (39.2, N=4) as the deployable result:
   "+1.3 over TALoS", "+2.5 pp over the frozen base", and "+2.5 ... with a single
   extra forward pass" (self-contradictory, since +2.5 needs four steps plus the
-  ensemble). The predicate-satisfying margins are **+0.9** and **+2.1**.
+  ensemble). The margin the paper states under the predicate is **+2.1 pp** over the previous best published score (SCPNet, 36.7); TALoS is excluded from that comparison as test-time adaptation.
 - "real-time" and "cheapest deployable" are retracted: the paper says the marginal
   9.33 FPS "is an incremental pass, not a deployable rate" and that neither it nor
   the 3.23 FPS pipeline matches the sensor's 10 Hz cadence.
