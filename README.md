@@ -378,7 +378,7 @@ A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `as
 
 ```bibtex
 @article{chen2026gssc,
-  title   = {Generative Semantic Scene Completion through Modeling the Underlying Geometry and Semantics in Point Clouds},
+  title   = {Generative Semantic Scene Completion},
   author  = {Chen, Shi and Ge, Weifeng},
   journal = {IEEE Transactions on Pattern Analysis and Machine Intelligence (under review)},
   year    = {2026}
