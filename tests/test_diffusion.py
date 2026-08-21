@@ -22,7 +22,7 @@ def diffusion() -> MultinomialDiffusion3DV2:
 
 
 def test_num_timesteps(diffusion: MultinomialDiffusion3DV2) -> None:
-    """100-step schedule (paper Tab. XII default)."""
+    """100-step schedule (supplementary Tab. XXII, headline recipe: Timesteps T = 100)."""
     assert diffusion.num_timesteps == 100
 
 

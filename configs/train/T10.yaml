@@ -20,6 +20,7 @@ save_interval: 5000
 # beta_max stays 0.1 (the code default) regardless of T, so abar_T = prod(1-beta)
 # = 0.595 here: the forward process covers only ~40% of the distance from x_0 to
 # x_src and NEVER reaches the structured source. The correction sampler also
-# hard-codes t=99, which this model (max t = 9) never trained on. The paper
-# reports this row without interpreting it (supp Tab. XII, dagger note).
+# hard-codes t=99, which this model (max t = 9) never trained on. The paper does
+# not report this row: supp Tab. XXIX records the shorter schedules as
+# "degenerate and unreported" (supp App. C-A).
 num_timesteps: 10

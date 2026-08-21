@@ -9,7 +9,9 @@ _description: |
   `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>`.
 
   READ BEFORE USING THE T=10 / T=50 ROWS. These two rows are degenerate and the
-  paper reports them without interpreting them (supp Tab. XII, dagger note).
+  paper does not report them at all: supp Tab. XXIX's "Training-timestep ablation"
+  entry prints only skew/uniform T=100 (38.2/38.54) and records the shorter
+  schedules as "degenerate and unreported" (supp App. C-A; restated in App. H).
   Two things go wrong, and neither is fixed by an eval flag:
 
     1. beta stays linear on [1e-4, 0.1] regardless of T, so abar_T = prod(1-beta)

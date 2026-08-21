@@ -7,9 +7,9 @@ Currently present and embedded in `README.md`:
 
 | Filename | What | Where it appears |
 |---|---|---|
-| `teaser.png` | Hero teaser — paper Fig. 2 (two-stage pipeline rendered for the README) | top of `README.md`, above the badges |
-| `architecture.png` | Method architecture — paper Fig. 3 (denoiser UNet + S2D2 correction sampler) | `README.md` "Method at a glance" |
-| `qualitative.png` | Five-column qualitative comparison — paper Fig. 4 (left → right: JS3C-Net, SCPNet, TALoS, S²D² ours N=4, Ground Truth) over two seq-08 frames | `README.md` "Headline numbers" |
+| `teaser.png` | Hero teaser — two-stage pipeline rendered for the README; Stage A follows paper Fig. 2 (the PS³ offline pipeline), Stage B is repo-authored (the paper carries no combined two-stage figure) | top of `README.md`, above the badges |
+| `architecture.png` | Method architecture — paper Fig. 4 (the four-level dense 3D U-Net denoiser) + paper Fig. 5 (the S2D2 one-step correction, whose top and bottom bands this composite reuses) | `README.md` "Method at a glance" |
+| `qualitative.png` | Five-column qualitative comparison — paper Fig. 6 (left → right: JS3C-Net, SCPNet, TALoS, S²D² ours N=4, Ground Truth) over two seq-08 frames | `README.md` "Headline numbers" |
 
 Planned additions (not yet present in this directory and not yet referenced
 from `README.md` — the convention below reserves their names so the README
@@ -18,8 +18,8 @@ can embed them without churn once they are dropped in):
 | Filename | What | Intended location |
 |---|---|---|
 | `bev_qualitative.png` | BEV second-task qualitative — base BEV vs S²D² BEV vs GT | `README.md` "Secondary task" |
-| `step_sweep.png` | Tab. V step reduction plot (mIoU vs N) | `README.md` "Reproducing every paper number" |
-| `data_scaling.png` | Tab. VII data-scaling plot (mIoU vs synthetic-pool size) | `README.md` "Reproducing every paper number" |
+| `step_sweep.png` | Supplementary Tab. VI step reduction plot (mIoU vs N) | `README.md` "Reproducing every paper number" |
+| `data_scaling.png` | Supplementary Tab. VII data-scaling plot (mIoU vs synthetic-pool size) | `README.md` "Reproducing every paper number" |
 | `demo.gif` | Optional animation: S2D2 correction sampling over t=99 → t=0 | `README.md` hero |
 
 ## How figures get here

@@ -8,9 +8,10 @@ labels in SemanticKITTI (X, Y, Z) axis order.
 LMSCNet (Roldao et al., 2020) is a lightweight (394K params) 2D U-Net with
 the height-as-channels trick. We use the publicly released multiscale
 checkpoint (Google Drive folder linked in the official LMSCNet README).
-The paper's Tab. III row cites the single-scale variant LMSCNet-SS which
-is not publicly released; our val reproduction uses the released
-multiscale variant and a footnote in the table documents the difference.
+The paper's main Tab. I row is LMSCNet's published single-scale variant
+(LMSCNet-SS, 17.62 mIoU / 56.72 completion IoU), which is not publicly
+released; our val reproduction uses the released multiscale variant, and
+main Tab. III carries it as the re-scored (14.8 % val) base row instead.
 
 GT data invariant
 -----------------

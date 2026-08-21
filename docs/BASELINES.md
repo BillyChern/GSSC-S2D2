@@ -3,8 +3,10 @@
 This codebase ships three frozen base predictors — SCPNet (weights ported to
 spconv v2.3), JS3C-Net, and LMSCNet (the latter two as prediction readers) —
 and the S²D² refinement on top of each. Each base has its own section below.
-The DiffSSC reimplementation used only for the Fig. 4 qualitative panels is
-**not** shipped (out of scope for this release; see the section below).
+The DiffSSC reimplementation is **not** shipped (out of scope for this release;
+see the section below). It is not the source of any panel of the paper's
+qualitative comparison, Fig. 6, whose columns are JS3C-Net, SCPNet, TALoS,
+S²D² and ground truth; DiffSSC appears in no figure of the paper; its only tabulated entry is a row of main Tab. I.
 
 ## SCPNet base (frozen)
 
@@ -127,16 +129,18 @@ base, +1.8 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
 Reproduction protocol: `docs/REPRODUCIBILITY.md`, section "LMSCNet cross-base
 reproduction".
 
-## DiffSSC reimplementation (qualitative comparison only)
+## DiffSSC reimplementation (internal visualisation only)
 
 DiffSSC's open-source release contains only the geometric-completion pipeline
 (3-channel xyz diffusion on top of LiDiff); the semantic side is missing.
 
-The qualitative panels in Fig. 4 of the paper were produced from an internal
-(3+C)-channel reimplementation (anisotropic additive forward process, custom
-DDIM sampling, logit-domain semantic encoding). That reimplementation lives
-in our internal development codebase and is intentionally out of scope for
-this release: it is not part of any reported leaderboard number and depends on
-private utility code we cannot ship. We do **not** report DiffSSC
+The shipped paper contains no DiffSSC panel: its qualitative comparison
+(Fig. 6) shows JS3C-Net, SCPNet, TALoS, S²D² and ground truth, and no
+supplementary figure adds a DiffSSC column, so DiffSSC is tabulated in the paper only
+as a row of main Tab. I. Our internal (3+C)-channel reimplementation
+(anisotropic additive forward process, custom DDIM sampling, logit-domain
+semantic encoding) lives in our internal development codebase and is
+intentionally out of scope for this release: it is not part of any reported
+leaderboard number and depends on private utility code we cannot ship. We do **not** report DiffSSC
 numbers in the leaderboard table because the original authors did not submit;
 the reimplementation served visualization only.

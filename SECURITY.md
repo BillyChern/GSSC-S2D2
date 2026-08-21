@@ -68,7 +68,7 @@ python scripts/download_assets.py --checkpoints
 
 # The paths inside checksums.txt are rooted at `checkpoints/`, so run the check
 # from data/ -- the directory that CONTAINS checkpoints/.
-cd data && sha256sum -c checkpoints/checksums.txt
+cd data/checkpoints && sha256sum -c checksums.txt
 ```
 
 Every line must print `OK`, and `sha256sum` must exit 0. Do not load a file whose

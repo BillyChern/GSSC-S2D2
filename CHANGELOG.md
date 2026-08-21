@@ -34,10 +34,92 @@ tag of the same name (`git tag` lists them).
 A version that *changes the headline 38.54 % val mIoU number* is
 always a **MAJOR** bump, even if the API is identical.
 
-## [Unreleased]
+## [2.3.8] — 2026-08-13
 
-Four changes on `main` past v2.3.8, all in paths a visitor actually runs. Commits
-`ee2fbd3`, `6324ead`, `07725af`, plus the release-hygiene pass below.
+Cut on 2026-08-13 for the version-bump fix below, then re-cut on 2026-08-21 onto the
+release-hardening work that followed it, so the tag now spans the whole of
+`git log v2.3.7..v2.3.8`, which is where the scope of this entry comes from. Run
+`git diff --shortstat v2.3.7 v2.3.8` for the current count rather than trusting a number
+frozen into prose. Nothing sits outside the tag, so a `git checkout v2.3.8` gets every
+change listed here. `CITATION.cff` keeps the 2026-08-13 release date.
+
+### Added — `.release_checks/`, sixteen self-testing release gates
+The release ships the harness that measures it: one gate per subject, each reading the
+artefact instead of a belief and failing with a `file:line`. Their subjects are asset
+coverage, manifest, namespace and provenance; CI honesty; CLI surface; config
+constructibility; docs freshness; the download guard; history cleanliness; paper labels
+and paper numbers; protocol disclosure; security hashes; strict checkpoint loading; and
+tag parity. Every one carries a `--selftest` that re-injects the defect it was written
+for and asserts that the *named* check fails, so a gate that has quietly stopped
+measuring is caught by the gate rather than by a reader.
+
+Two of them exist because fixing the worktree is not the same as fixing the release.
+`check_tag_parity.py` diffs what the paper's pinned tag actually contains against the worktree
+— and parses the tag out of the paper rather than hardcoding it, so a paper that moves to
+a tag nobody cut fails instead of agreeing with itself. `check_docs_freshness.py` pins
+equalities between artefacts that both move (README's newest version to `pyproject`, the
+CHANGELOG version set to the git tag set, `CITATION.cff` to the newest CHANGELOG entry),
+because a constant would need editing at every release and would rot into a false green.
+
+### Added — provenance and integrity travel with the shipped checkpoints
+Every shipped checkpoint's `config.json` records the digest of the file it was converted
+from (`source_sha256`, 18/18), and all but one also name the originating run and code
+revision (`source_run`, `code_revision`, 17/18 — the exception is `gssc_lmsc`, whose
+source run is genuinely unrecoverable and says so). Where a published figure came from a
+non-standard protocol, that protocol is recorded verbatim (`eval_protocol`). `checksums.txt` and `MANIFEST.txt` moved inside
+`checkpoints/`, the directory the download populates, so the verification file now arrives
+alongside the files it covers instead of one level above them.
+
+### Added — `scripts/label_to_base_pred.py`, without which `eval/round2_a` could not run
+`scripts/infer.py` writes SemanticKITTI submission format (flat `uint16` `.label` under
+`sequences/<SEQ>/predictions/`, original label space); `scripts/eval.py` sources `x_src`
+from a base-prediction tree (`<dir>/<SEQ>/<frame>_pred.npy`, `(256, 256, 32)` `uint8`,
+learning-map space). Pointing `base_pred_dir` straight at an inference output made every
+frame miss the existence test and get dropped, so the eval reported a metric over zero
+frames instead of failing. The new script emits the tree shape the real base predictions
+use, and `configs/eval/round2_a.yaml` documents the three commands in order.
+
+### Added — `--max-frames` states why it does not reproduce the published BEV numbers
+The published BEV figures come from `run_algo2_on_samples`, which evaluates
+`RandomState(42).choice(len(val_dataset), 100, replace=False)` — a seeded sample, not the
+first 100 frames `--max-frames` takes. The seed indexes a *list*, and the two lists differ in
+root, glob (`*_bev.npy` vs `*.bin`) and filtering (the dataset drops frames whose
+`_voxels.npy` or `_bev_top.npy` is missing). Seeding the evaluator's list would select a
+different 100 frames and return a plausible number reproducing nothing. Documented instead:
+what `--max-frames` does, what the published protocol is, and what reproducing it would take.
+
+### Changed — the CI badges now mean what they say
+`.github/workflows/test.yml` installed only `pytest pyyaml`, so on a clean runner the job died
+**at collection** (`gssc.inference.evaluate_bev` imports `numpy` at module scope) while staying
+green on a developer box that already had numpy. It now declares `numpy` and runs the
+CPU-runnable suite instead of four node ids, with the counts it covers recorded in the
+workflow itself. `CONTRIBUTING.md`'s "CI-enforced" table listed five standards where two were
+enforced; the coverage row would have failed the build (the CPU-runnable suite reaches ~51 %
+against `fail_under = 80`). The table now lists only what a workflow runs, with the rest moved
+to a "run locally" table that says why each is not wired up. `SECURITY.md` sent readers to a
+hash table that did not exist and printed a bare `sha256sum <path>`, which emits a digest and
+no verdict; it now documents the `sha256sum -c` path against the `checksums.txt` that ships
+with the checkpoint bundle.
+
+### Changed — every paper pointer in the release resolves against the paper
+Config files carry a `_paper_table` label naming the table they reproduce, and
+`scripts/reproduce_table.py` takes such a label as its argument. Several named labels the
+paper does not define, and one reproduced a different table from the one it was named
+after, so a reader following the pointer landed on the wrong row or on nothing. Every
+paper label reachable from a config, script or doc now resolves; the configs whose result
+the paper reports in prose rather than in a table declare `_paper_table: none` and name
+the section instead of inventing a table for it.
+
+### Fixed — v2.3.7 bumped 2 of the 4 version declarations, so `uv lock --check` failed
+v2.3.5 and v2.3.6 each bumped `pyproject.toml`, `CITATION.cff`, `src/gssc/__init__.py` and
+`uv.lock` together. v2.3.7 bumped only the first two, leaving `__init__.py` and the `uv.lock`
+`gssc` entry at 2.3.6 — which makes `uv lock --check` fail, i.e. a visitor's first command
+errors out. This is verbatim the defect the paper harness's `check_release_snapshot` R4 was
+written to catch after the same drift sat in five files at v2.1.0; its comparison silently
+accepted any drift inside one minor series, so it reported the mismatch as a *note* and exited 0.
+That filter is fixed in the same cycle as this release.
+
+All four declarations now read 2.3.8 and `uv lock --check` is clean.
 
 ### Fixed — the BEV secondary-task evaluator could not load its own model, and said nothing
 `evaluate_bev()` built the denoiser from the factory defaults (`input_resolution=64`,
@@ -46,9 +128,8 @@ accepted that **silently**: 12 `cond_proj` tensors shape-mismatched and 48 atten
 stayed at initialisation, so the evaluator would have scored a half-built model and returned a
 number. The reconstruction keys now come from the checkpoint's own `config.json`
 (`input_resolution`, `model_size`, `conditioning_type`, `use_self_conditioning`,
-`lidar_channels`), and `gssc.utils.checkpoint.assert_bound()` refuses to score when anything fails to
-bind. A wrong
-number that looks right is worse than a crash.
+`lidar_channels`), and `gssc.utils.checkpoint.assert_bound()` refuses to score when anything
+fails to bind. A wrong number that looks right is worse than a crash.
 
 The same cycle corrected *which* checkpoint the paper's BEV row belongs to. Every doc named
 `data/checkpoints/bev/bev_perception_net/model.safetensors`; that is a different model and it
@@ -72,45 +153,7 @@ configuration that motivated it — 21.4 GiB free against a 15.4 GiB requirement
 `_count_frames()` assumed a `dataset/` level this checkout does not have, returning 0 and
 multiplying out to a zero-byte requirement, i.e. a guard that always passes. It now reserves
 headroom (the larger of 8 GiB and 10 % of the filesystem), tries both layouts, and warns
-loudly on a zero count. `configs/eval/round2_a.yaml`, which could not execute at all — it
-named a directory of flat uint16 `.label` files where `--scpnet_dir` reads `(256, 256, 32)`
-uint8 `_pred.npy` in learning-map space — now documents the required conversion step.
-
-### Added — `--max-frames` states why it does not reproduce the published BEV numbers
-The published BEV figures come from `run_algo2_on_samples`, which evaluates
-`RandomState(42).choice(len(val_dataset), 100, replace=False)` — a seeded sample, not the
-first 100 frames `--max-frames` takes. The seed indexes a *list*, and the two lists differ in
-root, glob (`*_bev.npy` vs `*.bin`) and filtering (the dataset drops frames whose
-`_voxels.npy` or `_bev_top.npy` is missing). Seeding the evaluator's list would select a
-different 100 frames and return a plausible number reproducing nothing. Documented instead:
-what `--max-frames` does, what the published protocol is, and what reproducing it would take.
-
-### Changed — the CI badges now mean what they say
-`.github/workflows/test.yml` installed only `pytest pyyaml`, so on a clean runner the job died
-**at collection** (`gssc.inference.evaluate_bev` imports `numpy` at module scope) while staying
-green on a developer box that already had numpy. It now declares `numpy` and runs the whole
-CPU-runnable suite — 43 cases pass, 33 skip through `pytest.importorskip` — instead of four
-node ids. `CONTRIBUTING.md`'s "CI-enforced" table listed five standards where two were
-enforced; the coverage row would have failed the build (the CPU-runnable suite reaches ~51 %
-against `fail_under = 80`). The table now lists only what a workflow runs, with the rest moved
-to a "run locally" table that says why each is not wired up. `SECURITY.md` sent readers to a
-hash table that did not exist and printed a bare `sha256sum <path>`, which emits a digest and
-no verdict; it now documents the `sha256sum -c` path against the `checksums.txt` that ships to
-the Hugging Face checkpoints repo root.
-
-## [2.3.8] — 2026-08-13
-
-### Fixed — v2.3.7 bumped 2 of the 4 version declarations, so `uv lock --check` failed
-v2.3.5 and v2.3.6 each bumped `pyproject.toml`, `CITATION.cff`, `src/gssc/__init__.py` and
-`uv.lock` together. v2.3.7 bumped only the first two, leaving `__init__.py` and the `uv.lock`
-`gssc` entry at 2.3.6 — which makes `uv lock --check` fail, i.e. a visitor's first command
-errors out. This is verbatim the defect the paper harness's `check_release_snapshot` R4 was
-written to catch after the same drift sat in five files at v2.1.0; its comparison silently
-accepted any drift inside one minor series, so it reported the mismatch as a *note* and exited 0.
-That filter is fixed in the same cycle as this release.
-
-All four declarations now read 2.3.8 and `uv lock --check` is clean. No code, config, doc text,
-or measured value changed relative to v2.3.7 beyond the version strings.
+loudly on a zero count.
 
 ## [2.3.7] — 2026-08-13
 
@@ -411,8 +454,9 @@ is **v2.3.1**.
   prints the exact dumper command if `js3cnet_predictions/` is empty).
 - New release checkpoint `gssc_js3c/gssc_js3c_s2d2_real/` (paper Tab.
   III row 91; ~265 MB safetensors subdir).
-- New release checkpoint `gssc_mf/gssc_57k_mf_step40000/` (paper Tab. V
-  negative-result row; 37.76 % val mIoU under N=1 eval).
+- New release checkpoint `gssc_mf/gssc_57k_mf_step40000/` (negative result; in
+  no paper table -- supp Tab. VII's 57K row is the multi-frame 38.4 from a
+  different run; 37.76 % val mIoU under N=1 eval).
 - `data/js3cnet_predictions/` dataset entry, mirroring the existing
   `scpnet_predictions/` layout (`{00..21}/` + `synthetic_31k/` +
   `synthetic_filtered/`). 597-frame JS3C-synth gap documented; SCPNet
@@ -573,7 +617,6 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.8...HEAD
 [2.3.8]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.7...v2.3.8
 [2.3.7]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.6...v2.3.7
 [2.3.6]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.5...v2.3.6

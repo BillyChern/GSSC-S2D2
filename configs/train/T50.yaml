@@ -20,5 +20,6 @@ save_interval: 5000
 # beta_max stays 0.1 regardless of T, so abar_T = 0.075 here (vs 0.0056 at
 # T=100): the forward process stops 7.5% short of the source. The correction
 # sampler also hard-codes t=99, which this model (max t = 49) never trained on.
-# The paper reports this row without interpreting it (supp Tab. XII, dagger).
+# The paper does not report this row: supp Tab. XXIX records the shorter
+# schedules as "degenerate and unreported" (supp App. C-A).
 num_timesteps: 50

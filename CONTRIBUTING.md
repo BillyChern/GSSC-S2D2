@@ -19,7 +19,7 @@ if a workflow runs the command at the scope the row states.
 | Tests | `pytest` | `pytest tests/ --ignore=tests/test_tau_invariance.py -v` | test.yml |
 | Static types | `mypy` | `mypy src/gssc/inference src/gssc/utils` | lint.yml |
 
-The test job runs on a torch-free CPU runner: 43 cases execute and 33 skip themselves
+The test job runs on a torch-free CPU runner: 42 cases execute and 34 skip themselves
 through `pytest.importorskip`. `tests/test_tau_invariance.py` is ignored because it
 imports torch at module scope without that guard, so it cannot even be collected there.
 

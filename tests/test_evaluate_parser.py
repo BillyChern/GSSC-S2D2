@@ -73,7 +73,7 @@ def test_hyphenated_class_names_normalised() -> None:
 
 
 def test_all_19_classes_present() -> None:
-    """We never silently drop a class — Tab. I has all 19."""
+    """We never silently drop a class — main Tab. II lists all 19."""
     m = _parse_eval_completion_output(SAMPLE_OUTPUT)
     iou_keys = [k for k in m if k.startswith("IoU_") and k != "IoU_cmpl"]
     assert len(iou_keys) == 19
@@ -108,7 +108,7 @@ def test_resolve_config_loads_eval_val_1step() -> None:
 
 def test_resolve_config_loads_eval_d4tta() -> None:
     """eval/val_d4tta is the val N=4 + D4 TTA row. The paper puts 38.73% val against
-    "N=4 + D_4 TTA" (supplementary Tab. XXIII), so this config is N=4, not N=1; the
+    "N=4 + D_4 TTA" (supplementary Tab. XXVIII), so this config is N=4, not N=1; the
     matching test-server entry is 39.2% via configs/infer/test_d4tta.yaml."""
     cfg = _resolve_config("eval/val_d4tta")
     assert cfg["correction_steps"] == 4

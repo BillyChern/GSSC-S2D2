@@ -307,7 +307,7 @@ def run(paths: Sequence[Path], seeds: Sequence[Path] = PAPER_SEEDS,
                     # the drift these fields were written to prevent. Only an UNAMBIGUOUS
                     # window counts: exactly one label of the matching kind.
                     # ...and ONLY in a YAML config. A markdown table gives every row its own
-                    # "| Tab. V (step reduction) |" cell, and looking back across rows attributed
+                    # "| Supp. Tab. VI (step reduction) |" cell, and looking back across rows attributed
                     # one row's rendered number to another row's label -- two invented defects on
                     # docs/REPRODUCIBILITY.md:243-244. In YAML the two lines are one record.
                     if path.suffix != ".yaml":

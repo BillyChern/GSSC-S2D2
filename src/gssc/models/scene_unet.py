@@ -1,7 +1,7 @@
 """
 3D U-Net for Scene Completion with Multinomial Diffusion
 
-Based on the dense 3D U-Net architecture (paper Fig. 3), adapted for SemanticKITTI resolution.
+Based on the dense 3D U-Net architecture (paper Fig. 4), adapted for SemanticKITTI resolution.
 
 Key differences from CarlaSC (128×128×8):
 - SemanticKITTI uses 256×256×32 voxels
@@ -53,7 +53,7 @@ class ResidualBlock3D(nn.Module):
     Note: time-AdaGN is an affine modulation after GroupNorm; it is
     mathematically equivalent to FiLM-on-GroupNorm.
 
-    Architecture (paper Fig. 3):
+    Architecture (paper Fig. 4):
     1. GroupNorm → SiLU → 3D Conv
     2. + BEV embedding (via 3D conv)
     3. + LiDAR embedding (via 3D conv)

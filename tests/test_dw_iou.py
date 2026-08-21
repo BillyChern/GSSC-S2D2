@@ -1,4 +1,4 @@
-"""DW-IoU is validated against every published cell of the paper's Tab. VIII.
+"""DW-IoU is validated against every published cell of the paper's supplementary Tab. IV.
 
 The paper reports DW-VRU-IoU for five deployment rates across four reaction windows. Those
 20 cells are the specification: this test recomputes them from the per-class VRU IoUs and

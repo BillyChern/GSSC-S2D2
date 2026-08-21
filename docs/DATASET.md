@@ -315,9 +315,14 @@ split. (The `31K` shorthand in the variant/directory names below is the
 historical config-dir label `synthetic_pool_31K` / `--synthetic-pool 31K`; the
 actual frame count is 32,039.) Five sizes are released for the data-scaling
 ablation. The full pool is archived on IEEE DataPort rather than on the two
-Hugging Face mirrors; until its DOI is minted, `--synthetic-pool` exits with the
-manual-build instructions instead of downloading (the same statement as under
-*Maintenance* below), so the manual route is the one that works today:
+Hugging Face mirrors; its DOI has not been minted yet, so `--synthetic-pool`
+exits with the manual-build instructions instead of downloading (the same
+statement as under *Maintenance* below) and the manual route is the one that
+works today. What is outstanding is that one DOI, not a release embargo: the
+paper's availability footnote states that the code, the pre-trained models and
+the PS³ dataset are available at
+[github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2), and
+nothing in this datasheet is withheld pending acceptance.
 
     # Via the download script (resolves once the DataPort DOI is configured
     # in scripts/download_assets.py):
@@ -479,9 +484,12 @@ contents are identical; only the directory label differs.
   This is also the errata channel: file an issue if a frame, count, or shape
   here does not match what you downloaded.
 - **Version:** v2.3.8 (the TPAMI submission snapshot; bump this WITH supplementary.tex's tag).
-- **Mirror:** the full synthetic pool is mirrored to IEEE DataPort on paper
-  publication; until then the download scripts print manual-download
-  instructions.
+- **Mirror:** the full synthetic pool is archived on IEEE DataPort. Its DOI has
+  not been minted yet — that, and not paper acceptance, is what is outstanding —
+  so `scripts/download_assets.py --synthetic-pool` prints the manual-download
+  instructions instead of fetching. The other assets are provisioned by the same
+  script, and the pool itself can be rebuilt locally with the PS³ ray-tracer
+  (see *Synthetic pool* above).
 - **Errata posture:** the paper is the source of truth for every reported
   number. If a count in this datasheet disagrees with the paper, the paper
   wins and the discrepancy is an erratum to fix here.

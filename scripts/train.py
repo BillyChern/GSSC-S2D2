@@ -13,7 +13,9 @@ mIoU (with D4 TTA at inference)::
 
     python scripts/train.py train/31k_mf
 
-Single-frame retrains (Tab. VII data-scaling row)::
+Single-frame data-scaling retrains (a companion to supplementary Tab. VII, which
+is the MULTI-frame sweep; the paper carries this single-frame sweep as prose in
+supplementary App. C-B, not as a table)::
 
     python scripts/train.py train/0K_sf
     python scripts/train.py train/10K_sf
@@ -21,7 +23,7 @@ Single-frame retrains (Tab. VII data-scaling row)::
     python scripts/train.py train/31k_sf
     python scripts/train.py train/57K_sf
 
-Training-timestep ablation rows (Tab. XII)::
+Training-timestep ablation rows (internal; the paper prints no table for them)::
 
     python scripts/train.py train/T10
     python scripts/train.py train/T50

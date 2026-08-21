@@ -12,8 +12,12 @@ Usage::
 
 Checkpoints, base-model predictions and the object bank resolve against the two
 Hugging Face mirrors below. The synthetic pool is archived separately on IEEE
-DataPort; until its DOI is filled in, ``--synthetic-pool`` exits with the
-manual-build instructions in docs/DATASET.md / docs/REPRODUCIBILITY.md.
+DataPort, and its DOI is the one asset URL in this release that does not exist
+yet; until it is filled in, ``--synthetic-pool`` exits with the manual-build
+instructions in docs/DATASET.md / docs/REPRODUCIBILITY.md. Nothing here waits on
+paper acceptance: the paper's availability footnote already sends readers to
+github.com/BillyChern/GSSC-S2D2 for the code, the pre-trained models and the
+PS3 dataset.
 """
 from __future__ import annotations
 
@@ -27,7 +31,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 HF_REPO_MODELS = "BillyChern/GSSC-S2D2-checkpoints"
 HF_REPO_DATA = "BillyChern/GSSC-S2D2-datasets"
 # The synthetic pool (~128-230 GB) is archived on IEEE DataPort rather than the two
-# Hugging Face mirrors above. Fill in the DOI the archive is minted under.
+# Hugging Face mirrors above. This stays a [PLACEHOLDER] because the archive's DOI has not
+# been minted yet -- the pool is not embargoed until publication, so do NOT describe it that
+# way in the docs. While it is a placeholder, _ensure_url_configured routes `--synthetic-pool`
+# to the manual build in docs/DATASET.md; replace it with the real DOI once minted.
 DATAPORT_URL = "[SYNTHETIC_POOL_URL]"
 
 logger = logging.getLogger("gssc.download")

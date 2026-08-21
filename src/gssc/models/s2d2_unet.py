@@ -50,7 +50,7 @@ class ResidualBlock3DSparse(nn.Module):
     The timestep embedding is projected to per-channel (scale, shift) and
     applied as an affine transform after the second GroupNorm
     (``h = w * h + b``); this AdaGN form is equivalent to FiLM-on-GroupNorm
-    and matches the paper's "time-AdaGN" terminology (Sec. III.D, Fig. 3).
+    and matches the paper's "time-AdaGN" terminology (Sec. III-C, Fig. 4).
 
     BEV and LiDAR conditioning are added externally (multi-scale).
     This block only handles the voxel features and time embedding.

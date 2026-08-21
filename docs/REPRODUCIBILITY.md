@@ -241,12 +241,12 @@ paper.
 | Tab. III (tab:portable_s2d2, cross-base JS3C, GT-BEV diagnostic) | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.05 mIoU (official semantic-kitti-api, +3.32 pp) -- the GT-BEV diagnostic, NOT the paper's headline (24.3 %, derived BEV). Internal training-time evaluator on the same protocol = 26.72 mIoU (+3.99 pp), a continuity row |
 | Tab. III (tab:portable_s2d2, cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api, +1.59 pp) |
 | Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10). The released LMSCNet `model_ema.safetensors` ships complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint workaround is needed |
-| Tab. V (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
-| Tab. V (57K-MF negative) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
+| Supp. Tab. VI (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
+| 57K-MF negative (no paper table: supp Tab. VII's 57K row is the multi-frame **38.4**, a different run — see `docs/MODEL_ZOO.md`) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | single-frame data scaling (no paper table; Tab. VII is the multi-frame sweep and ships no per-row checkpoints) | Per-row checkpoint, e.g. `python scripts/eval.py eval/data_scaling_sf --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step72000/model_ema.safetensors` (canonical per-row config; identical N=1 protocol to `eval/val_1step`) | See MODEL_ZOO.md |
 | Training-timestep sweep (reported as prose in supplementary Appendix C-A, "Training schedule and reaction-time budgets"; the paper prints no table for it) | The paper has no table for this sweep, so there is no table label to reproduce and the all-in-one driver is not the route. Run each `gssc_timesteps/` checkpoint yourself: `python scripts/eval.py eval/timestep_ablation --checkpoint <row-checkpoint>` (one invocation per row) | T=100-uniform 38.54 and T=100-skewed 38.18 are the pair the paper discusses (it prints the latter as 38.2); T=10 37.83 and T=50 37.92 are internal runs the paper deliberately omits as degenerate |
 | Tab. tab:bev_results (BEV second task) | `python scripts/eval.py eval/bev_secondary --checkpoint data/checkpoints/bev/bev_s2d2_scpnet/model.safetensors` | 36.1 BEV mIoU (= 34.8 parameter-free projection + 1.3 refinement), scored by the training-time 2D BEV evaluator on 100 fixed val samples (seed 42) — a different instrument from the full-validation 3D rows above, so the two are not comparable. See `docs/MODEL_ZOO.md` ("BEV second task") for why the checkpoint earlier revisions named here was the wrong model |
-| Fig. 4 / Fig. 5 (qualitative) | Single-frame qualitative demo: `examples/quickstart.ipynb` | — |
+| Fig. 6 / Fig. 7 (qualitative) | Single-frame qualitative demo: `examples/quickstart.ipynb` | — |
 | Supp. per-frame VRU regression (shipped base) | `python scripts/perframe_vru.py --voxels <seq08>/voxels --base data/scpnet_predictions/08 --refined <N=1 dump>/sequences/08/predictions --gate` | person 301/1,255 (24.0%), bicyclist 185/788 (23.5%), motorcyclist 32/74 (43.2%) |
 
 > **`--gate` is not optional here, and `--refined` must be a dump you generated yourself.**
@@ -258,7 +258,7 @@ paper.
 > 23.2 / 23.2 / 12.4 at 38.54 % before reporting any per-frame statistic, and it does reject a
 > retrain-arm dump (motorcyclist 4.4, mIoU 38.05).
 
-> **Tab. VIII (DW-IoU) is reproducible, but it is DERIVED rather than evaluated.**
+> **Supp. Tab. IV (DW-IoU) is reproducible, but it is DERIVED rather than evaluated.**
 > DW-IoU is *Detection-Window* IoU, `1 - (1 - IoU_c)^(rate * t_w)`: a function of the
 > per-class IoU an eval already reports and each system's measured end-to-end rate, not
 > a distance weighting. Nothing extra runs on the GPU, which is why `--metrics` still
@@ -269,7 +269,7 @@ paper.
 > python -m gssc.utils.dw_iou --metrics-json m.json --rate 3.23
 > ```
 >
-> Rates are Tab. VIII's measured end-to-end FPS: base 4.95, N=1 3.23, N=4 1.58, N=10 0.78,
+> Rates are supp Tab. IV's measured end-to-end FPS column: base 4.95, N=1 3.23, N=4 1.58, N=10 0.78,
 > N=100 0.09. `tests/test_dw_iou.py` checks the derivation against all 20 published cells.
 > DW-IoU assumes independent frames, so it is an optimistic upper bound on the benefit of a
 > faster refresh, not a detection probability.

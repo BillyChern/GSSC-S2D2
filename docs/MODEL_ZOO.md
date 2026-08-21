@@ -62,7 +62,7 @@ python scripts/download_assets.py --checkpoints
 
 # Paths inside checksums.txt are rooted at `checkpoints/`, so run the check from
 # data/ -- the directory that CONTAINS checkpoints/.
-cd data && sha256sum -c checkpoints/checksums.txt
+cd data/checkpoints && sha256sum -c checksums.txt
 ```
 
 Every line must print `OK` and `sha256sum` must exit 0. A `FAILED` line, or a
@@ -338,7 +338,7 @@ in the class name refers only to the **auxiliary LiDAR encoder**
 (`SparseLiDAREncoder`, which uses spconv), **not** to the denoiser body. The
 denoiser does not use sparse convolutions.
 
-The released code matches the paper's Method section and Fig. 3 caption exactly:
+The released code matches the paper's Method section and Fig. 4 caption:
 a dense `Conv3d` denoiser (~35M parameters) with additive L/B conditioning and
 AdaGN-style time conditioning at every level. No sparse-SubMConv3d denoiser
 variant is shipped.

@@ -14,7 +14,7 @@ _description: |
 
     python -m gssc.utils.dw_iou --metrics-json metrics.json --rate 3.23
 
-  Rates are the measured end-to-end FPS of Tab. VIII, not the refiner's marginal rate:
+  Rates are the measured end-to-end FPS column of supp Tab. IV, not the refiner's marginal rate:
   base 4.95, N=1 3.23, N=4 1.58, N=10 0.78, N=100 0.09. The N>1 rows of that table hold
   per-class IoU at its N=1 value and vary only the rate, so they isolate the latency term and
   are projections rather than fresh measurements.

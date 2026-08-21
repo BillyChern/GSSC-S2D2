@@ -1,4 +1,5 @@
-_paper_table: none. Reported in prose in supplementary Appendix C (round-2 iteration); it is a
+_paper_table: none. Reported in the supplement's Reproducibility, Hyperparameters, and Base
+#              Provenance appendix (Appendix G), in the per-table reproduction matrix; it is a
 #              negative result and is not tabulated.
 _description: |
   Round-2 iteration: run S^2D^2 a second time, taking Round-1's own output as the source
