@@ -1,7 +1,7 @@
 """GSSC-S2D2: Structured Source Discrete Diffusion for Generative Semantic Scene Completion.
 
-Reference implementation accompanying the TPAMI 2026 paper "Generative Semantic
-Scene Completion". Package entry point.
+Reference implementation accompanying the paper "Generative Semantic Scene
+Completion" (2026, under review). Package entry point.
 
 The recommended way to use this codebase is through the driver scripts in
 ``scripts/`` (see the project README). Importing the submodules directly is

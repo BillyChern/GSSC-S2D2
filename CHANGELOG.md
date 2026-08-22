@@ -238,8 +238,8 @@ CLAIM. This release swept every line pairing 26.1/26.05 with the word "paper" an
 with a claim-shaped pattern until it returned clean.
 
 ### Fixed — the repo told reviewers the paper points at the wrong tag
-`README.md:384` asserted "the TPAMI submission snapshot referenced in the paper supplementary is
-the **v2.3.1** release" and `docs/DATASET.md:424` stamped "Version: v2.3.1", while the paper's
+`README.md:384` asserted that the submission snapshot referenced in the paper supplementary was
+the **v2.3.1** release, and `docs/DATASET.md:424` stamped "Version: v2.3.1", while the paper's
 reproducibility appendix names a later tag and "2.3.1" appears nowhere in the submission. Both
 now say v2.3.6, and DATASET.md carries the instruction to bump it WITH supplementary.tex's tag,
 which is how it drifted four releases behind.
@@ -335,7 +335,7 @@ which is how it drifted four releases behind.
 
 ## [2.3.0] — 2026-08-12
 
-The TPAMI submission snapshot. MINOR, not MAJOR: the headline 38.54 % val mIoU
+The submission snapshot. MINOR, not MAJOR: the headline 38.54 % val mIoU
 is unchanged — every number below is either a new instrument or a correction to
 a *stated* number that was never the headline.
 
@@ -401,8 +401,8 @@ a *stated* number that was never the headline.
 ## [2.1.0] — 2026-05-26
 
 Its Hydra configs hold the hyperparameters quoted in the paper. This entry
-previously called v2.1.0 "the TPAMI submission snapshot" and said it carried a
-tag `submission-ready-tpami-2026`; both were wrong. No such tag was ever
+previously called v2.1.0 the submission snapshot and said it carried a tag
+whose name embedded the target venue; both were wrong. No such tag was ever
 created, and v2.1.0 predates `configs/infer/test_1step.yaml`, the command
 behind the headline single-sample hidden-test number. The submission snapshot
 is **v2.3.1**.

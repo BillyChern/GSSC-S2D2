@@ -319,7 +319,7 @@ Hugging Face mirrors; its DOI has not been minted yet, so `--synthetic-pool`
 exits with the manual-build instructions instead of downloading (the same
 statement as under *Maintenance* below) and the manual route is the one that
 works today. What is outstanding is that one DOI, not a release embargo: the
-paper's availability footnote states that the code, the pre-trained models and
+paper's availability footnote states that the code, the checkpoints and
 the PS³ dataset are available at
 [github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2), and
 nothing in this datasheet is withheld pending acceptance.
@@ -483,7 +483,7 @@ contents are identical; only the directory label differs.
   [github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2).
   This is also the errata channel: file an issue if a frame, count, or shape
   here does not match what you downloaded.
-- **Version:** v2.3.8 (the TPAMI submission snapshot; bump this WITH supplementary.tex's tag).
+- **Version:** v2.3.8 (the submission snapshot; bump this WITH supplementary.tex's tag).
 - **Mirror:** the full synthetic pool is archived on IEEE DataPort. Its DOI has
   not been minted yet — that, and not paper acceptance, is what is outstanding —
   so `scripts/download_assets.py --synthetic-pool` prints the manual-download

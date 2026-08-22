@@ -17,7 +17,13 @@ license: Apache-2.0
 version: 2.3.8
 date-released: 2026-08-13
 preferred-citation:
-  type: article
+  # type: unpublished + status: submitted, because the manuscript is under review and
+  # not yet published anywhere. Both values are in the CFF 1.2.0 enums, and the
+  # `reference` definition requires only authors/title/type, so omitting `journal` is
+  # valid -- see https://github.com/citation-file-format/citation-file-format/blob/1.2.0/schema.json
+  # On acceptance: type -> article, add `journal:` and `doi:`, drop `status:`.
+  type: unpublished
+  status: submitted
   title: "Generative Semantic Scene Completion"
   authors:
     - family-names: "Chen"
@@ -26,6 +32,6 @@ preferred-citation:
     - family-names: "Ge"
       given-names: "Weifeng"
       affiliation: "College of Computer Science and Artificial Intelligence, Fudan University"
-  journal: "IEEE Transactions on Pattern Analysis and Machine Intelligence (under review)"
   year: 2026
+  notes: "Under review."
   # DOI omitted: the paper is under review; a DOI will be added on acceptance.

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "gssc"
 version = "2.3.8"
-description = "Official PyTorch implementation of S2D2 (Structured Source Discrete Diffusion) -- 'Generative Semantic Scene Completion' (TPAMI 2026)."
+description = "Official PyTorch implementation of S2D2 (Structured Source Discrete Diffusion) -- 'Generative Semantic Scene Completion'."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10,<3.13"
@@ -80,7 +80,7 @@ ps3 = [
 "Homepage" = "https://github.com/BillyChern/GSSC-S2D2"
 "Issues" = "https://github.com/BillyChern/GSSC-S2D2/issues"
 "Project page" = "https://billychern.github.io/GSSC-project-page/"
-# Paper link added on acceptance (under review at TPAMI).
+# Paper link added on acceptance (the manuscript is under review).
 
 # No console-script entry points: the repository is driven through the
 # self-contained driver scripts in ``scripts/`` (see README), e.g.
