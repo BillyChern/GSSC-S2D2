@@ -36,6 +36,13 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.3.8] — 2026-08-22
+
+Re-cut on 2026-08-22 onto the rewritten history described below, so this entry now also
+covers the work that had been sitting under [Unreleased]. The rewrite removed two
+undisclosed author addresses from the commit metadata before the repository is made
+public; it changed every commit id and left every tree hash identical.
+
 ### Changed — the project is now MIT-licensed
 
 GSSC-authored code, configs, documentation and the GSSC-trained model weights ship under the
@@ -227,7 +234,6 @@ states both of our own scores with the predicate attached: 38.8 % at one step wi
 under that restriction to our knowledge; 39.2 % with four steps and an eight-view
 *D*<sub>4</sub> ensemble, which sits outside it.
 
-## [2.3.8] — 2026-08-13
 
 Cut on 2026-08-13 for the version-bump fix below, then re-cut onto the release-hardening work
 that followed it, so the tag now spans the whole of `git log v2.3.7..v2.3.8`, which is where the
