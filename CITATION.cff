@@ -15,7 +15,7 @@ authors:
 url: "https://github.com/BillyChern/GSSC-S2D2"
 license: MIT
 version: 2.3.8
-date-released: 2026-08-13
+date-released: 2026-08-22
 preferred-citation:
   # type: unpublished + status: submitted, because the manuscript is under review and
   # not yet published anywhere. Both values are in the CFF 1.2.0 enums, and the
