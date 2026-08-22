@@ -28,7 +28,47 @@ Verify:
 
     python scripts/prepare_data.py --root data/SemanticKITTI
 
-## SCPNet predictions (required, ~178 GB real + synth)
+### Preprocessed 256³ voxel cache (required for TRAINING; not for the eval rows)
+
+`gssc.training.train_scene_completion` never reads the raw `.bin`/`.label` files
+above. It reads a preprocessed cache that **no download provisions** — build it
+once from the raw tree:
+
+    python scripts/prepare_256_data.py --semantickitti_root data/SemanticKITTI
+
+```
+data/SemanticKITTI_3D/256/
+├── {00..10}/
+│   ├── {id:06d}_voxels.npy     # (256, 256, 32) uint8, sparse LiDAR input
+│   ├── {id:06d}_bev.npy        # (256, 256)     uint8, BEV semantic map
+│   └── {id:06d}_gt_scene.npy   # (256, 256, 32) uint8, complete semantic target
+└── synthetic/                  # the 31K synthetic pool, same triplet layout
+```
+
+Measured on the staged cache: the eleven annotated sequences `00`-`10` are
+69,603 files / 92.1 GiB / 98.8 GB, of which val seq `08` alone is 12,213 files /
+16.2 GiB / 17.3 GB. `synthetic/` is the **same bytes** as the released
+`synthetic_pool_31K` (127.1 GiB / 136.5 GB), staged under the cache root rather
+than a second copy — see *Synthetic pool* below. Skipping this step aborts
+training with `MissingVoxelCacheError`, which names the command; see
+`docs/TRAIN.md`.
+
+None of the tabulated **eval** rows needs this cache: `eval/val_1step`,
+`eval/js3c_val_realistic` and `eval/lmscnet_val_1step` all derive their seed BEV
+from the base's own 3D prediction. The two exceptions are the GT-BEV diagnostics
+`eval/js3c_val_paper` and its alias `eval/js3c_val_1step`, which set
+`bev_root: SemanticKITTI_3D/256` and read `<seq>/<frame>_bev.npy` out of this
+cache — so running those needs seq 08's slice of it (16.2 GiB / 17.3 GB) on top
+of the eval-only totals in the disk-space table below.
+
+> **A multi-frame retrain needs a second cache that no script here builds.** The
+> `_mf` recipes look for `data/SemanticKITTI_3D/256_multi_frame/<seq>/<frame>.npz`,
+> which `prepare_256_data.py` does not produce and no released asset supplies.
+> Its absence is **silent** — the loader falls back to single-frame LiDAR instead
+> of failing. `docs/TRAIN.md` (box under "Headline") has the code path and the
+> pre-launch check. Evaluation of the released checkpoints is unaffected.
+
+## SCPNet predictions (required, ~177 GiB / ~190 GB real + synth)
 
 These are precomputed SCPNet base predictions for val seq 08, test seqs
 11..21, and the synthetic pools, so you can run the S²D² refiner without first
@@ -36,8 +76,36 @@ running SCPNet yourself:
 
     python scripts/download_assets.py --predictions
 
-`download_assets.py --predictions` provisions these from the hosted mirror;
-the manual route below regenerates them locally instead.
+`download_assets.py --predictions` provisions these from the hosted mirror.
+Narrow it to what you actually need with `--include`, whose patterns go straight
+to `huggingface_hub.snapshot_download(allow_patterns=...)`:
+
+```bash
+python scripts/download_assets.py --predictions                                  # whole tree, 177 GiB / 190 GB
+python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'   # val seq 08 only, 9.07 GB
+```
+
+To regenerate them locally instead, run the frozen base yourself against an
+upstream SCPNet checkout:
+
+```bash
+git clone --depth 1 https://github.com/SCPNet/Codes-for-SCPNet external/Codes-for-SCPNet
+python -m gssc.inference.run_scpnet \
+    --scpnet-repo external/Codes-for-SCPNet \
+    --checkpoint data/checkpoints/scpnet_v2_port.pth \
+    --config external/Codes-for-SCPNet/config/semantickitti-multiscan.yaml \
+    --data_root data/SemanticKITTI --sequences 08 \
+    --output_dir data/scpnet_predictions
+```
+
+`--checkpoint` and `--config` default to
+`<scpnet-repo>/model_load_dir/pretrained.pth` and
+`<scpnet-repo>/config/semantickitti-multiscan.yaml` if omitted;
+`scpnet_v2_port.pth` is the ported weight `docs/MODEL_ZOO.md` documents under
+"SCPNet base". `--sequences` takes a **comma-separated** list here (or `all`),
+unlike the space-separated `--sequences` of the JS3C-Net and LMSCNet dumpers
+below. Name `--data_root` and `--output_dir` explicitly: both default to a
+`datasets/` tree this release does not create.
 
 ### Per-frame triplet
 
@@ -49,10 +117,11 @@ data/scpnet_predictions/
 │   ├── {id:06d}_pred.npy        # (256, 256, 32) uint8, class indices in [0, 19]
 │   ├── {id:06d}_bev_top.npy     # (256, 256)     uint8, top-occupied-voxel BEV, [0, 19]
 │   └── {id:06d}_bev_vote.npy    # (256, 256)     uint8, height-majority-vote BEV, [0, 19]
-├── synthetic/                   # base preds over the 57,650-frame pool (58,021 files; superset)
-├── synthetic_10000/             # 9,999-frame data-scaling subset
-├── synthetic_30000/             # 29,999-frame data-scaling subset
-└── synthetic_31k/               # 32,039-frame headline pool
+├── synthetic/                   # superset over the 57,650-frame pool:
+│                                #   58,021 frames / 174,063 files (all three per frame)
+├── synthetic_10000/             #  9,999-frame data-scaling subset: 19,998 files (pred + bev_top only)
+├── synthetic_30000/             # 29,999-frame data-scaling subset: 59,998 files (pred + bev_top only)
+└── synthetic_31k/               # 32,039-frame headline pool:       96,117 files (all three per frame)
 ```
 
 `{id}_pred.npy` is the dense 3D completion. `{id}_bev_top.npy` and
@@ -61,16 +130,37 @@ data/scpnet_predictions/
 uint8 in the 20-class learning-map space `[0, 19]`. The four `synthetic*`
 directories are the SCPNet base predictions over the PS³ pool and its
 data-scaling subsets; only `synthetic_31k/` matches the 32,039-frame headline
-pool used in the paper.
+pool used in the paper. **The triplet is not uniform across them**: `synthetic/`
+and `synthetic_31k/` ship all three files per frame, while `synthetic_10000/`
+and `synthetic_30000/` ship `_pred` and `_bev_top` only — no `_bev_vote`. Every
+count here is measured (`ls -U <dir> | wc -l` for entries,
+`ls -U <dir> | grep -c '_bev_vote\.npy$'` for the per-kind split), and
+`synthetic/` holds one directory entry beyond its 174,063 files: a stray
+`synthetic_31k` symlink back to its sibling farm.
 
-## JS3C-Net predictions (required for cross-base reproduction, ~190 GB)
+> **`synthetic_10000/`, `synthetic_30000/` and `synthetic_31k/` hold no bytes of
+> their own in the staging tree** — they are directories of symlinks into
+> `synthetic/` (19,998 / 59,998 / 96,117 links respectively), so `synthetic/` is
+> counted once and the tree's **unique content is 177 GiB / 190 GB**. A transfer
+> that materialises symlinks as real files (most upload tools do) expands it back
+> out to **324 GiB / 348 GB**, so size that kind of transfer against the
+> materialised figure rather than against the unique content. The materialised
+> figure is unique content plus the three farms measured separately
+> (176.68 + 20.14 + 60.43 + 66.50 = 323.75 GiB); do **not** try to get it from a
+> plain `os.walk(followlinks=True)`, which does not terminate on a sensible
+> number here — `synthetic/synthetic_31k` is a symlink back to the sibling farm
+> `synthetic_31k/`, which links back into `synthetic/`, and walking that cycle
+> reports thousands of GiB.
+
+## JS3C-Net predictions (required for cross-base reproduction, ~189 GiB / ~203 GB)
 
 Precomputed for val seq 08 + train seqs 00-07, 09, 10 + test 11-21 + the 31K
 and 57K synthetic pools (the `31K` pool is the 32,039-frame `synthetic_31k`
 dir). Required to reproduce the JS3C-Net cross-base rows of paper
 tab:portable_s2d2, whose headline is **22.7 → 24.3, +1.6 pp** val mIoU under the
-official `semantic-kitti-api` with derived BEV (26.05 is the GT-BEV diagnostic,
-not the paper's headline):
+official `semantic-kitti-api` with derived BEV (26.05 is a separate GT-BEV
+diagnostic of ours that the paper does not print, and is not the protocol behind
+its 26.7 continuity row):
 
     python scripts/download_assets.py --js3c-predictions
 
@@ -86,9 +176,10 @@ data/js3cnet_predictions/
 └── README.md
 ```
 
-The cross-base headline (24.3 % val mIoU, derived BEV under the official `semantic-kitti-api`;
-26.7 % under the paper's internal training-time evaluator, a continuity row;
-24.3 % at-deploy with derived BEV) is trained on real frames only; the synth
+The cross-base headline (**24.3 % val mIoU**, derived BEV under the official
+`semantic-kitti-api`; the *same* derived-BEV setting reads **26.7 %** under the
+paper's internal training-time evaluator, a continuity row — the evaluator is
+what differs, not the BEV source) is trained on real frames only; the synth
 subdirs are shipped for the synth-augmentation analysis in the paper's
 supplementary validation-protocol table and future use.
 
@@ -106,7 +197,7 @@ python scripts/dump_js3c_predictions.py \
 
 See `docs/REPRODUCIBILITY.md` for the full cross-base protocol.
 
-## LMSCNet predictions (required for the LMSCNet cross-base row, ~46 GB)
+## LMSCNet predictions (required for the LMSCNet cross-base row, ~45 GiB / ~49 GB)
 
 LMSCNet (Roldão et al., 3DV 2020) is the third structurally different frozen base
 (a ~0.4M-param 2D-CNN SSC model) used for the cross-base demonstration in
@@ -151,7 +242,8 @@ data/lmscnet_predictions/
 ```
 
 Each frame is ~2.1 MB (uint8, 256×256×32); the released {00..10} set
-(23,201 frames = 19,130 train + 4,071 val) is ~46 GB.
+(23,201 frames = 19,130 train + 4,071 val, plus a `LICENSE` and a `README.md`)
+measures 45.3 GiB / 48.7 GB, the same pair as the disk-space table below.
 `configs/{train,eval}/lmscnet_*.yaml` read this directory via
 `base_pred_dir: data/lmscnet_predictions`. See `docs/REPRODUCIBILITY.md` for
 the full cross-base protocol.
@@ -248,7 +340,7 @@ SemanticPOSS ships no voxelized SSC ground truth, so the driver materialises it
 space. Both runs are evaluation-only: the SemanticKITTI-trained weights are
 never adapted to the target domain.
 
-## Object bank (required for training, 448 MB)
+## Object bank (required for training, 313 MiB / 328 MB of data; 448 MB of disk blocks)
 
 57,789 rare-class instances across 8 classes, used by the PS³
 object-bank-paste step and by training-time copy-paste augmentation:
@@ -306,15 +398,17 @@ seven classes total ~27,789. If you train on it, weight or subsample by class
 so the trunk pool does not dominate the paste augmentation (see
 limitations below).
 
-## Synthetic pool (optional, ~128/230 GB uncompressed)
+## Synthetic pool (optional, ~127 GiB (31K) / ~229 GiB (57K) uncompressed)
 
 The headline synthetic pool holds **32,039** synthetic (sparse, complete) pairs.
 Pooled with the **19,130** real SemanticKITTI training frames this gives a
 **51,169-frame** total training set — a **2.67× expansion** over the real-only
 split. (The `31K` shorthand in the variant/directory names below is the
 historical config-dir label `synthetic_pool_31K` / `--synthetic-pool 31K`; the
-actual frame count is 32,039.) Five sizes are released for the data-scaling
-ablation. The full pool is archived on IEEE DataPort rather than on the two
+actual frame count is 32,039.) **Two pools are released**, `31K` and `57K`;
+the paper's data-scaling table also reports 0K / 10K / 20K rows, but those are
+*subsets drawn at train time* and no 0K / 10K / 20K pool is staged for
+download. (`0K` means real-only, so there is nothing to fetch for it at all.) The full pool is archived on IEEE DataPort rather than on the two
 Hugging Face mirrors; its DOI has not been minted yet, so `--synthetic-pool`
 exits with the manual-build instructions instead of downloading (the same
 statement as under *Maintenance* below) and the manual route is the one that
@@ -326,8 +420,8 @@ nothing in this datasheet is withheld pending acceptance.
 
     # Via the download script (resolves once the DataPort DOI is configured
     # in scripts/download_assets.py):
-    python scripts/download_assets.py --synthetic-pool 31K   # ~128 GB uncompressed (approx.; .tar.gz mirror is smaller)
-    python scripts/download_assets.py --synthetic-pool 57K   # ~230 GB uncompressed (approx.; .tar.gz mirror is smaller)
+    python scripts/download_assets.py --synthetic-pool 31K   # ~127 GiB / ~136 GB uncompressed (.tar.gz mirror is smaller)
+    python scripts/download_assets.py --synthetic-pool 57K   # ~229 GiB / ~246 GB uncompressed (.tar.gz mirror is smaller)
 
 You only need the synthetic pool if you want to **retrain from scratch**. The
 released checkpoint already contains the trained weights.
@@ -407,7 +501,7 @@ The pool is built by the Paired Sparse–Dense Scene Synthesis (PS³) pipeline:
    (`src/gssc/data/lidar_resampler_v2.py`), producing the `_voxels` half of the
    pair.
 
-## Checkpoints (~4.9 GB)
+## Checkpoints (~4.58 GiB / ~4.9 GB)
 
 ```bash
 python scripts/download_assets.py --checkpoints
@@ -415,21 +509,57 @@ python scripts/download_assets.py --checkpoints
 
 ## Disk-space summary
 
+Every figure below with a GiB value was measured on the staged release payload
+by summing `stat` apparent sizes with symlinks dereferenced (equivalent to
+`du -Lsb`, but per-directory so the symlink farms are not double-counted) and is
+quoted as `GiB / GB` so the two conventions cannot be confused. The two
+SemanticKITTI raw rows are the upstream download-page figures, not our
+measurements, and the eval-only totals therefore inherit whatever accuracy those
+carry.
+
 | What | Where | Size |
 |---|---|---|
-| SemanticKITTI raw | `data/SemanticKITTI/` | 80 GB |
-| Voxel labels | (inside `data/SemanticKITTI/`) | 1.6 GB |
-| SCPNet predictions | `data/scpnet_predictions/` | 178 GB (real + synth; only the val+test subset, ~135 GB, is needed for the eval-only headline below) |
-| JS3C-Net predictions (v1.1.0) | `data/js3cnet_predictions/` | 190 GB (real + synth) |
-| LMSCNet predictions (v2.1.0) | `data/lmscnet_predictions/` | ~46 GB (train+val08) |
-| Object bank | `data/object_bank/` | 448 MB |
-| Synthetic pool 31K | `data/synthetic_pool_31K/` | ~128 GB uncompressed (approx.) |
-| Synthetic pool 57K (`tab:data_scaling` 57K row) | `data/synthetic_pool_57K/` | ~230 GB uncompressed (approx.) |
-| Pretrained checkpoints | `data/checkpoints/` | ~4.9 GB (4.58 GiB) |
-| **Total (eval-only, SCPNet headline)** | | **~135 GB** |
-| **Total (eval-only, +cross-base JS3C)** | | **~325 GB** (135 GB SCPNet subset + 190 GB JS3C-Net real + synth) |
-| **Total (eval-only, +cross-base LMSCNet)** | | **~181 GB** (135 GB SCPNet subset + 46 GB LMSCNet train+val08) |
-| **Total (full retrain, 31K)** | | **~383 GB** (~170 GB SCPNet real-train + synthetic predictions + ~128 GB 31K pool + raw + voxels + object bank + checkpoints) |
+| SemanticKITTI raw | `data/SemanticKITTI/` | 80 GB (upstream figure) |
+| Voxel labels | (inside `data/SemanticKITTI/`) | 1.6 GB (upstream figure) |
+| SCPNet predictions, whole tree | `data/scpnet_predictions/` | 177 GiB / 190 GB (real seqs 00-21 = 56 GiB, `synthetic/` = 120 GiB) |
+| — val seq 08 only (the headline eval) | `data/scpnet_predictions/08/` | **8.5 GiB / 9.1 GB** |
+| — val 08 + hidden test 11-21 (for a submission) | | **16.6 GiB / 17.8 GB** |
+| JS3C-Net predictions (v1.1.0) | `data/js3cnet_predictions/` | 189 GiB / 203 GB (real + synth) |
+| LMSCNet predictions (v2.1.0) | `data/lmscnet_predictions/` | 45 GiB / 49 GB (train+val08) |
+| Object bank | `data/object_bank/` | 313 MiB / 328 MB of data across 57,789 instance files (`du -Lsh` reports 448 MB — block usage, inflated by many tiny files) |
+| Synthetic pool 31K | `data/synthetic_pool_31K/` | 127 GiB / 136 GB uncompressed |
+| Synthetic pool 57K (`tab:data_scaling` 57K row) | `data/synthetic_pool_57K/` | 229 GiB / 246 GB uncompressed |
+| Pretrained checkpoints | `data/checkpoints/` | 4.58 GiB / 4.9 GB (the 51-file payload `checksums.txt` covers) |
+| Preprocessed 256³ voxel cache (**training only**, built locally) | `data/SemanticKITTI_3D/256/{00..10}/` | 92.1 GiB / 98.8 GB (val seq 08 alone: 16.2 GiB / 17.3 GB) |
+| — its `synthetic/` branch | `data/SemanticKITTI_3D/256/synthetic/` | the *same bytes* as the 31K pool row above, not a second copy |
+| **Total (eval-only, SCPNet headline on val seq 08)** | | **~96 GB** (80 raw + 1.6 voxels + 4.9 checkpoints + 9.1 SCPNet seq 08) |
+| **Total (eval-only + hidden-test submission)** | | **~104 GB** (the row above + 8.7 SCPNet seqs 11-21) |
+| **Total (eval-only, +cross-base JS3C)** | | **~299 GB** (~96 GB eval-only + 203 GB JS3C-Net real + synth) |
+| **Total (eval-only, +cross-base LMSCNet)** | | **~145 GB** (~96 GB eval-only + 49 GB LMSCNet train+val08) |
+| **Total (full retrain, 31K)** | | **~512 GB** (190 SCPNet real + synthetic predictions + 136 31K pool + 99 voxel cache seqs 00-10 + 80 raw + 1.6 voxels + 0.33 object bank + 4.9 checkpoints) |
+
+> **Earlier revisions of this table claimed the SCPNet "val+test subset" was
+> ~135 GB and reused that same 135 as the whole eval-only stack total.** Neither
+> holds: the val+test subset measures 16.6 GiB / 17.8 GB, and no arrangement of
+> the rows above sums to 135. The figures in this table are measured.
+
+> **Fetching only the sequences you need.** Bare
+> `scripts/download_assets.py --predictions` pulls the whole
+> `scpnet_predictions/` tree (177 GiB / 190 GB). `--include` narrows it —
+> the patterns are handed to
+> `huggingface_hub.snapshot_download(allow_patterns=...)`, and `*` crosses `/`
+> there, so a single pattern selects a sequence:
+>
+> ```bash
+> python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'
+> ```
+>
+> That is the 9.07 GB val row above. `--include` applies to the prediction and
+> object-bank groups only; `--checkpoints` is always a whole-repo snapshot.
+> One caveat: the pattern is anchored against the **local** layout this file
+> documents (`scpnet_predictions/<seq>/<frame>_pred.npy`), which is the same
+> assumption the pre-existing whole-prefix fetch already made, but it has not
+> been checked against the live Hugging Face tree. Spot-check the first use.
 
 ## Licenses & terms
 

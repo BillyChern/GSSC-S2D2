@@ -1,6 +1,6 @@
 # Model Zoo
 
-All checkpoints are released under Apache-2.0 and mirrored on the Hugging Face
+All checkpoints are released under the MIT licence and mirrored on the Hugging Face
 Hub at [`BillyChern/GSSC-S2D2-checkpoints`](https://huggingface.co/BillyChern/GSSC-S2D2-checkpoints).
 Fetch them with `python scripts/download_assets.py --checkpoints` (~4.9 GB total, 4.58 GiB);
 `docs/DATASET.md` documents manual provisioning as the alternative route.
@@ -34,23 +34,43 @@ way the paper numbers were produced.
 > val mIoU** (+1.8 over the 14.76 % LMSCNet base). No buffer-completion step is
 > needed.
 
-**Download/disk sizes.** A single `model_ema.safetensors` (the deployment file
-the quickstart in `README.md` points at) is **~140 MB**. `download_assets.py`
-provisions the **whole per-checkpoint subdir** — `model.safetensors` +
-`model_ema.safetensors` + `config.json` — which is **~265 MB total**. The "Size"
-column below and the "~265 MB" figures in this doc refer to the full subdir; the
-"~140 MB" figure in `README.md`'s quickstart refers to the single
-`model_ema.safetensors` it downloads for inference.
+**Download/disk sizes** (measured on the staged payload). A single
+`model_ema.safetensors` (the deployment file the quickstart in `README.md` points
+at) is **138.9 MB / 132.5 MiB**. `download_assets.py` provisions the **whole
+per-checkpoint subdir** — `model.safetensors` + `model_ema.safetensors` +
+`config.json` — which is **277.8 MB / 264.9 MiB**. The "Size" column below and
+the "~265 MiB" figures in this doc refer to the full subdir; the "~140 MB" figure
+in `README.md`'s quickstart refers to the single `model_ema.safetensors` it
+downloads for inference. Those two are the *scene-completion* subdirs; the BEV
+subdir `bev/bev_s2d2_scpnet/` is larger (569.9 MB, because it ships both a
+`.pt` and a `.safetensors`) and each pyramid subdir is 229.2 MB (one
+`model.safetensors`, no EMA).
 
 The legacy SCPNet base ships as a flat `scpnet_v2_port.pth` (third-party
 convention, kept as-is).
 
 ## Checkpoint SHA256 digests
 
-`scripts/eval.py` and `scripts/infer.py` load checkpoints with
-`torch.load(..., weights_only=False)` for the third-party `scpnet_v2_port.pth`
-base, so a tampered file is arbitrary code execution. `SECURITY.md` sends you
-here; this is the table it means. **Verify before loading.**
+GSSC-S2D2 loads pickle checkpoints (`.pt` / `.pth`) with
+`torch.load(..., weights_only=False)`, so a tampered pickle is arbitrary code
+execution. The call sites are `src/gssc/inference/generate_predictions.py:174`
+(reached by `scripts/eval.py` and `scripts/infer.py` when you hand them a `.pt`),
+`src/gssc/inference/evaluate_bev.py:182` (the `eval/bev_secondary` path) and
+`src/gssc/inference/run_scpnet.py:253` (regenerating the SCPNet base
+predictions). Of the 51 released files, 30 are `.safetensors` — a format that
+cannot carry an executable payload — and exactly **two are pickles**
+(`grep -cE '\.(pt|pth)$' data/checkpoints/checksums.txt` → 2):
+
+* `scpnet_v2_port.pth`, the third-party SCPNet base. Its loader is
+  `gssc.inference.run_scpnet`, driven by `scripts/eval_semanticposs.py` — **not**
+  by `scripts/eval.py`, which consumes the pre-dumped `scpnet_predictions/`
+  directory and never opens this file.
+* `bev/bev_s2d2_scpnet/model.pt`, the pre-conversion copy of the BEV
+  checkpoint's weights. The `model.safetensors` beside it is what the documented
+  BEV eval command loads, so nothing routine reads the pickle.
+
+`SECURITY.md` sends you here; this is the table it means.
+**Verify before loading.**
 
 The same digests ship as `checksums.txt` at the root of the Hugging Face
 checkpoints repo, so the whole set can be checked in one command that returns a
@@ -60,8 +80,9 @@ verdict rather than a digest you have to compare by eye:
 # Downloads into data/checkpoints/, checksums.txt included.
 python scripts/download_assets.py --checkpoints
 
-# Paths inside checksums.txt are rooted at `checkpoints/`, so run the check from
-# data/ -- the directory that CONTAINS checkpoints/.
+# Paths inside checksums.txt are relative to the download root itself
+# (`MANIFEST.txt`, `bev/...`, `gssc_mf/...` -- no `checkpoints/` prefix), so run
+# the check from INSIDE data/checkpoints/.
 cd data/checkpoints && sha256sum -c checksums.txt
 ```
 
@@ -80,15 +101,15 @@ checksums file, not transcribed.
 
 | File (relative to the download root) | SHA256 |
 |---|---|
-| `MANIFEST.txt` | `4d05afd9dc1006bcfc5183631fe14d15abd6779c5ab1c9622d832386223ab942` |
+| `MANIFEST.txt` | `87a91895447e0c22eb382b6e61f48daea74a8beb76e51f0eb37e0500088963ab` |
 | `bev/bev_direct_l3_deeper/config.json` | `83d34868e0169dece91feeff2c01d532ef9a00c2ce6e744154fb1de540981fc6` |
 | `bev/bev_direct_l3_deeper/model.safetensors` | `6a6f1aa1a72da78e624b9575510d6aed8f44753be461db2281f2e2666b5a3d75` |
-| `bev/bev_perception_net/config.json` | `6deea4d5fd0515d218575997159cec5d1dbe28ca0c815a9938154d66ed9f5cae` |
+| `bev/bev_perception_net/config.json` | `29e002364c90be8c13cd0033acaa08e0f3b4f1173e1d0b52150b7707f04860b1` |
 | `bev/bev_perception_net/model.safetensors` | `6be1db3c557e5504793c998da86b10c0be2f0878b2a81632f82b774d6936d03d` |
 | `bev/bev_s2d2_scpnet/config.json` | `babf70ebba9a1d1997a7e0ee4a40b1923aa3d55fc92a72e87d73960533ff5ed5` |
 | `bev/bev_s2d2_scpnet/model.pt` | `46fcdb6fbdd9d4087c987b80ec514179625200417e67c71687a93ba036235111` |
 | `bev/bev_s2d2_scpnet/model.safetensors` | `bd4002ccc22833481662212530d2a1d072afdfc039386d129cbfc2522c1ad881` |
-| `gssc_js3c/gssc_js3c_s2d2_real/config.json` | `1c5d11e7012a1edb791b97b68764b5bdf1b47eea4e35e6cba3ac9ed304a3b6b3` |
+| `gssc_js3c/gssc_js3c_s2d2_real/config.json` | `1fa714e5eb0e2a0abd4fe9b675bcd395061b414d9cd4603303772a47ac73680d` |
 | `gssc_js3c/gssc_js3c_s2d2_real/model.safetensors` | `877e04ffdc0578078648ee5e5f219d2bc1c4e290ad3c45ada4d6d7d6a3aceed2` |
 | `gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | `c8743c7f5aeb37e243778374ff8d49a049c9920a66db4aec86f50c15104539dd` |
 | `gssc_lmsc/gssc_lmsc_s2d2_real/config.json` | `7a9dee38e52df18ab49799e28fbc3ab14c7c37ae7e5e7558b3654977c3616330` |
@@ -146,8 +167,8 @@ headline multi-frame-trained regime — see the single-frame section below, and
 
 | Subdir | Paper label | Val mIoU | Test mIoU | Config | Size (full subdir) |
 |---|---|---|---|---|---|
-| `gssc_mf/gssc_31k_mf_step40000/` | **Headline** (`tab:portable_s2d2`) | 38.54 | 38.8 (N=1, no TTA) / 39.2 (+D4 TTA) | `configs/train/31k_mf.yaml` | ~265 MB |
-| `gssc_mf/gssc_57k_mf_step40000/` | internal / unreported (in no paper table; `tab:data_scaling`'s 57K row is the multi-frame **38.4**, measured on the development codebase, and this released checkpoint is a different run — do not read 37.76 as that cell) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | ~265 MB |
+| `gssc_mf/gssc_31k_mf_step40000/` | **Headline** (`tab:main_results`, `tab:perclass_delta`; also the SCPNet pair of `tab:portable_s2d2`) | 38.54 | 38.8 (N=1, no TTA) / 39.2 (+D4 TTA) | `configs/train/31k_mf.yaml` | 265 MiB / 278 MB |
+| `gssc_mf/gssc_57k_mf_step40000/` | internal / unreported (in no paper table; `tab:data_scaling`'s 57K row is the multi-frame **38.4**, measured on the development codebase, and this released checkpoint is a different run — do not read 37.76 as that cell) | 37.76 (N=1) | — | `configs/train/57k_mf.yaml` | 265 MiB / 278 MB |
 
 ## Cross-base portability (paper tab:portable_s2d2, three frozen-base rows)
 
@@ -172,11 +193,13 @@ released checkpoints; SCPNet uses the same training recipe with
 > Earlier revisions of this file led with **26.1 % (+3.3 pp)** and called it
 > "the paper headline". That was wrong on both counts: the paper's JS3C headline
 > is 24.3 %, and the string 26.1 appears **nowhere** in the paper or its
-> supplement, so it cannot be a rounding of anything the paper prints. The
-> figures the paper does carry for this base, besides 24.3, are diagnostics its
-> supplement labels row by row and explicitly says are not protocol-matched to
-> the SCPNet and LMSCNet rows — read them off that table rather than from here,
-> since this file has twice mis-stated which protocol produced which.
+> supplement, so it cannot be a rounding of anything the paper prints. Besides
+> 24.3, the supplement carries **26.7** for this base — the *same* derived-BEV
+> setting read by our internal training-time evaluator, retained for continuity
+> — and **61.8**, a *separately trained* GT-BEV variant it calls an upper bound.
+> Its rows carry explicit Setting and Evaluator columns; read the protocols off
+> that table rather than from here, since this file has twice mis-stated which
+> protocol produced which.
 
 > **Note on the "Architecture family" column.** This column describes the
 > **frozen base model** (the predictor S²D² corrects), not the S²D² denoiser
@@ -185,45 +208,69 @@ released checkpoints; SCPNet uses the same training recipe with
 > below). So "Sparse 3D CNN" / "2D CNN (dense)" / "Point + voxel hybrid" refer
 > to LMSCNet / JS3C-Net / SCPNet, not to the released checkpoint's denoiser.
 
-Each cross-base checkpoint subdir is ~265 MB total (~140 MB for the single
-`model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.36) and LMSCNet
+Each cross-base checkpoint subdir is 265 MiB / 278 MB total (138.9 MB for the
+single `model_ema.safetensors` alone). The SCPNet (36.17 → 38.54, +2.36) and LMSCNet
 (14.8 → 16.6, +1.8; LMSCNet base re-scored from on-disk predictions, superseding
 the earlier 12.10 → 16.59 / +4.49 summary) deltas in the table are measured
 end-to-end under the official `semantic-kitti-api`. The released LMSCNet
 `model_ema.safetensors` ships complete (278 tensors, including all 45 BatchNorm
 running buffers), loads cleanly, and reproduces the 16.59 figure directly.
+Note its step: `gssc_lmsc_s2d2_real` is the best-mIoU selection at
+`global_step: 65000`, not a step-100000 reading, even though
+`configs/train/lmscnet_real.yaml` sets `num_iterations: 100000`. The JS3C
+cross-base checkpoint beside it *does* record `global_step: 100000`; if you
+retrain either, compare against your run's `best_miou.pt`.
 
-The JS3C-Net row carries three numbers; the table leads with the paper's:
+The JS3C-Net row carries three numbers; the table leads with the paper's.
+**What separates 26.7 from 24.3 is the evaluator, not the BEV source** — both
+are derived BEV:
 
 - **24.32 % (+1.59 pp)** — the **paper headline** for this base, and the
-  reproducible at-deploy figure: derived BEV under the official
-  `semantic-kitti-api`, protocol-matched to the 22.7 % base and to the released
-  checkpoint's own training distribution. This is what
+  reproducible at-deploy figure: **derived BEV** under the **official
+  `semantic-kitti-api`**, protocol-matched to the 22.7 % base and to the
+  released checkpoint's own training distribution. This is what
   `scripts/reproduce_table.py` yields end-to-end.
-- **26.05 % (+3.32 pp)** — a GT-BEV diagnostic under the official
-  `semantic-kitti-api`. **Not** the headline.
-- **26.72 % (+3.99 pp)** — scored with the paper's **internal training-time
-  evaluator** (`SSCMetrics`). A continuity row, **not** the headline.
+- **26.72 % (+3.99 pp)** — the **same derived-BEV setting**, scored with the
+  paper's **internal training-time evaluator** (`SSCMetrics`). This is the row
+  the paper's supplementary validation-protocol table labels *"real-only,
+  derived BEV, internal eval"* (it prints **26.7**), retained there for
+  continuity only. **Not** a GT-BEV number and **not** the headline.
+- **26.05 %** — a **GT-BEV diagnostic** of ours, measured under the official
+  `semantic-kitti-api`. The paper prints no such row: neither "26.05" nor
+  "26.1" appears in it. **Not** the headline, and **not** the protocol that
+  produced 26.72.
 
-For which protocol produced 26.05 versus 26.72, read the paper's supplementary
-validation-protocol table rather than this file: its rows carry an explicit
-Evaluator column, and this file has twice described the pairing wrongly.
+The paper's own GT-BEV entry is a separate diagnostic again — a *separately
+trained* GT-BEV variant at 61.8 % official, labelled there as an upper bound
+rather than a deployment number, and not the released checkpoint.
+
+For the exact protocol behind each row, read the paper's supplementary
+validation-protocol table rather than this file: its rows carry explicit
+Setting and Evaluator columns, and this file has twice described the pairing
+wrongly.
 
 SCPNet's 38.54 is an official `semantic-kitti-api` number everywhere it
 appears. The JS3C-Net derived-BEV deploy number (**24.32**) is produced by
 `eval/js3c_val_realistic.yaml`:
-- `eval/js3c_val_paper.yaml` reproduces the GT-BEV protocol by loading
+- `eval/js3c_val_paper.yaml` runs the **GT-BEV diagnostic** by loading
   preprocessed GT BEV via the config key `bev_source: gt` (set in
-  `configs/eval/js3c_val_paper.yaml`; it is a YAML key, not a CLI flag). Under
-  the official `semantic-kitti-api` this lands at the **26.05 %** diagnostic; the
-  paper's internal SSCMetrics on the identical protocol reads **26.72 %**.
+  `configs/eval/js3c_val_paper.yaml`; it is a YAML key, not a CLI flag).
+  Pointed at the released derived-BEV checkpoint it is a train/eval mismatch and
+  lands at the **26.05 %** diagnostic — a number the paper does not print.
+  Despite the filename, this is not the protocol behind any *main-paper* row for
+  this base; the name is a retained backwards-compatibility alias. What the
+  config *does* target, and says so in its own `_paper_table`, is the
+  supplement's **61.8 % GT-BEV oracle row** — and only when pointed at the
+  separately trained `train/js3c_real_gtbev.yaml` checkpoint, which this release
+  does not ship.
 - `eval/js3c_val_realistic.yaml` uses derived BEV (topmost-non-empty class
   from JS3C-Net's 3D prediction, selected via the config key
-  `bev_source: derived`) — the honest deploy-time number (**24.32 %**). The
-  released JS3C+S²D² model was trained with derived BEV, so this protocol
+  `bev_source: derived`) — the honest deploy-time number (**24.32 %** official,
+  **26.72 %** under the internal training-time evaluator). The released
+  JS3C+S²D² model was trained with derived BEV, so this protocol
   matches its training distribution.
 
-Reproduction requires `data/js3cnet_predictions/` (190 GB real + synth; download via
+Reproduction requires `data/js3cnet_predictions/` (189 GiB / 203 GB real + synth; download via
 `scripts/download_assets.py --js3c-predictions` or dump locally via
 `scripts/dump_js3c_predictions.py`; see `docs/REPRODUCIBILITY.md`).
 
@@ -324,6 +371,17 @@ python scripts/eval.py eval/bev_secondary \
 |---|---|---|
 | `scpnet_v2_port.pth` | SCPNet pretrained weights, ported to spconv v2.3 with kernel-shape patches. | Loads via `gssc.inference.run_scpnet`. Third-party flat `.pth` (not converted). |
 
+> **Attribution — `scpnet_v2_port.pth` is third-party work, redistributed with
+> permission.** The underlying weights are SCPNet's, from Xia et al., *SCPNet:
+> Semantic Scene Completion on Point Cloud*, CVPR 2023
+> ([Codes-for-SCPNet](https://github.com/SCPNet/Codes-for-SCPNet)). What we add
+> is the spconv v1 → v2 port described in `docs/BASELINES.md`. The SCPNet
+> authors gave us permission to redistribute the ported weights in this release;
+> the file therefore ships under this repository's MIT licence, but the model
+> itself is theirs — cite Xia et al. if you use it, and go to their repository
+> for anything beyond this port. If you would rather not take our copy, run
+> `gssc.inference.run_scpnet` against an upstream SCPNet checkout instead.
+
 ## Architecture note (released checkpoint = paper denoiser)
 
 The released checkpoint **is** the paper's denoiser as specified in the paper
@@ -373,7 +431,7 @@ model = SceneCompletionUNetSparse(
     # ssc_multiscale=args.ssc_multiscale, and scripts/eval.py passes the production
     # values for exact reproduction — see below.
 )
-model.load_state_dict(state, strict=False)  # EMA files omit some buffers; for exact reproduction prefer scripts/eval.py
+model.load_state_dict(state, strict=False)  # strict=False is a forward-compatible default; the released EMA files ship the full 278-tensor state (incl. BN buffers) and load under strict=True. For exact reproduction prefer scripts/eval.py
 model.train(False)
 ```
 
@@ -384,9 +442,14 @@ Or via the eval entry point::
 python scripts/eval.py eval/val_1step \
     --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
-# JS3C-Net cross-base (24.3% val is the paper headline for this base, derived BEV;
-# 26.05% is a GT-BEV diagnostic, NOT the headline, and 26.1 is in no paper table;
-# 26.72% internal training-time evaluator continuity row; 24.32% at-deploy derived BEV)
+# JS3C-Net cross-base. 24.32% (paper 24.3) is the headline for this base: derived
+# BEV under the official semantic-kitti-api. 26.72% (paper 26.7) is the SAME
+# derived-BEV setting under the paper's internal training-time evaluator, a
+# continuity row -- the evaluator differs, not the BEV source. 26.05% is a separate
+# GT-BEV diagnostic of ours that the paper does not print.
+# NOTE: eval/js3c_val_1step is an alias of eval/js3c_val_paper and sets
+# bev_source: gt, so the command below prints the 26.05 GT-BEV diagnostic. For the
+# paper headline run eval/js3c_val_realistic instead.
 python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 

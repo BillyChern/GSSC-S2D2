@@ -4,6 +4,11 @@ the code that produced it?
 
 DEFECT THIS EXISTS FOR (measured 2026-08-20, all by reading the artefacts):
 
+  LINE NUMBERS IN THIS BLOCK ARE A DATED SNAPSHOT of the checkout named above, not
+  navigation. Several have already moved: follow the SYMBOL, the heading or the quoted
+  text, and re-derive the location with `grep -n`. Every check below RE-MEASURES the
+  live artefacts, so nothing here is load-bearing for a verdict.
+
   D1  THE RELEASED PYRAMID S3 IS A DIFFERENT RUN FROM THE PAPER'S.
       docs/DATASET.md:335 states, in prose, that the S3 checkpoint used for the
       released synthetic pools is `s3_v2_lr004/best_miou.pt`. That file's own
@@ -54,14 +59,36 @@ STATUS WHEN WRITTEN (2026-08-20 ~03:00 UTC)
   resolves, and the superseded artefacts were moved to
   pyramid/_superseded_20260820/. P3, P4, P6 and P7 read GREEN today and now
   guard the fix.
-  STILL RED, both measured, not assumed:
+  RED AT THAT DATE, both measured, not assumed -- BOTH SINCE FIXED, see the next
+  block; do not read either bullet as the state of the bundle today:
     P5  18/18 configs carry no resolvable code revision. The three restaged
         pyramid configs do carry a field, whose value is the string
         "unknown -- checkpoint predates the release repo's provenance
         convention". P5 rejects it: a placeholder satisfies a presence test
         while recording nothing, so the value must resolve in GSSC-S2D2.
-    P8  five gssc_sf subdirs are named *_step100000 and record global_step
-        93000 / 87000 / 85000 / 72000 / 69000.
+    P8  the five gssc_sf subdirs were named `*_step100000` while recording
+        global_step 93000 / 87000 / 85000 / 72000 / 69000.
+
+RESOLVED SINCE, MEASURED NOT ASSUMED (2026-08-22)
+  P5 and P8 are both GREEN. P8's five subdirs were RENAMED to the step they
+  actually record -- `gssc_{0,10,20,31,57}K_sf_step{93000,87000,85000,72000,69000}`
+  -- so the name no longer contradicts `global_step`. Do not re-quote the
+  `*_step100000` form above as a description of the bundle: it is the historical
+  defect, not the shipped layout. Re-measure rather than trusting this line:
+
+      python3 -c "import importlib.util as i; s=i.spec_from_file_location('p',
+        '.release_checks/check_asset_provenance.py'); m=i.module_from_spec(s);
+        s.loader.exec_module(m); w=m.World()
+        print(m.p8_released_name_matches_step(w))"   # [] == green
+
+  ONE STALE DERIVATIVE SURVIVES THE RENAME AND NO CHECK HERE SEES IT: each of the
+  five `config.json` files still carries `"name": "gssc_<N>K_sf_step100000"` and a
+  `released_as_previously` recording the same old string, while the directory around
+  it says otherwise. That was left deliberately -- editing the five configs moves
+  five SHA256s that docs/MODEL_ZOO.md publishes and check_security_hashes.py
+  compares -- and it is a COSMETIC field no loader reads. P8 keys on the DIRECTORY
+  name, which is what a citation quotes, so it cannot see the field; that is a
+  scope statement, not a bug.
 
   P5's producing_code STAND-IN IS NOW VERIFIED (2026-08-20, later the same day).
   P5 lets a COMPLETE producing_code record substitute for a revision on artefacts
@@ -71,6 +98,25 @@ STATUS WHEN WRITTEN (2026-08-20 ~03:00 UTC)
   excuse is now falsified before it is granted: if the tree holding the source
   checkpoint answers `git rev-parse`, a dated revision was recordable and the
   stand-in is refused. It is granted only where the gate cannot prove otherwise.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_ASSETS      the asset staging bundle               default: <repo>/../GSSC-S2D2-assets
+    GSSC_EXPERIMENTS the internal experiments checkout      default: <repo>/../Semantic_Scene_Completion_LiDAR
+    TMPDIR           scratch root (never /tmp on this box)  default: ~/.cache/gssc-release-checks
+
+THE ASSET STAGING BUNDLE AND THE INTERNAL EXPERIMENTS CHECKOUT ARE NOT PART OF THE PUBLIC RELEASE.
+They are maintainer working trees; a clone of this repository does not contain them, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 
 from __future__ import annotations
@@ -88,20 +134,24 @@ from typing import Dict, List, Optional, Sequence, Set, Tuple
 import torch
 from safetensors import safe_open
 
-ASSETS = Path("/workspace/GSSC-S2D2-assets")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+ASSETS = Path(os.environ.get("GSSC_ASSETS") or REPO.parent / "GSSC-S2D2-assets")
 CKPT = ASSETS / "checkpoints"
-REPO = Path("/workspace/GSSC-S2D2")
 
 # The internal experiments checkout the assets README names as the rebuild source
 # ("cd <experiments-repo>   # the internal Semantic_Scene_Completion_LiDAR checkout").
-EXPERIMENTS = Path("/workspace/Semantic_Scene_Completion_LiDAR")
+EXPERIMENTS = Path(os.environ.get("GSSC_EXPERIMENTS")
+                   or REPO.parent / "Semantic_Scene_Completion_LiDAR")
 # Two roots: most runs live in the experiments checkout, but the cross-base LMSCNet
 # run was trained inside the release repo itself (GSSC-S2D2/outputs/train_lmscnet_real).
 # Assuming a single root reported that checkpoint's provenance as unresolvable -- a
 # false finding produced by the gate's own scope, not by the artefact.
 SOURCE_ROOTS = (EXPERIMENTS / "outputs", REPO / "outputs")
 
-TMPDIR = Path(os.environ.get("TMPDIR") or "/workspace/.claude/jobs/d55ebe8b/tmp")
+# Scratch.  NOT /tmp: a full /tmp has deadlocked the maintainer's box repeatedly, so the
+# default is a named cache dir and TMPDIR overrides it.
+TMPDIR = Path(os.environ.get("TMPDIR")
+              or Path.home() / ".cache" / "gssc-release-checks")
 
 WEIGHT_NAMES = ("model.safetensors", "model.pt", "model.pth", "pytorch_model.bin")
 # Fields a config may use to point at its producing run. Order matters: the most
@@ -554,7 +604,7 @@ def _unrecoverable_verified(w: "World", cfg: dict) -> bool:
     want = cfg.get("source_sha256")
     if not isinstance(dec, dict) or not dec.get("reason") or not want:
         return False
-    tree = Path("/workspace/Semantic_Scene_Completion_LiDAR/outputs")
+    tree = EXPERIMENTS / "outputs"
     if not tree.is_dir():
         return False
     import collections
@@ -641,7 +691,7 @@ def p5_code_revision(w: World) -> List[str]:
     return bad
 
 
-RESEARCH_REPO = Path("/workspace/Semantic_Scene_Completion_LiDAR")
+RESEARCH_REPO = EXPERIMENTS
 
 
 def _release_repo_birth() -> float:
@@ -826,8 +876,17 @@ def p7_no_undisclosed_midrun_dump(w: World) -> List[str]:
 
 
 def p8_released_name_matches_step(w: World) -> List[str]:
-    """A subdir called gssc_0K_sf_step100000 that carries global_step 93000 tells the
-    downloader something false about the artefact they are citing."""
+    """A subdir whose name encodes a step/epoch must record that same step/epoch.
+
+    The defect this replays: five subdirs shipped named `*_step100000` while their
+    config.json recorded global_step 93000 / 87000 / 85000 / 72000 / 69000, which tells
+    a downloader something false about the artefact they are citing. Those five have
+    since been renamed to the step they record (see RESOLVED SINCE in the module
+    docstring) -- the `*_step100000` form here is the HISTORICAL defect, not a
+    description of what is on disk today. The check itself is general: it reads the
+    step/epoch out of whatever directory name is present and compares it with the
+    config, so it does not depend on any particular naming.
+    """
     bad, checked = [], 0
     for d in checkpoint_dirs(w):
         cj = d / "config.json"

@@ -2,7 +2,11 @@ _paper_table: tab:perclass_delta (main-paper Tab. II, 1-step row)
 _description: 1-step S2D2 correction-sampling evaluation on full val seq 08. Expected 38.54% mIoU.
 split: val
 sequences: "08"
-# base_pred_dir: data/scpnet_predictions  (default if omitted; ~135 GB of SCPNet
-# predictions must live here — eval defaults to <data-root>/scpnet_predictions)
+# base_pred_dir: data/scpnet_predictions  (default if omitted; eval defaults to
+# <data-root>/scpnet_predictions). This row needs only val seq 08 of that tree —
+# 8.5 GiB / 9.1 GB, fetched with
+#   python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'
+# — not the whole 177 GiB / 190 GB prefix. The "~135 GB" this comment used to quote
+# was measured on nothing: see the retraction in docs/DATASET.md's disk-space table.
 correction_steps: 1
 tta: none

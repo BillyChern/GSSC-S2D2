@@ -59,15 +59,17 @@ covered by the same digest below.
 
 Every released checkpoint has a published SHA256 digest. The per-file table is
 [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md); the same digests ship as one
-`checksums.txt` at the root of the Hugging Face checkpoints repo, so the check is a
-single command with a verdict rather than a digest you have to eyeball:
+`checksums.txt` at the root of the Hugging Face checkpoints repo, which the download
+unpacks into `data/checkpoints/`, so the check is a single command with a verdict
+rather than a digest you have to eyeball:
 
 ```bash
 # Downloads into data/checkpoints/, checksums.txt included.
 python scripts/download_assets.py --checkpoints
 
-# The paths inside checksums.txt are rooted at `checkpoints/`, so run the check
-# from data/ -- the directory that CONTAINS checkpoints/.
+# The paths inside checksums.txt are relative to `checkpoints/` (the first entry is
+# `MANIFEST.txt`, not `checkpoints/MANIFEST.txt`), so run the check from INSIDE
+# data/checkpoints/. Running it from data/ makes every line FAIL open-or-read.
 cd data/checkpoints && sha256sum -c checksums.txt
 ```
 
@@ -79,6 +81,6 @@ transfer, not a harmless difference.
 To check one file rather than all of them:
 
 ```bash
-cd data && grep 'gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors' \
-    checkpoints/checksums.txt | sha256sum -c -
+cd data/checkpoints && grep 'gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors' \
+    checksums.txt | sha256sum -c -
 ```

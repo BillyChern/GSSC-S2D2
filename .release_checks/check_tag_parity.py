@@ -3,7 +3,9 @@
 
 THE LESSON THIS GATE ENCODES -- THE ONE THAT COST THE MOST
 -----------------------------------------------------------
-The paper pins a release tag.  `supplementary.tex:1525` reads:
+The paper pins a release tag.  The sentence is in the supplement's reproducibility appendix
+-- find it with `grep -n 'machine-readable Hydra configs' supplementary.tex`, not by line
+number: it read `:1525` when this was written and the paper has reflowed since.  It reads:
 
     "The code repository tagged \\texttt{v2.3.8} contains the same values in
      machine-readable Hydra configs."
@@ -38,7 +40,7 @@ green on the wrong tag.  So the tag is PARSED out of `supplementary.tex`, and:
   * a pointer naming a tag git does not have -> FAIL: the reviewer's checkout fails.
 `main.tex` is scanned as well; a version pointer there that disagrees with the supplement
 is the same contradiction and fails the same check.  The paper is READ-ONLY here -- this
-gate never writes to /workspace/GSSC-paper.
+gate never writes to the paper checkout.
 
 RELEASE-CRITICAL SET, AND WHY IT IS GLOB-CHECKED
 ------------------------------------------------
@@ -61,11 +63,29 @@ The comparison is tag-vs-WORKTREE, because during a fix cycle the author's chang
 uncommitted and those are precisely the changes that must eventually reach the tag.  Files
 whose difference is still uncommitted are annotated as such in the failure detail, so the
 author can tell "already committed, needs a re-tag" from "not even committed yet".
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_PAPER       the manuscript checkout                default: <repo>/../GSSC-paper
+
+THE MANUSCRIPT CHECKOUT IS NOT PART OF THE PUBLIC RELEASE.
+It is a maintainer working tree; a clone of this repository does not contain it, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 
 from __future__ import annotations
 
 import difflib
+import os
 import re
 import shutil
 import subprocess
@@ -74,11 +94,12 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+PAPER = Path(os.environ.get("GSSC_PAPER") or REPO.parent / "GSSC-paper")
 
 #: READ-ONLY.  Parsed for the pinned tag; never written.
-PAPER_SUPP = Path("/workspace/GSSC-paper/supplementary.tex")
-PAPER_MAIN = Path("/workspace/GSSC-paper/main.tex")
+PAPER_SUPP = PAPER / "supplementary.tex"
+PAPER_MAIN = PAPER / "main.tex"
 
 #: The surface a reviewer following the paper's pointer reads or runs.
 RELEASE_CRITICAL: Tuple[str, ...] = (

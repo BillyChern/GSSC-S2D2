@@ -65,6 +65,17 @@ DenseHallucinationModule = None
 Dense3DEnhancer = None
 
 
+class MissingVoxelCacheError(RuntimeError):
+    """Raised when a training/validation split enumerates zero samples.
+
+    Almost always means the preprocessed voxel cache under
+    ``<data_root>/SemanticKITTI_3D/256/`` has not been built yet. It is not part of
+    ``scripts/download_assets.py``; ``scripts/prepare_256_data.py`` produces it from the
+    raw SemanticKITTI voxel release. Raising a named error here keeps the failure
+    readable instead of surfacing as ``num_samples=0`` from ``torch.utils.data``.
+    """
+
+
 class SSCMetrics:
     """
     SemanticKITTI Scene Completion evaluation metrics.
@@ -211,9 +222,14 @@ class SemanticKITTI3DDataset(Dataset):
             data_root: Path to SemanticKITTI SSC dataset
             sequences: List of sequence IDs to load
             augment: Whether to apply data augmentation
-            use_rectified_labels: Use rectified labels (SCPNet protocol) (removes ghost trails
-                                  from dynamic objects). Improves +10-25% on dynamic classes.
-                                  Requires running tools/rectify_labels.py first.
+            use_rectified_labels: Load `<frame>_rectified.label` instead of `<frame>.label`
+                                  (the SCPNet ghost-trail cleanup for dynamic objects).
+                                  NOT exercised by the release: no shipped config sets it,
+                                  `_create_dataloader` passes False, and the producer of
+                                  those files is a research-tree script that is not
+                                  bundled here. Left in place for callers who have
+                                  rectified labels of their own; the release ships no
+                                  route to generate them.
             waffleiron_root: Path to precomputed WaffleIron BEV features (B6 experiment).
                              Expected format: {waffleiron_root}/{seq}/{frame_id}_waffleiron.npy
                              Each file should be (64, 256, 256) float16.
@@ -1477,6 +1493,36 @@ class SceneCompletionTrainer:
                 waffleiron_root=config.get('waffleiron_root'),
                 lsk3d_3d_root=config.get('lsk3d_3d_root'),  # S18: SDEdit init
                 densify_nn=config.get('densify_nn', False),  # S25-S27
+            )
+
+        # Fail here, with the provisioning route named, rather than 200 lines later
+        # inside torch's DataLoader with `num_samples=0`. Every recipe reads the
+        # preprocessed voxel cache at <data_root>/SemanticKITTI_3D/256/<seq>/, which is
+        # NOT part of scripts/download_assets.py: it is built from the raw SemanticKITTI
+        # voxel release by scripts/prepare_256_data.py. An absent or empty cache is the
+        # overwhelmingly common cause of a zero-length dataset, so say so explicitly.
+        if len(dataset) == 0:
+            voxel_cache = Path(config['data_root']) / 'SemanticKITTI_3D' / '256'
+            raise MissingVoxelCacheError(
+                f"{type(dataset).__name__} enumerated 0 samples for split '{split}' "
+                f"over sequences {sequences}.\n"
+                f"Expected the preprocessed voxel cache at {voxel_cache}/<seq>/ holding "
+                f"<frame>_voxels.npy, <frame>_bev.npy and <frame>_gt_scene.npy.\n"
+                "That cache is not downloaded by scripts/download_assets.py. Build it once "
+                "from the raw SemanticKITTI voxel release:\n"
+                "    python scripts/prepare_data.py --root data/SemanticKITTI\n"
+                "    python scripts/prepare_256_data.py --semantickitti_root data/SemanticKITTI\n"
+                "If the cache is present, check `data_root`, `train_sequences`/`val_sequences` "
+                "and the base-prediction directory in the config: frames without a matching "
+                "<frame>_pred.npy under `scpnet_pred_dir`/`base_pred_dir` are also dropped.\n"
+                "In s3_mode 'intermediate'/'student' a frame is ALSO dropped when it has no "
+                f"multi-frame voxel file under "
+                f"{Path(config['data_root']) / 'SemanticKITTI_3D' / '256_multi_frame'}/<seq>/; "
+                "build that tree with\n"
+                "    python scripts/prepare_multi_frame_data.py "
+                "--semantickitti_root data/SemanticKITTI\n"
+                "(In 'teacher' mode, the shipped default, a missing multi-frame file is a "
+                "single-frame fallback with a warning, not a dropped sample.)"
             )
 
         # S4: MIMO Training Mode - wrap dataset with MIMODatasetWrapper

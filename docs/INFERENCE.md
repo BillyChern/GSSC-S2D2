@@ -27,7 +27,32 @@ python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gss
 
 Returns the full sweep: 38.54 (N=1), 38.59 (N=2), 38.65 (N=4 peak), 38.16 (N=100).
 
-## D4 TTA (test-server best, 39.2% test; N=1 no-TTA already reaches 38.8)
+## Hidden-test submission, headline configuration (N=1, no TTA — 38.8% test)
+
+This is the configuration behind the paper's headline test number and the
+superlative quoted above, and it is the row the paper's deployment predicate
+admits. The paper's reproduction matrix names this exact config.
+
+```bash
+# Generate .label files
+python scripts/infer.py infer/test_1step \
+    --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors \
+    --output predictions/test_n1/
+
+# Bundle for submission
+cd predictions/test_n1 && zip -r submission.zip sequences/
+```
+
+Submit `submission.zip` to the [SemanticKITTI Codabench leaderboard](https://www.codabench.org/competitions/13814/#/results-tab).
+Expected: **38.8 % mIoU, 58.9 % completion IoU**.
+
+## Hidden-test submission, D4 TTA (test-server best, 39.2%)
+
+Four correction steps plus an eight-view D4 ensemble. It is a real result we
+report, but the paper **excludes it from bolding** and from the deployment
+predicate that indexes the single-sweep superlative, so it is the extra rather
+than the headline. Use the `infer/test_1step` recipe above if you are checking
+the paper's main claim.
 
 ```bash
 # Generate .label files
@@ -39,7 +64,13 @@ python scripts/infer.py infer/test_d4tta \
 cd predictions/test_d4tta && zip -r submission.zip sequences/
 ```
 
-Submit `submission.zip` to the [SemanticKITTI Codabench leaderboard](https://www.codabench.org/competitions/13814/#/results-tab).
+Submit `submission.zip` the same way. Expected: **39.2 % mIoU, 59.0 %
+completion IoU**.
+
+> **`scripts/reproduce_table.py tab:main_results` runs the D4 TTA flow, not
+> this one.** The driver maps the paper's main-results label to
+> `infer/test_d4tta`, so it regenerates the 39.2 row. To regenerate the 38.8
+> headline row, run the `infer/test_1step` command above by hand.
 
 ## Custom data
 
@@ -59,10 +90,11 @@ python scripts/eval.py eval/val_1step \
 ls data/js3cnet_predictions/08 | head
 
 # N=1, no TTA, GT BEV. eval/js3c_val_1step is an alias of eval/js3c_val_paper and
-# sets `bev_source: gt`, so what it prints is the GT-BEV DIAGNOSTIC: expect
-# 26.05 % val mIoU (26.72 % under the paper's internal SSCMetrics continuity row).
-# It is NOT the paper's headline for this base -- for that, run the derived-BEV
-# command below.
+# sets `bev_source: gt`, so what it prints is a GT-BEV DIAGNOSTIC of ours: expect
+# 26.05 % as a diagnostic under the official semantic-kitti-api. The paper does
+# not print it. It is NOT the paper's headline for this base, and it is NOT the
+# protocol behind the 26.72 % continuity figure (that one is derived BEV -- see
+# the note below). For the headline, run the derived-BEV command below.
 python scripts/eval.py eval/js3c_val_1step \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 
@@ -77,18 +109,23 @@ python scripts/eval.py eval/js3c_val_d4tta \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 ```
 
-> **GT BEV vs. derived BEV — the two commands above print different numbers.**
-> `eval/js3c_val_1step` (= `eval/js3c_val_paper`) sets `bev_source: gt`, so it
-> conditions on a ground-truth BEV oracle and lands at a **26.05 %** diagnostic
-> under the official `semantic-kitti-api`. That is not the paper's headline, and
-> the paper does not print it -- "26.1" appears nowhere in it; the same
-> protocol under the paper's internal SSCMetrics reads **26.72 %**, a continuity
-> row. The paper's headline for this base is **22.7 → 24.3 % (+1.6 pp)** with
-> derived BEV, reproduced by `eval/js3c_val_realistic` (`bev_source: derived`,
-> precise output **24.32 %**) -- which is also the protocol the released
-> checkpoint was trained under (`configs/train/js3c_real.yaml` sets
-> `bev_from_base: true`). See `docs/REPRODUCIBILITY.md` and `docs/MODEL_ZOO.md`
-> for the full GT-vs-derived breakdown.
+> **Three numbers, and what actually separates them.**
+> The paper's headline for this base is **22.7 → 24.3 % (+1.6 pp)**: **derived
+> BEV**, scored by the **official `semantic-kitti-api`**, reproduced by
+> `eval/js3c_val_realistic` (`bev_source: derived`, precise output **24.32 %**)
+> -- which is also the protocol the released checkpoint was trained under
+> (`configs/train/js3c_real.yaml` sets `bev_from_base: true`).
+> The **26.7 %** figure the supplement carries above it is the **same
+> derived-BEV setting** read by the paper's internal training-time evaluator
+> (`SSCMetrics`, precise **26.72 %**), retained there for continuity only.
+> **The evaluator is what separates 26.7 from 24.3, not the BEV source.**
+> `eval/js3c_val_1step` (= `eval/js3c_val_paper`) is a third thing: it sets
+> `bev_source: gt`, conditions on a ground-truth BEV oracle, and lands at a
+> **26.05 %** diagnostic of ours under the official `semantic-kitti-api`. The
+> paper prints neither "26.05" nor "26.1" anywhere, and this GT-BEV protocol is
+> not what produced 26.72. (The paper's own GT-BEV row, 61.8 %, is a
+> *separately trained* variant it labels an upper bound, not this checkpoint.)
+> See `docs/REPRODUCIBILITY.md` and `docs/MODEL_ZOO.md` for the full breakdown.
 
 The all-in-one driver takes the paper's cross-base table label directly and
 runs the same eval with a pre-flight check on each base's predictions. The

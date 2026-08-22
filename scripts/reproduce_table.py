@@ -1,4 +1,4 @@
-"""Reproduce any per-table number from the paper.
+r"""Reproduce any per-table number from the paper.
 
 Each table maps to a specific eval recipe. Running this script will:
 1. Verify the right checkpoint subdir is downloaded.
@@ -12,7 +12,8 @@ config.json}`` (HF convention). Inference defaults to ``model_ema.safetensors``.
 Examples::
 
     python scripts/reproduce_table.py tab:perclass_delta
-    python scripts/reproduce_table.py tab:main_results
+    python scripts/reproduce_table.py tab:main_results   # hidden-test D4-TTA row (39.2)
+    python scripts/reproduce_table.py main_results_n1    # hidden-test headline row (38.8)
     python scripts/reproduce_table.py cross_base_js3c   # cross-base v1.1.0
     python scripts/reproduce_table.py cross_base_lmsc   # cross-base v2.1.0
     python scripts/reproduce_table.py tab:bev_results
@@ -35,7 +36,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 TABLE_MAP: dict[str, dict[str, Any]] = {
     "tab:perclass_delta":   {"config": "eval/val_1step",     "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou per_class completion_iou"},
-    "tab:main_results":     {"config": "infer/test_d4tta",   "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou per_class completion_iou", "submit": True},
+    # tab:main_results prints TWO hidden-test rows and this driver has one key per row.
+    # `tab:main_results` keeps its historical binding to the 4-step + 8-view D4 TTA row
+    # (39.2 / 59.0); `main_results_n1` is the paper's HEADLINE row (38.8 / 58.9), the
+    # single-pass configuration the deployment predicate admits. Neither is a superset of
+    # the other -- ask for the one whose row you are checking (each announces which it is).
+    "tab:main_results":     {"config": "infer/test_d4tta",   "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou per_class completion_iou", "submit": True,
+                             "row": "39.2 mIoU / 59.0 completion IoU (4 correction steps + 8-view D4 TTA)",
+                             "sibling": "main_results_n1"},
+    "main_results_n1":      {"config": "infer/test_1step",   "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou per_class completion_iou", "submit": True,
+                             "row": "38.8 mIoU / 58.9 completion IoU (N=1, the paper's headline test row)",
+                             "sibling": "tab:main_results"},
     "tab:step_reduction":   {"config": "eval/step_sweep",    "checkpoint": "gssc_mf/gssc_31k_mf_step40000",  "metrics": "miou completion_iou"},
     "train_timesteps_curriculum": {"config": "eval/timestep_ablation", "checkpoint": "[gssc_timesteps/gssc_T10|gssc_timesteps/gssc_T50|gssc_timesteps/gssc_T100skewed|gssc_mf/gssc_31k_mf_step40000]", "metrics": "miou"},
     # The 36.1% BEV entry was produced by bev/bev_s2d2_scpnet, NOT by
@@ -52,15 +63,18 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
     "data_scaling_sf":      {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step{93000,87000,85000,72000,69000}]", "metrics": "miou"},
     "cross_base_js3c":      {
         # JS3C-Net cross-base. The PAPER'S headline for this base is 24.32
-        # (derived BEV, official semantic-kitti-api, +1.59 pp), which
-        # eval/js3c_val_realistic reproduces. 26.05 is a GT-BEV DIAGNOSTIC
-        # (official api, +3.32 pp) and 26.72 the same protocol under the paper's
-        # internal SSCMetrics (+3.99 pp); neither is the paper's headline. This key is named
-        # after a PAPER TABLE, so it must dispatch the config that reproduces that table's row:
-        # main Tab. III prints "JS3C-Net + S2D2  24.3  +1.6". Until 2026-08-15 it shipped
+        # (derived BEV, official semantic-kitti-api, +1.59 pp over the 22.7 base),
+        # which eval/js3c_val_realistic reproduces. The supplement's 26.72 (printed
+        # 26.7, +3.99 pp) is the SAME derived-BEV run scored with the paper's
+        # internal training-time SSCMetrics -- the EVALUATOR is what separates 26.7
+        # from 24.3, not the BEV source. GT BEV is a separate diagnostic of ours
+        # (eval/js3c_val_paper, 26.05 under the official api) that the paper does
+        # not print at all. This key is named after a PAPER TABLE, so it must
+        # dispatch the config that reproduces that table's row: main Tab. III prints
+        # "JS3C-Net + S2D2  24.3  +1.6". Until 2026-08-15 it shipped
         # eval/js3c_val_1step with expected 26.05 -- the GT-BEV diagnostic -- so a reader
         # reproducing the cross-base row got a number the paper does not print there. For the
-        # GT-BEV diagnostic run eval/js3c_val_1step explicitly (see docs/REPRODUCIBILITY.md).
+        # GT-BEV diagnostic run eval/js3c_val_paper explicitly (see docs/REPRODUCIBILITY.md).
         "config": "eval/js3c_val_realistic",
         "checkpoint": "gssc_js3c/gssc_js3c_s2d2_real",
         "metrics": "miou per_class completion_iou",
@@ -243,6 +257,11 @@ def _reproduce_one(key: str, label: str, ckpt_dir: Path, data_root: Path) -> Non
     print(f"  metrics:    {spec['metrics']}")
     if "expected_mIoU" in spec:
         print(f"  expected:   {spec['expected_mIoU']}% mIoU (paper)")
+    if "row" in spec:
+        # tab:main_results has two rows; say which one this key regenerates.
+        print(f"  row:        {spec['row']}")
+    if "sibling" in spec:
+        print(f"  other row:  python scripts/reproduce_table.py {spec['sibling']}")
     if "protocol" in spec:
         # A number quoted without its protocol is a different claim from the number.
         print(f"  protocol:   {spec['protocol']}")
@@ -267,7 +286,10 @@ def _reproduce_one(key: str, label: str, ckpt_dir: Path, data_root: Path) -> Non
         # generate prediction files for leaderboard submission rather than
         # scoring locally (local scoring would fail — sequences 11-21 have no
         # public .label GT).
-        out_dir = REPO_ROOT / "outputs" / "test_submission"
+        # Per-key directory: tab:main_results and main_results_n1 both write test
+        # predictions, and a shared directory would let the second run overwrite the
+        # first with no warning.
+        out_dir = REPO_ROOT / "outputs" / "test_submission" / key.replace(":", "_")
         cmd = [
             sys.executable, "scripts/infer.py", spec["config"],
             "--checkpoint", str(ckpt_path),
@@ -278,7 +300,9 @@ def _reproduce_one(key: str, label: str, ckpt_dir: Path, data_root: Path) -> Non
         print(
             f"\nTest predictions written under {out_dir}/sequences/<seq>/predictions/.\n"
             "Zip and submit to the SemanticKITTI SSC leaderboard (Codabench) for the "
-            "hidden-test mIoU (paper: 38.8% at N=1, 39.2% with D4 TTA); see README.md."
+            "hidden-test mIoU. Paper tab:main_results prints both rows: 38.8 at N=1 "
+            "(`main_results_n1`, the headline) and 39.2 with 4 steps + D4 TTA "
+            "(`tab:main_results`); see README.md."
         )
         return
     cmd = [

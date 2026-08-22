@@ -1,38 +1,32 @@
-_paper_table: "reviewer CRITICAL C1 — loss-matched one-step control (also reproduces the endpoint-only ablation)"
+_paper_table: "tab:ablations, training-path block — the `trained only at t=T` row (32.74)"
 _description: >
-  The loss-matched one-step control the 2026-08-04 reviewer panel asked for, and the
-  reproducible replacement for the paper's development-codebase "endpoint-only" ablation.
+  Loss-matched one-step control: train the headline model at a single diffusion
+  timestep t=99=T-1 instead of t ~ Uniform{0..99}.
 
-  This file is `train/31k_mf.yaml` with exactly ONE change: the training timestep is
-  fixed at t=99=T-1 instead of t ~ Uniform{0..99}. Everything else — model, optimiser,
-  LR, batch size, iteration budget, EMA decay, the synthetic pool, the base predictions,
-  and critically the ENTIRE V2 loss suite (KL posterior + focal gamma=2 +
-  effective-number class balancing capped 20x + occupied_weight=10 + obs_weight_factor=2
-  + Lovasz 0.3 + auxiliary 0.0005) — is byte-identical to the headline recipe.
+  This file is `train/31k_mf.yaml` with exactly ONE change (see the block at the
+  bottom). Everything else — model, optimiser, LR, batch size, iteration budget, EMA
+  decay, the synthetic pool, the base predictions, and the ENTIRE V2 loss suite (KL
+  posterior + focal gamma=2 + effective-number class balancing capped 20x +
+  occupied_weight=10 + obs_weight_factor=2 + Lovasz 0.3 + auxiliary 0.0005) — is
+  identical to the headline recipe.
 
-  Why this is the right control. The paper's existing supervised-refiner control differs
-  from the headline in BOTH the training path AND the loss: it runs
-  `--direct_prediction`, whose loss is plain `CE(class_0=0.02) + 0.3*Lovasz`
-  (train_scene_completion.py, `_train_step_direct`), with no focal term, no
-  class-balancing and no occupancy weighting. So its 27.0 mIoU cannot separate "the
-  multi-timestep path matters" from "the loss suite matters" — which is precisely the
-  distinction the paper's §V-C run-in asserts. Holding the loss fixed and varying only
-  the timestep distribution isolates the path.
+  Why the timestep is the only thing varied. The paper's other one-step arm, the
+  supervised refiner, differs from the headline in BOTH the training path AND the
+  loss: it runs `--direct_prediction`, whose loss is plain `CE(class_0=0.02) +
+  0.3*Lovasz` (train_scene_completion.py, `_train_step_direct`), with no focal term,
+  no class balancing and no occupancy weighting. Holding the loss fixed and varying
+  only the timestep distribution separates the two.
 
-  At t=99 the forward process puts x_t within O(abar_T)=O(5.6e-3) of x_src, so this run
-  trains on essentially the deployed input and predicts x_0 from it in one step: a
-  supervised refiner, but one carrying the headline objective.
+  At t=99 the forward process puts x_t within O(abar_T)=O(5.6e-3) of x_src, so this
+  run trains on essentially the deployed input and predicts x_0 from it in one step:
+  a supervised refiner carrying the headline objective.
 
-  How to read the result. Base 36.17, headline 38.54, both val seq. 08 at N=1.
-    * ~38.5  => the multi-step curriculum buys nothing; the gain is the loss suite and
-               the diffusion framing is decoration. The reviewer is right and §V-C's
-               claim must come out.
-    * << 38.5 => the training path is load-bearing with the loss held constant, which is
-               the claim §V-C makes and the existing control cannot support.
-
-  Adjudicate at step_40000 first: that is the headline checkpoint's step, so it is the
-  budget-matched comparison. The run continues to 100K so the control can also be given
-  the headline's own selection procedure (best EMA val mIoU), which is the steelman.
+  Measured result: 32.74% val mIoU on seq. 08 at step_40000 under the official
+  semantic-kitti-api (completion IoU 36.93, precision 46.52, recall 64.18), against
+  the matched full-schedule arm's 38.1% at the same budget and the 36.17% base it
+  was handed. step_40000 is the budget-matched comparison because it is the headline
+  checkpoint's step; the run continues to 100K so the control can also be given the
+  headline's own selection procedure (best EMA val mIoU).
 
 data_root: data
 model_type: sparse_full

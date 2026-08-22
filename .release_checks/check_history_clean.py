@@ -13,11 +13,21 @@ RESOLVED 2026-08-20 by a history rewrite (``git filter-repo --invert-paths --pat
 a re-cut of all affected tags, and a force-push. The gate stays because the defect class
 recurs: the next working file will look just as harmless at the tip.
 
-Deliberately NOT recorded here: the offending blob's hash, its commit ids, its first line,
-or its section headings. This file ships in the public repository, and a force-push does not
-delete objects from the remote -- an orphaned commit stays fetchable by anyone holding its
-sha until the host garbage-collects. Publishing the forensics of a purge alongside the purge
-hands out the key to it. Provenance lives in the release runbook, outside the repo.
+Deliberately NOT recorded here: the offending blob's hash, its commit ids, ITS NAME, its
+first line, or its section headings. This file ships in the public repository, and a
+force-push does not delete objects from the remote -- an orphaned commit stays fetchable by
+anyone holding its sha until the host garbage-collects. Publishing the forensics of a purge
+alongside the purge hands out the key to it. Provenance lives in the release runbook,
+outside the repo.
+
+That promise covers the SELFTEST FIXTURE below as well, and it did not always: an earlier
+pass cleaned this docstring and left the fixture reconstructing the purged file's path and
+two of its header lines, because the verification sweep was scoped to the sha and the commit
+ids and never to the filename or the header text. A scoped sweep is guaranteed to come back
+green. The fixture now uses ``SELFTEST_LEAK_PATH`` and PLACEHOLDER text assembled from the
+MARKER NAMES this file already publishes; it only has to trip CONTENT_MARKERS, and it never
+has to resemble a real file. Any future sweep must include the filename and the header text
+among its search terms, not just the hashes.
 
 WHY THE DETECTOR IS TWO-CHANNEL (PATH *AND* CONTENT)
 ----------------------------------------------------
@@ -57,6 +67,33 @@ SCOPE, STATED SO THE GREEN IS HONEST
   * Reachability only. This gate reads the LOCAL object graph, so it cannot see an object that
     survives on the remote with no ref pointing at it. After any purge, test the remote
     directly -- fetch the old sha into a throwaway clone -- before flipping to public.
+  * EXEMPTIONS waves ``.release_checks/`` past both marker channels, and that exemption
+    applies to the directory's OLD BLOBS TOO. Cleaning the fixture at the tip therefore does
+    NOT make CHECK A's green cover the earlier revisions of this file, which are still
+    reachable from every tag cut before the cleanup. Same rule as the top of this docstring:
+    only a rewrite + retag + force-push removes them, and only a direct test against the
+    remote shows what survived. A green here is not evidence that it did.
+  * Commit MESSAGES and commit DIFFS are outside the walk -- it reads blob CONTENT. A commit
+    body that narrates a purge, naming the file and quoting its lines, is invisible to every
+    check below.
+  * SIZE OF THAT BLIND SPOT, MEASURED rather than estimated (2026-08-22, local object graph,
+    reachable from HEAD). The identifiers of the working document this gate was built for --
+    its lower-case stem, the upper-case spelling that survives in ``.gitignore``, its blob sha,
+    both of its original commit ids, and its first-line heading -- appear in the DIFFS of
+    FOUR reachable commits and in the MESSAGES of TWO -- FIVE distinct commits, since one
+    carries both. All five are contained in tag ``v2.3.8``, the tag the paper pins, and three
+    of the five in all fourteen tags this repository has cut. The counts are
+    reproduced without republishing the identifiers by pulling them from ``.gitignore`` and
+    running ``git log --format=%h -G"<id>" HEAD`` and ``... --grep="<id>" -i HEAD`` per id, then
+    taking the union -- NOT by ``-S`` on the lower-case stem alone, which answers 3: it misses
+    the commit that added the upper-case ``.gitignore`` entry, which spells the name a fourth way.
+    The purge itself did land: the blob sha and both original commit ids no longer resolve
+    (``git cat-file -t`` fails on all three) and no reachable tree still carries the path.
+    What survives is the FORENSICS, in diffs and messages this walk cannot reach -- so CHECK A
+    stays green while the identifiers remain fetchable. Closing it needs a second
+    ``filter-repo`` pass over those commits, a re-cut of the tags under the same NAMES, a
+    force-push, and -- per the reachability bullet above -- a direct fetch against the REMOTE,
+    which a force-push does not clean.
 
 DIRECTION OF THE FIX -- READ BEFORE "FIXING"
 --------------------------------------------
@@ -65,6 +102,20 @@ re-tagging every affected tag, and a force-push -- and the paper pins a tag by N
 retag must preserve that name. Anything less leaves the blob fetchable by anyone who clones.
 THIS GATE IS THE ONE THAT GUARDS FLIPPING THE REPOSITORY TO PUBLIC. A green obtained by
 editing the worktree is a lie.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+The one root this gate reads is an environment variable with a repo-relative default, so it
+measures the checkout it ships in rather than one particular machine.  It was an absolute
+path once; a relocated clone then audited a tree it was not running in, and the path itself
+disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+
+The sibling gates read two more trees, ``GSSC_ASSETS`` (the asset staging bundle) and
+``GSSC_PAPER`` (the manuscript checkout).  NEITHER IS PART OF THE PUBLIC RELEASE: both are
+maintainer working trees, a clone does not contain them, and the released artefacts are
+distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
 """
 
 from __future__ import annotations
@@ -78,7 +129,11 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
+#: The checkout under test. Defaults to the repository this file ships in, so a clone
+#: audits ITSELF; ``GSSC_REPO`` points it somewhere else. It used to be an absolute
+#: path on the maintainer's box, which meant a relocated clone silently measured a
+#: tree it was not running in -- a green that proved nothing about the checkout.
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
 
 #: Blobs larger than this are reported as UNSCANNED, not passed. 3 MB covers every text
 #: file in this history (largest text blob measured: uv.lock, ~300 KB).
@@ -104,8 +159,8 @@ CONTENT_MARKERS: Dict[str, str] = {
                             r"|\bnotes?[-\s]to[-\s]self\b",
     # "must grep before public push" -- deferral of a privacy action.
     "before-public-push": r"\bbefore\b[^\n]{0,30}?\bpublic\s+(?:push|release|launch)\b",
-    # "ship" was MEASURED as a false positive: SECURITY.md:38 reads "Hardcoded
-    # credentials or tokens (we do not ship any)" -- the object is credentials, not
+    # "ship" was MEASURED as a false positive: SECURITY.md's in-scope list carries
+    # "Hardcoded credentials or tokens (we do not ship any)" -- the object is credentials, not
     # this file. The marker means "do not commit THIS", so the verb list is restricted
     # to acts performed on a file. Re-adding "ship" re-breaks SECURITY.md.
     "do-not-commit": r"\bdo\s+not\s+(?:commit|check\s+in|push|publish|distribute|share)\b",
@@ -126,10 +181,58 @@ PATH_MARKERS: Dict[str, str] = {
     "dot-local-infix": r"(?:^|/)[^/]*\.local\.[^/]*$",
     "dot-private-infix": r"(?:^|/)[^/]*\.(?:private|secret|internal)\.[^/]*$",
     "agent-working-file": r"(?:^|/)(?:CLAUDE|AGENTS?|GEMINI|CURSOR)\.md$",
-    "migration-audit": r"(?:^|/)\.?migration[-_]audit",
+    # A working DOCUMENT whose NAME announces what it is (audit / triage / handover notes,
+    # a strip-list). Stated as a CLASS: an earlier revision spelled out one specific stem
+    # here, which republished the identifier a history rewrite had just been run to remove.
+    # The class is also the stronger detector -- the next working file will not reuse the
+    # last one's name. The leading dot is OPTIONAL: an uppercase, undotted variant of the
+    # same document is the same leak.
+    # CALIBRATED like the content markers, and calibrated with THIS GATE'S OWN INSTRUMENT so
+    # the number can be re-derived instead of taken on trust: over the distinct blob paths
+    # walk_history() returns -- 306 of them on 2026-08-22 -- this pattern has 0 hits. Re-measure
+    # with:  python3 -c "import importlib.util,pathlib;s=importlib.util.spec_from_file_location(
+    #   'h','.release_checks/check_history_clean.py');m=importlib.util.module_from_spec(s);
+    #   s.loader.exec_module(m);b=m.walk_history(pathlib.Path('.'));
+    #   ps=sorted({p for x in b for p in x.paths});print(len(ps))"
+    # (A raw `git rev-list --objects --all | cut -d' ' -f2- | sort -u` answers 358 instead: it
+    # counts TREE paths too, which this marker never sees. An earlier revision of this comment
+    # quoted 359, a figure NEITHER instrument returns -- the frozen self-measurement this file's
+    # own docstring warns about.) "sweep" was REJECTED from the word list -- also 0 hits on the
+    # same walk, but "parameter_sweep.md" is an ordinary research doc and this gate must not
+    # train people to ignore it.
+    "working-doc-by-name": r"(?:^|/)\.?[^/]*(?:audit|triage|handover|handoff|strip[-_]list)"
+                           r"[^/]*\.(?:md|txt|org|rst)$",
     "notes-to-self": r"(?:^|/)(?:notes?[-_]to[-_]self|scratch|todo\.local)",
     "draft-doc": r"(?:^|/)[^/]*\.draft\.(?:md|txt|tex)$",
 }
+
+#: ABSOLUTE-PATH channel, and why it is separate from the two above.  EXEMPTIONS waves the
+#: whole of ``.release_checks/`` past the marker channels ("the detector must not detect
+#: itself"), which is correct for marker WORDS and wrong for ABSOLUTE PATHS: a gate that
+#: hardcodes one machine's directory layout discloses that layout to every visitor AND
+#: measures the maintainer's tree instead of the clone it ships in -- a green that says
+#: nothing about the checkout under test.  Thirteen gates did exactly that.  Absolute paths
+#: are not marker words, so this channel runs INSIDE the exempted directory.
+#:
+#: Matches an absolute path whose FIRST SEGMENT is not a standard system directory, and
+#: only when a second segment follows.  A relative path ("docs/DATASET.md"), a URL
+#: ("https://host/x"), a home-relative path ("~/.cache/x") and a regex alternation
+#: ("(?:^|/)") all lack one of those properties and cannot trip it.
+#:
+#: The lookbehind also excludes the closers ``} ) ] > %``.  MEASURED, not guessed: without
+#: them the first run flagged check_asset_coverage.py's ``f"{REPO}/scripts/..."`` -- an
+#: INTERPOLATED root, which is the fix, not the defect.  A detector that fails on the
+#: correct form teaches people to delete it.
+MAINTAINER_ABS_PATH = re.compile(
+    r"(?<![\w./~}\)\]>%-])/([A-Za-z][A-Za-z0-9._+-]*)(?=/[A-Za-z0-9._+-])")
+SYSTEM_ROOTS = frozenset(
+    "bin boot dev etc lib lib64 media mnt opt proc run sbin srv sys tmp usr var".split())
+
+#: Path the --selftest fixture writes.  A NEUTRAL PLACEHOLDER, deliberately: it only has
+#: to match one PATH_MARKER (``dot-local-infix``) for the fixture to do its job, and a
+#: fixture that reproduces a real purged file's name republishes that name in the one file
+#: whose whole purpose is to keep it out of the public tree.
+SELFTEST_LEAK_PATH = ".scratch_notes.local.md"
 
 #: EXEMPTIONS: (path regex, marker name or None for all, reason).  Measured false
 #: positives only.  Anything not listed here is reported.
@@ -197,6 +300,18 @@ def markers_in(path: str, text: Optional[str]) -> List[Tuple[str, str, str]]:
                 line = text.count("\n", 0, m.start()) + 1
                 hits.append(("content", name, f"line {line}: {m.group(0)[:70]!r}"))
     return hits
+
+
+def absolute_paths_in(text: str) -> List[Tuple[int, str]]:
+    """Return [(line, path)] for every absolute non-system path literal in one file."""
+    out: List[Tuple[int, str]] = []
+    for m in MAINTAINER_ABS_PATH.finditer(text):
+        if m.group(1) in SYSTEM_ROOTS:
+            continue
+        line = text.count("\n", 0, m.start()) + 1
+        tail = text[m.start():m.start() + 80].split()[0].rstrip('",\')`')
+        out.append((line, tail))
+    return out
 
 
 # --------------------------------------------------------------------------------------
@@ -341,7 +456,7 @@ def run(root: Path, g: Optional[Gate] = None) -> Gate:
     probe = "# X (working file - strip before public release)\n"
     walk_ok = len(blobs) > 0 and any(b.text is not None for b in blobs)
     query_ok = bool(markers_in("some/file.md", probe))
-    path_ok = bool(markers_in(".migration_audit.local.md", ""))
+    path_ok = bool(markers_in(SELFTEST_LEAK_PATH, ""))
     g.check("instrument_controls",
             walk_ok and query_ok and path_ok,
             f"{root}: walk saw {len(blobs)} blob(s), decodable="
@@ -385,6 +500,26 @@ def run(root: Path, g: Optional[Gate] = None) -> Gate:
     g.check("scan_coverage_complete", not unscanned,
             f"{len(unscanned)} blob(s) exceed MAX_BLOB_BYTES and were NOT scanned: "
             f"{', '.join(unscanned[:5])} (binary blobs, correctly unscannable: {binaries})")
+
+    # ---- CHECK D: the harness's own blind spot.  Runs inside the directory EXEMPTIONS
+    # exempts, because what it looks for is not a marker word.  See MAINTAINER_ABS_PATH.
+    abs_hits: List[str] = []
+    gate_dir = root / ".release_checks"
+    for f in (sorted(gate_dir.glob("*.py")) + sorted(gate_dir.glob("*.sh"))
+              + sorted(gate_dir.glob("*.md"))):
+        try:
+            body = f.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        for line, hit in absolute_paths_in(body):
+            abs_hits.append(f"{f.name}:{line}: {hit}")
+    g.check("gate_harness_free_of_absolute_maintainer_paths", not abs_hits,
+            "; ".join(abs_hits[:8])
+            + (f" [+{len(abs_hits) - 8} more]" if len(abs_hits) > 8 else "")
+            + " -- replace with an env var over a repo-relative default "
+              "(GSSC_REPO / GSSC_ASSETS / GSSC_PAPER / GSSC_EXPERIMENTS); a hardcoded root "
+              "publishes the maintainer's layout and makes a relocated clone audit a tree "
+              "it is not running in")
     return g
 
 
@@ -411,13 +546,18 @@ def _scratch_repo(tmp: Path, leak: bool, name: str = "") -> Path:
     run_git("add", "-A")
     run_git("commit", "-qm", "init")
     if leak:
-        (root / ".migration_audit.local.md").write_text(
-            "# Audit (working file - strip before public release)\n"
-            "## Privacy / strip-list (must grep before public push)\n")
+        # SYNTHETIC content, assembled from the MARKER NAMES declared at the top of this
+        # file -- not quoted from anything. Two lines are enough: the first trips
+        # ``strip-before-public-release`` (and ``working-scratch-file``), the second trips
+        # ``strip-list``. The fixture's job is to be SEEN by CONTENT_MARKERS, not to
+        # resemble any particular file.
+        (root / SELFTEST_LEAK_PATH).write_text(
+            "# PLACEHOLDER working file (delete before public release)\n"
+            "## PLACEHOLDER strip-list\n")
         run_git("add", "-A")
-        run_git("commit", "-qm", "P4-P6: privacy sweep")
+        run_git("commit", "-qm", "chore: add placeholder working notes")
         run_git("tag", "v9.9.9")
-        run_git("rm", "-q", ".migration_audit.local.md")
+        run_git("rm", "-q", SELFTEST_LEAK_PATH)
         run_git("commit", "-qm", "chore: remove leaked working file")
     return root
 
@@ -454,7 +594,7 @@ def selftest() -> int:
     # --- FAULT 1: the real defect, replayed.  Blob added, tagged, then DELETED at the tip
     # -- so the worktree is clean and only the history walk can see it.
     leaky_root = _scratch_repo(tmp, leak=True)
-    assert not (leaky_root / ".migration_audit.local.md").exists(), \
+    assert not (leaky_root / SELFTEST_LEAK_PATH).exists(), \
         "fixture is wrong: the leak must be absent from the worktree, or CHECK A is being " \
         "proved by CHECK B's evidence"
     leaky = run(leaky_root)
@@ -462,7 +602,7 @@ def selftest() -> int:
     # ...and the detail string must actually carry the actionable facts.
     det = dict((n, d) for n, ok, d in leaky.results
                if not ok).get("history_free_of_release_stop_markers", "")
-    if "v9.9.9" in det and ".migration_audit.local.md" in det:
+    if "v9.9.9" in det and SELFTEST_LEAK_PATH in det:
         print("  TRIPPED  history_detail_names_path_and_tag")
     else:
         print(f"  MISSED   history_detail_names_path_and_tag   (detail={det[:160]!r})")
@@ -515,8 +655,30 @@ def selftest() -> int:
               "ordinary docs, or the ignore-file exemption is gone)")
         missed += 1
 
+    # --- FAULT 6: CHECK D.  Injected into a HEALTHY fixture, in that order: a gate dir
+    # that uses the portable idiom must be GREEN first, otherwise a red "TRIPPED" below
+    # would only prove the check is broken.  (A selftest arm that asserts today's defect
+    # inverts the day the defect is fixed -- so the assertion is on the perturbation.)
+    absroot = _scratch_repo(tmp, leak=False, name="abspath")
+    gate_dir = absroot / ".release_checks"
+    gate_dir.mkdir()
+    fake = gate_dir / "check_fake.py"
+    fake.write_text("REPO = Path(__file__).resolve().parents[1]\n")
+    portable = dict((n, ok) for n, ok, _ in run(absroot).results).get(
+        "gate_harness_free_of_absolute_maintainer_paths")
+    if portable:
+        print("  TRIPPED  abspath_control_portable_gate_dir_is_green")
+    else:
+        print("  MISSED   abspath_control_portable_gate_dir_is_green   (a gate using no "
+              "absolute path is already red -- CHECK D is measuring something else)")
+        missed += 1
+    # Assembled from parts so this source file does not itself carry an absolute path
+    # literal -- CHECK D scans the gate directory, and that includes this file.
+    fake.write_text('REPO = Path("' + "/" + "example-root" + '/Some-Repo")\n')
+    expect("gate_harness_free_of_absolute_maintainer_paths", run(absroot), want_fail=True)
+
     shutil.rmtree(tmp, ignore_errors=True)
-    total = 8
+    total = 10
     print(f"SELFTEST OK: {total - missed}/{total} checks provably fail when broken"
           if not missed else
           f"SELFTEST FAILED: {total - missed}/{total} checks provably fail when broken")

@@ -1,7 +1,14 @@
 _paper_table: "none. The paper reports no D4-TTA entry for the JS3C-Net base; its tabulated cross-base result is the N=1 entry in tab:portable_s2d2 and in supplementary tab:supp_b6_val."
 _description: |
-  JS3C-Net cross-base eval at N=4 with D4 dihedral TTA. Expected val mIoU:
-  >= 26.72% (TTA monotone gain over the N=1 row).
+  JS3C-Net cross-base eval at N=4 with D4 dihedral TTA. This config sets no
+  `bev_source` key, so `run_evaluation` applies its default of `derived`
+  (src/gssc/inference/evaluate.py) — the same at-deploy BEV path as
+  `js3c_val_realistic.yaml`, and the one the paper tabulates.
+
+  Expected val mIoU: >= 24.32% under the official semantic-kitti-api, i.e. a TTA
+  monotone gain over the 24.3% derived-BEV N=1 row. Not >= 26.72%: 26.7% is the
+  INTERNAL evaluator's reading of that same derived-BEV run, and this path is scored
+  with the official one.
 # Consumed by run_evaluation: split, sequences, base_pred_dir, correction_steps,
 # tta. base_kind / bev_from_base / cold_diffusion document the hardcoded protocol
 # (base selected via base_pred_dir; bev_from_base + cold_diffusion always-on in

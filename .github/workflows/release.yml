@@ -48,6 +48,8 @@ jobs:
             echo "Reproduce the headline 38.54 % val mIoU on SemanticKITTI seq 08:"
             echo
             echo '```bash'
+            echo 'uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8'
+            echo 'source .venv/bin/activate'
             echo 'python scripts/eval.py eval/val_1step \'
             echo '    --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors'
             echo '```'

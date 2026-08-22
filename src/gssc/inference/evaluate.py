@@ -277,7 +277,10 @@ def run_evaluation(
         gpu: CUDA device id (default ``"0"``).
         steps: Correction-step count override; ``None`` uses the config default.
         tta: TTA mode override; one of ``{"none", "d4"}``.
-        metrics: Reserved for future safety-metric subset selection.
+        metrics: Advisory only. The official semantic-kitti-api scorer emits
+            mIoU, completion IoU and per-class IoU in a single pass, so this
+            list neither subsets the computation nor the returned dict; it is
+            kept for forward compatibility with a future subset selector.
         keep_predictions: If True, keep the intermediate ``.label`` files
             in ``<data_root>/predictions/<config_name>/``. If False
             (default), they go to a temporary directory.

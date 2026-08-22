@@ -17,11 +17,14 @@ if a workflow runs the command at the scope the row states.
 |---|---|---|---|
 | Style + import order | `ruff` | `ruff check src/ tests/ scripts/` | lint.yml |
 | Tests | `pytest` | `pytest tests/ --ignore=tests/test_tau_invariance.py -v` | test.yml |
-| Static types | `mypy` | `mypy src/gssc/inference src/gssc/utils` | lint.yml |
+| Static types | `mypy` | `mypy` | lint.yml |
 
 The test job runs on a torch-free CPU runner: 42 cases execute and 34 skip themselves
 through `pytest.importorskip`. `tests/test_tau_invariance.py` is ignored because it
 imports torch at module scope without that guard, so it cannot even be collected there.
+`mypy` is invoked with no path arguments, exactly as `lint.yml` runs it, so it takes its
+scope from the `[tool.mypy] files` list in `pyproject.toml` (see the scope note below).
+`mypy src` is a wider, unenforced scope and does not pass today; do not substitute it.
 
 ### Run locally (no workflow runs these)
 
@@ -113,3 +116,27 @@ logger = logging.getLogger(__name__)
 * Module-level side effects (e.g. file I/O at import time).
 * `from x import *`.
 * Untyped public APIs.
+
+## Release gates
+
+Beyond the workflows above, the repository ships `.release_checks/` — sixteen
+standalone gates that read the release's own artefacts (docs, configs, CLI
+surface, checkpoint digests, paper pointers) and fail with a `file:line`. They
+are deliberately **not** pytest cases and no workflow runs them: several read
+trees that are not part of the public release, and folding them into CI would
+make CI claim to enforce what it does not run.
+
+Run them before cutting a release, not on every commit:
+
+```bash
+.release_checks/run_all.sh              # every gate; exit 1 if any fails, 2 if any is broken
+.release_checks/run_all.sh --selftest   # every gate's selftest instead
+python3 .release_checks/check_docs_freshness.py   # one gate, directly
+```
+
+Invocation, the four root environment variables (`GSSC_REPO`, `GSSC_ASSETS`,
+`GSSC_PAPER`, `GSSC_EXPERIMENTS`), which gates need artefacts a clone does not
+contain, and the measured coverage are documented in
+[`.release_checks/README.md`](.release_checks/README.md). If you change a
+documented number, a command, a licence string or a paper pointer, expect the
+gate that owns it to have an opinion — that is the point of it.

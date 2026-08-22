@@ -1,8 +1,8 @@
 """Backward-compatibility shims for v1.x deprecations.
 
 This module owns the deprecation paths so that v1.0.0 users can upgrade
-to v1.1.0+ without any code or config change. Items marked for removal in
-v2.0.0 are documented inline.
+to v1.1.0+ without any code or config change. Each shim names its own removal
+version inline; none has been removed yet.
 """
 
 from __future__ import annotations
@@ -12,7 +12,12 @@ from typing import Final
 
 __all__ = ["resolve_base_pred_dir"]
 
-_BASE_PRED_DIR_REMOVAL: Final[str] = "v2.0.0"
+# The alias outlived its original v2.0.0 removal target: 11 of the shipped training
+# configs (train/31k_mf, the headline, among them) still spell the key
+# `scpnet_pred_dir`, and v2.0.0 shipped without removing it. Warning about a removal
+# in a version the user is already past -- for a key their own shipped config
+# depends on -- is self-refuting, so the target moves to the next major.
+_BASE_PRED_DIR_REMOVAL: Final[str] = "v3.0.0"
 
 
 def resolve_base_pred_dir(

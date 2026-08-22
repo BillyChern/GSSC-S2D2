@@ -221,6 +221,9 @@ class S2Trainer:
             self.diffusion.parameters(),
             lr=self.scaled_lr,  # Start with scaled LR (warmup will handle gradual increase)
             betas=(0.9, 0.999),
+            # Torch's AdamW default, spelled out so the released recipe is readable from
+            # the code and not from a library default (paper: pyramid recipe table).
+            weight_decay=0.01,
         )
 
         # Create scheduler with warmup

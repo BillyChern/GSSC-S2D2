@@ -2,21 +2,23 @@
 """GATE: `load_state_dict(..., strict=False)` whose result nobody looks at.
 
 DEFECT THIS EXISTS FOR (measured, v2.3.8 / HEAD 07725af):
-  src/gssc/inference/d4_tta.py:111,114 and
-  src/gssc/inference/generate_predictions.py:186,189 load the deployment weights with
-  `strict=False` and DISCARD the returned `_IncompatibleKeys`, while the architecture is
-  hardcoded three lines above (d4_tta.py:100-105, `base_channels=32, time_emb_dim=128,
+  the `load_model` helpers in src/gssc/inference/d4_tta.py and
+  src/gssc/inference/generate_predictions.py loaded the deployment weights with
+  `strict=False` and DISCARDED the returned `_IncompatibleKeys`, while the architecture was
+  hardcoded a few lines above in the same helper (`base_channels=32, time_emb_dim=128,
   ...`) instead of read from the checkpoint's own config.json. Those two facts compose
   into the worst failure mode available to an eval script: an architecture that does not
   match the checkpoint loads ANYWAY, the unmatched tensors stay at random init, and the
   run prints a plausible mIoU. Nothing raises; nothing is even logged.
 
   THE EVIDENCE THAT THIS IS NOT HYPOTHETICAL IS IN THIS REPO. It already happened once,
-  on the BEV path, and the fix is still sitting there: src/gssc/inference/evaluate_bev.py
-  defines `_assert_bound` (line 79) whose docstring records the incident verbatim -- the
-  denoiser was rebuilt at input_resolution=64 / cond_channels=128 against a 256/64
-  checkpoint, "48 attention tensors stayed at initialisation", and the path "still
-  returned a number". The shipped checkpoint config confirms it:
+  on the BEV path, and the fix is still sitting there: `assert_bound`, in
+  src/gssc/utils/checkpoint.py (it began life as `_assert_bound` inside
+  src/gssc/inference/evaluate_bev.py and was promoted to a shared helper -- grep the name,
+  never a line number). Its module docstring records the incident verbatim: the denoiser
+  was rebuilt at input_resolution=64 / cond_channels=128 against a 256/64 checkpoint,
+  "48 attention tensors stayed at initialisation", and the run "still printed a plausible
+  mIoU". The shipped checkpoint config confirms it:
   checkpoints/bev/bev_s2d2_scpnet/config.json carries a `note_release_default_wrong`
   field saying exactly that, plus the `reconstruction` block that now feeds the loader.
   So the correct guard EXISTS, is BATTLE-TESTED, and was never applied to the two
@@ -29,7 +31,7 @@ WHAT THIS GATE ASSERTS
                                      Logging the key counts is NOT a guard: a warning
                                      does not stop the number from being printed, and
                                      four sites in this repo do exactly that today.
-  exemplar_guard_present             `_assert_bound`-shaped guard still exists somewhere
+  exemplar_guard_present             an `assert_bound`-shaped guard still exists somewhere
                                      in src/gssc/ -- so "fixing" the gate by deleting the
                                      exemplar is caught.
   arch_from_checkpoint:<file>:<line> a release path that speaks our checkpoint layout
@@ -40,31 +42,47 @@ WHAT THIS GATE ASSERTS
                                      value is called out separately in the detail.
 
 SEVERITY POLICY (measured, not per-file taste)
-  BLOCKING on the release surface: scripts/ and src/gssc/inference/.
+  BLOCKING on the release surface: scripts/, src/gssc/inference/, and the CODE CELLS of
+    examples/*.ipynb. The notebook was added to the walk on 2026-08-22: it is the first
+    code a visitor runs, it loads the released checkpoint with `strict=False`, and it was
+    outside the gate built for exactly that call. Cells are addressed as
+    `examples/quickstart.ipynb#cell<N>:<line-within-cell>`; `_selftest_notebook_walk()`
+    pins that they are reached AND that they are blocking rather than advisory.
   ADVISORY (printed as NOTE, does not fail) for:
     - training code (src/gssc/training/, src/gssc/models/, src/gssc/data/), where
-      partial loads are deliberate -- e.g. train_scene_completion.py:923 loads a teacher
-      that legitimately lacks student-only modules -- and blocking them would force a
-      wrong fix during a release push;
+      partial loads are deliberate -- e.g. train_scene_completion.py's teacher loader
+      legitimately reads a checkpoint lacking student-only modules -- and blocking them
+      would force a wrong fix during a release push;
     - vendored upstream code, detected by a NOTICE file next to it
       (src/gssc/_improved_diffusion/NOTICE), not by a hardcoded path. Delete the NOTICE
       and those sites become blocking, which is the correct behaviour: un-vendored code
       is ours.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
 """
 from __future__ import annotations
 
 import ast
 import json
+import os
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
 SRC = REPO / "src" / "gssc"
 SCRIPTS = REPO / "scripts"
+EXAMPLES = REPO / "examples"
 # data/checkpoints is a symlink into GSSC-S2D2-assets; resolve() follows it.
 CKPT_ROOT = (REPO / "data" / "checkpoints").resolve()
 
-RELEASE_PREFIXES = ("scripts/", "src/gssc/inference/")
+RELEASE_PREFIXES = ("scripts/", "src/gssc/inference/", "examples/")
 # A file that reads these keys is loading OUR checkpoint layout, so OUR config.json sits
 # beside the weights it just loaded and there is no excuse for a hardcoded architecture.
 # Third-party baseline dumpers (JS3C's `model*.pth`, LMSCNet's ckpt["model"]) do not
@@ -80,11 +98,51 @@ def _vendored(p: Path) -> bool:
     for anc in [p.parent, *p.parents]:
         if anc == REPO.parent:
             break
-        if (anc / "NOTICE").exists():
-            return True
+        # STOP AT THE REPO ROOT BEFORE TESTING, not after. The docstring says the evidence is a
+        # NOTICE *beside* the file; a NOTICE at the repository root sits above everything and is
+        # evidence about the project, not about any vendored subtree. Testing it before this
+        # break made a root NOTICE mark the WHOLE tree as upstream code. Measured 2026-08-22,
+        # the day a root NOTICE was briefly added: enforced files went 23 -> 0 of 99 while this
+        # gate still reported "OK: 0 failing check(s)" -- it enforced nothing and said so
+        # nowhere. See _selftest_root_notice() for the arm that pins this.
         if anc == REPO:
             break
+        if (anc / "NOTICE").exists():
+            return True
     return False
+
+
+def _notebook_cells(nb_path: Path) -> list[tuple[str, str]]:
+    """[(rel#cellN, source)] for every CODE cell of a notebook.
+
+    THE NOTEBOOK IS A RELEASE SURFACE AND WAS OUTSIDE THIS WALK. The quickstart is the
+    first code most visitors run, it loads the released checkpoint with `strict=False`,
+    and for a while it DISCARDED the result -- the exact defect this gate was built for,
+    sitting in the file the gate could not see. `grep -n "ipynb" ` over this file returned
+    nothing until 2026-08-22.
+
+    Line numbers are per CELL, not per file, and the relpath says so (`...ipynb#cell6`):
+    a notebook has no file-level line numbering that any editor agrees on, and inventing
+    one would send a reader to a line that does not exist.
+
+    IPython magics (`%pip install`, `!ls`) are not Python and would raise SyntaxError,
+    which `analyse()` turns into a hard exit. They are blanked to `pass` rather than
+    dropped, so every remaining statement keeps its line number.
+    """
+    try:
+        nb = json.loads(nb_path.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, ValueError):
+        return []
+    out: list[tuple[str, str]] = []
+    rel = str(nb_path.relative_to(REPO))
+    for i, cell in enumerate(nb.get("cells", [])):
+        if cell.get("cell_type") != "code":
+            continue
+        src = "".join(cell.get("source", []))
+        lines = [("pass" if ln.lstrip()[:1] in ("%", "!") else ln)
+                 for ln in src.splitlines()]
+        out.append((f"{rel}#cell{i}", "\n".join(lines) + "\n"))
+    return out
 
 
 def corpus() -> list[tuple[str, str, bool]]:
@@ -97,6 +155,11 @@ def corpus() -> list[tuple[str, str, bool]]:
             rel = str(p.relative_to(REPO))
             advisory = _vendored(p) or not rel.startswith(RELEASE_PREFIXES)
             out.append((rel, p.read_text(encoding="utf-8", errors="replace"), advisory))
+    for nb in sorted(EXAMPLES.glob("*.ipynb")):
+        if ".ipynb_checkpoints" in nb.parts:
+            continue
+        for rel, src in _notebook_cells(nb):
+            out.append((rel, src, False))   # BLOCKING: it is a published entry point
     return out
 
 
@@ -124,7 +187,7 @@ def _stmt_of(node: ast.AST):
 
 
 def _raising_funcs(trees) -> set[str]:
-    """Functions that can abort. `_assert_bound` is one; `logger.info` wrappers are not."""
+    """Functions that can abort. `assert_bound` is one; `logger.info` wrappers are not."""
     names = set()
     for _rel, tree in trees:
         for node in ast.walk(tree):
@@ -224,7 +287,8 @@ def analyse(files: list[tuple[str, str, bool]], cfg_keys: dict[str, set],
     results.append(("exemplar_guard_present", bool(exemplar),
                     exemplar[0] if exemplar else
                     "no function in the corpus raises on missing/unexpected keys -- the "
-                    "_assert_bound exemplar (was src/gssc/inference/evaluate_bev.py:79) is gone",
+                    "exemplar `assert_bound` (src/gssc/utils/checkpoint.py; grep for the "
+                    "def, not a line number) is gone",
                     False))
 
     n_sites = 0
@@ -246,8 +310,9 @@ def analyse(files: list[tuple[str, str, bool]], cfg_keys: dict[str, set],
                 (f"binds {bound}" if bound else
                  f"{where}: load_state_dict(strict=False) result DISCARDED -- a checkpoint "
                  f"that does not match this architecture loads silently and the run still "
-                 f"prints a score. Bind the result and guard it like "
-                 f"src/gssc/inference/evaluate_bev.py:247 (_assert_bound)"),
+                 f"prints a score. Bind the result and pass it to "
+                 f"gssc.utils.checkpoint.assert_bound, the way "
+                 f"gssc.inference.evaluate_bev does"),
                 advisory))
             if not bound:
                 continue
@@ -258,7 +323,7 @@ def analyse(files: list[tuple[str, str, bool]], cfg_keys: dict[str, set],
                 (f"guarded by {g}" if g else
                  f"{where}: {bound} is bound but never aborts on a mismatch (logging the "
                  f"key counts still returns a number). Pass it to the existing guard "
-                 f"_assert_bound (src/gssc/inference/evaluate_bev.py:79)"),
+                 f"gssc.utils.checkpoint.assert_bound"),
                 advisory))
 
     if not n_sites:
@@ -374,7 +439,7 @@ def selftest() -> int:
     missed += [] if hit else ["strict_load_bound"]
 
     # 2. guarded -- keep the binding, downgrade the guard to a log line (the live shape
-    #    at scripts/eval_semanticposs.py:152 and three others).
+    #    in scripts/eval_semanticposs.py's load path and three others).
     broken = _CLEAN.replace('    _assert_bound("model", res, p)\n',
                             "    logger.info('%d missing', len(res.missing_keys))\n")
     assert broken != _CLEAN, "fault did not change the source (pattern drifted)"
@@ -407,9 +472,116 @@ def selftest() -> int:
     print(f"  {'TRIPPED' if hit else 'MISSED  '} strict_false_sites_found")
     missed += [] if hit else ["strict_false_sites_found"]
 
-    n = 6
+    missed += _selftest_root_notice()
+    missed += _selftest_notebook_walk()
+
+    n = 13
     print(f"SELFTEST OK: {n - len(missed)}/{n} checks provably fail when broken")
     return 1 if missed else 0
+
+
+
+def _selftest_root_notice() -> list[str]:
+    """_vendored() must read a NOTICE *beside* a file, never one at the repository root.
+
+    Built on a HEALTHY synthetic tree and then broken, rather than asserting the shape of the
+    2026-08-22 defect: a root NOTICE was added for third-party attribution and every one of the
+    99 corpus files silently became advisory (23 -> 0 enforced) while main() still printed
+    "OK: 0 failing check(s)". A gate that enforces nothing and says so nowhere is worse than an
+    absent gate, and nothing in the suite could see it -- selftest() only exercises analyse() on
+    synthetic sources and never calls _vendored() at all.
+    """
+    import tempfile
+    global REPO
+    missed = []
+    saved = REPO
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "repo"
+            inner = root / "src" / "gssc"
+            vend = root / "external" / "upstream"
+            inner.mkdir(parents=True)
+            vend.mkdir(parents=True)
+            ours, theirs = inner / "x.py", vend / "y.py"
+            ours.write_text("x = 1\n")
+            theirs.write_text("y = 1\n")
+            REPO = root
+
+            # healthy: a NOTICE beside vendored code marks only that subtree
+            (vend / "NOTICE").write_text("upstream\n")
+            if _vendored(ours):
+                missed.append("our own file counted as vendored with no NOTICE above it")
+            if not _vendored(theirs):
+                missed.append("vendored file NOT detected by the NOTICE beside it")
+
+            # the fault: a NOTICE at the repository root must change nothing
+            (root / "NOTICE").write_text("project-level attribution\n")
+            if _vendored(ours):
+                missed.append("root NOTICE marked our own file as vendored "
+                              "(this is the defect that silently disabled the gate)")
+            if not _vendored(theirs):
+                missed.append("root NOTICE broke genuine beside-NOTICE detection")
+    finally:
+        REPO = saved
+    return missed
+
+
+def _selftest_notebook_walk() -> list[str]:
+    """corpus() must reach the code cells of examples/*.ipynb, and reach them ENFORCED.
+
+    Built on a HEALTHY fixture and then broken. The notebook is the first code a visitor
+    runs and it loads the released checkpoint with `strict=False`; for a while it discarded
+    the result -- this gate's own defect, in the one release file the walk did not cover.
+    An arm that only asserted "7 cells found" would go green on a walk that returned the
+    cells and then dropped every one of them into the advisory bucket, so this checks BOTH
+    that the cell is in the corpus and that it is blocking, and then that a discarded
+    result inside a cell actually fails.
+    """
+    import tempfile
+    global REPO, SRC, SCRIPTS, EXAMPLES
+    missed = []
+    saved = (REPO, SRC, SCRIPTS, EXAMPLES)
+    guarded_cell = [
+        "%pip install torch  # a magic: not Python, must not break the parse\n",
+        "res = model.load_state_dict(state, strict=False)\n",
+        "assert not res.missing_keys and not res.unexpected_keys, res\n",
+    ]
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "repo"
+            (root / "src" / "gssc").mkdir(parents=True)
+            (root / "scripts").mkdir(parents=True)
+            (root / "examples").mkdir(parents=True)
+            (root / "src" / "gssc" / "x.py").write_text("x = 1\n")
+            REPO, SRC = root, root / "src" / "gssc"
+            SCRIPTS, EXAMPLES = root / "scripts", root / "examples"
+            nb = root / "examples" / "quickstart.ipynb"
+
+            def write(cell_src):
+                nb.write_text(json.dumps({"cells": [
+                    {"cell_type": "markdown", "source": ["# prose\n"]},
+                    {"cell_type": "code", "source": cell_src},
+                ]}))
+
+            write(guarded_cell)
+            entries = corpus()
+            cells = [(rel, src, adv) for rel, src, adv in entries if ".ipynb" in rel]
+            if not cells:
+                missed.append("corpus() reaches no notebook code cell at all")
+            elif any(adv for _r, _s, adv in cells):
+                missed.append("a notebook code cell landed in the ADVISORY bucket -- the "
+                              "quickstart is a published entry point and must be blocking")
+            else:
+                # the fault: discard the result inside the cell
+                write([guarded_cell[0], "model.load_state_dict(state, strict=False)\n"])
+                res = analyse(corpus(), {"num_classes": {20}}, require_assets=False)
+                sub = [ok for n, ok, _d, _a in res if n.startswith("strict_load_bound")]
+                if not sub or all(sub):
+                    missed.append("a discarded load_state_dict(strict=False) inside a "
+                                  "notebook cell was not flagged")
+    finally:
+        REPO, SRC, SCRIPTS, EXAMPLES = saved
+    return missed
 
 
 def main() -> int:

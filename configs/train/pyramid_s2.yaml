@@ -1,0 +1,35 @@
+_paper_table: "supplementary tab:supp_pyramid_hyperparams (Stage 2, 64^3) and the 'Offline augmentation cost' paragraph"
+_description: >
+  Pyramid discrete diffusion, Stage 2 (64x64x8). Trains the S1->S2 upsampling denoiser on the
+  real SemanticKITTI training split; run once, offline, before any scene-completion training.
+  The synthetic pool is released, so reproducing the paper does NOT require rerunning this.
+
+  PREREQUISITE: the pre-quantized corpus at `data/SemanticKITTI_quantized/{s1,s2}/sequences/`,
+  which no script in this release produces -- see the "Pyramid diffusion" section of
+  docs/TRAIN.md. Without it the loader enumerates 0 frames and the DataLoader raises
+  `num_samples=0` within seconds. `scripts/train.py` derives the trainer's
+  `--data-root` from its own `--data-root` by appending `/SemanticKITTI_quantized`.
+
+  RECORDED BY THE RELEASED CHECKPOINT (data/checkpoints/pyramid/pyramid_s2/config.json):
+  epoch 1000, global_step 1,195,000 (= 1,195 iterations/epoch), base_lr 0.004. Its `source_run`
+  field names the research-tree artefact (the `s2` run's epoch-1000 file) and its
+  `source_sha256` is 5813c71cbdc7f8af1b8626536f2abc23166da1c5827552cc417b8c020de62aba, which
+  that artefact still hashes to. Those fields are the authority for this recipe; the values
+  below reproduce them.
+
+  MEASURED WALL-CLOCK -- calendar span between checkpoint mtimes of the run that produced the
+  released weights: epoch 100 (s2_epoch_0100.pt, 2025-12-04 13:12) -> epoch 1000
+  (s2_epoch_1000.pt, 2025-12-05 13:43) = 24 h 31 min for 900 epochs. Nothing is written before
+  epoch 100, so the first 100 are untimed; at the same rate the full 1000 epochs is ~27 h.
+  Deliberately NOT quoted in GPU-hours -- the logs do not record whether the device was
+  exclusive to this job for the whole span, and converting a calendar span into a GPU-hour
+  figure would be a fabricated measurement.
+
+  NOTE ON KEY STYLE: the pyramid trainers declare hyphenated flags (--batch-size), unlike
+  train_scene_completion.py which declares underscored ones. load_yaml_to_args emits --<key>
+  verbatim, so these keys are hyphenated on purpose. Do not "normalise" them.
+batch-size: 16
+lr: 0.004
+epochs: 1000
+warmup-epochs: 5
+num-workers: 8

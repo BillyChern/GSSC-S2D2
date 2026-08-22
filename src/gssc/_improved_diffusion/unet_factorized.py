@@ -1,3 +1,13 @@
+"""Vendored improved-diffusion 3D U-Net, factorized-convolution variant.
+
+Research reference only: the released S2D2 denoiser is
+``src/gssc/models/s2d2_unet.py``, and no shipped config reaches this module.
+
+NOTE: it originally depended on a private ``autoencoder.simpleAE`` package that is
+not part of the public release and is not on any package index. The import is
+guarded below so the module stays import-clean; the ``encoder_config`` branch that
+needs ``Encoder`` is unreachable from any shipped path.
+"""
 import math
 from abc import abstractmethod
 
@@ -5,10 +15,14 @@ import numpy as np
 import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
-from autoencoder.simpleAE import Encoder
 from spconv.pytorch.conv import SparseConv3d, SubMConv3d
 from spconv.pytorch.core import SparseConvTensor
 from spconv.pytorch.modules import SparseSequential
+
+try:  # Legacy private dependency, absent from the public release.
+    from autoencoder.simpleAE import Encoder
+except ImportError:  # pragma: no cover - dead research-baseline path
+    Encoder = None
 
 from .fp16_util import convert_module_to_f16, convert_module_to_f32
 from .nn import (

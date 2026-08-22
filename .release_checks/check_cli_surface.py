@@ -2,6 +2,10 @@
 """GATE: an argparse `choices` value the dispatch has no branch for.
 
 DEFECT THIS EXISTS FOR (measured, v2.3.8 / HEAD 07725af):
+  LINE NUMBERS IN THIS BLOCK ARE A DATED SNAPSHOT of the checkout named above, not
+  navigation. Several have already moved: follow the SYMBOL, the heading or the quoted
+  text, and re-derive the location with `grep -n`. Every check below RE-MEASURES the
+  live artefacts, so nothing here is load-bearing for a verdict.
   `--tta flip_y` is a first-class part of the released CLI surface --
     scripts/eval.py:48        parser.add_argument("--tta", choices=["none","flip_y","d4"])
     scripts/infer.py:103      p.add_argument("--tta", choices=["none","flip_y","d4"])
@@ -42,14 +46,24 @@ statically means the gate cannot see that option at all -- so `choices_all_enume
 FAILS rather than passing quietly. (reproduce_table.py:190 uses
 `choices=selectable_names()`; the resolver below evaluates that form -- a return of a
 set-union of module-level collections -- so it is enumerable today.)
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
 """
 from __future__ import annotations
 
 import ast
+import os
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
 SCRIPTS = REPO / "scripts"
 # The dispatch for a script's option routinely lives in the library, not the script:
 # eval.py's --tta is consumed 300 lines away in src/gssc/inference/evaluate.py. Any gate

@@ -23,7 +23,13 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    # Keep this rev, pyproject's dev extra (`ruff==0.15.12`) and
+    # .github/workflows/lint.yml on the SAME version -- lint results are
+    # version-dependent. Measured on this tree: v0.6.9 aborts at config parse
+    # ("Unknown rule selector: `RUF046`", the selector pyproject's extend-ignore
+    # names), v0.12.12 reports 4 UP038 errors, v0.15.12 prints "All checks
+    # passed!".
+    rev: v0.15.12
     hooks:
       - id: ruff
         args: [--fix]

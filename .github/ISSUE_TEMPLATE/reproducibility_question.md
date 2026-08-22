@@ -34,12 +34,13 @@ python scripts/eval.py eval/val_1step \
 
 ## Have you verified the asset hashes?
 
-`checksums.txt` ships at the root of the Hugging Face checkpoints repo, so this is a
-verdict, not a digest you have to eyeball. Paths inside it are rooted at `checkpoints/`,
-so run it from the directory that CONTAINS `checkpoints/`:
+`checksums.txt` ships at the root of the Hugging Face checkpoints repo and the download
+unpacks it into `data/checkpoints/`, so this is a verdict, not a digest you have to
+eyeball. Paths inside it are relative to `checkpoints/`, so run it from INSIDE that
+directory — from `data/` every line FAILs open-or-read even on a perfect download:
 
 ```bash
-cd data && sha256sum -c checkpoints/checksums.txt
+cd data/checkpoints && sha256sum -c checksums.txt
 ```
 
 - [ ] every line printed `OK`

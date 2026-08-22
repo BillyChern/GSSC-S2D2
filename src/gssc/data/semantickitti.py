@@ -19,6 +19,7 @@ Curriculum Distillation Strategy:
 Reference: SCPNet CVPR 2023 - uses pairwise feature similarity for DSKD
 """
 
+import logging
 import multiprocessing
 import random
 from pathlib import Path
@@ -29,6 +30,8 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from gssc.utils.compat import resolve_base_pred_dir
+
+logger = logging.getLogger(__name__)
 
 
 class S3DSKDDataset(Dataset):
@@ -82,8 +85,10 @@ class S3DSKDDataset(Dataset):
             pred_bev_dir: Directory containing predicted BEV maps (required for student mode)
             multi_frame_dir: Directory containing preprocessed multi-frame voxels
             augment: Whether to apply data augmentation
-            use_rectified_labels: Use rectified labels (SCPNet protocol) (removes ghost trails
-                                  from dynamic objects). Expected +10-25% on dynamic classes.
+            use_rectified_labels: Load `<frame>_rectified.label` instead of `<frame>.label`
+                                  (the SCPNet ghost-trail cleanup for dynamic objects).
+                                  NOT exercised by the release: no shipped config sets it
+                                  and the release bundles no producer for those files.
             gt_bev_prob: Probability of using GT BEV instead of Pred BEV in student mode.
                         This implements "BEV mixing" to bridge the GT→Pred gap gradually.
                         Recommended: 0.2-0.3 for curriculum distillation.
@@ -108,7 +113,7 @@ class S3DSKDDataset(Dataset):
         self.base_pred_dir = Path(resolved_base) if resolved_base else None
         self.base_kind: Literal['scpnet', 'js3c', 'lmscnet'] = base_kind
         # Back-compat alias: internal code paths still read self.scpnet_pred_dir.
-        # Slated for removal alongside the kwarg in v2.0.0.
+        # Slated for removal alongside the kwarg (see gssc.utils.compat).
         self.scpnet_pred_dir = self.base_pred_dir
         self.talos_pred_dir = Path(talos_pred_dir) if talos_pred_dir else None
         self.bev_cold_dir = Path(bev_cold_dir) if bev_cold_dir else None
@@ -136,6 +141,8 @@ class S3DSKDDataset(Dataset):
         # Build sample list
         self.samples = []
         rectified_count = 0
+        # Frames kept in teacher mode with no multi-frame .npz on disk (see below).
+        mf_fallback_count = 0
         for seq in sequences:
             voxels_dir = self.voxels_root / seq
             ssc_voxels_dir = self.ssc_root / 'sequences' / seq / 'voxels'
@@ -197,7 +204,12 @@ class S3DSKDDataset(Dataset):
                         if multi_frame_file.exists():
                             sample['multi_frame'] = str(multi_frame_file)
                         elif scpnet_pred_dir is not None:
-                            pass  # Cold diffusion doesn't need multi-frame
+                            # Cold diffusion does not need multi-frame, so the sample is
+                            # kept -- but it will train on SINGLE-frame LiDAR while the
+                            # recipe is named `*_mf`. Counted here and reported once
+                            # after enumeration; silence used to make a whole `_mf` run
+                            # indistinguishable from a multi-frame one.
+                            mf_fallback_count += 1
                         else:
                             continue  # Skip if multi-frame not available
 
@@ -257,6 +269,21 @@ class S3DSKDDataset(Dataset):
 
                 self.samples.append(sample)
 
+        if mf_fallback_count:
+            # Loud, once, with the exact tree, the exact consequence and the exact fix.
+            # Cold diffusion does not NEED the multi-frame tree, so these samples are
+            # kept -- but a run that quietly trains on single-frame LiDAR under an
+            # `*_mf` recipe name is a result nobody can interpret afterwards.
+            logger.warning(
+                "%d/%d teacher-mode frames have no multi-frame voxel file under %s, so "
+                "they will train on SINGLE-frame LiDAR. Cold diffusion (scpnet_pred_dir "
+                "set) does not require the multi-frame tree, which is why the run "
+                "continues instead of aborting. Build the tree with "
+                "`python scripts/prepare_multi_frame_data.py "
+                "--semantickitti_root data/SemanticKITTI`, or report runs made this way "
+                "as single-frame runs.",
+                mf_fallback_count, len(self.samples), self.multi_frame_root,
+            )
         label_type = f"rectified ({rectified_count})" if use_rectified_labels else "original"
         mode_desc = mode
         if mode == 'student' and gt_bev_prob > 0:

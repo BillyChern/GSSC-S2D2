@@ -12,15 +12,18 @@ small free function that reads a per-frame ``.npy`` file and returns a
 ``(256, 256, 32)`` ``int64`` array of 20-class semantic labels.
 
 Reproducing the JS3C-Net cross-base row of paper tab:portable_s2d2, whose
-headline is 24.32 % val mIoU (derived BEV, official ``semantic-kitti-api``).
-The GT-BEV diagnostics for the same base read 26.05 % (official api) and
-26.72 % (paper-internal SSCMetrics); neither is the paper's headline::
+headline is 24.32 % val mIoU (derived BEV, official ``semantic-kitti-api``,
++1.59 pp over the 22.7 % base). The supplement's 26.72 % (printed 26.7) is the
+**same derived-BEV run** scored with the paper's internal training-time
+evaluator -- the evaluator is what separates 26.7 from 24.3, not the BEV
+source. GT BEV is a *separate* diagnostic (``eval/js3c_val_paper``) and is not
+what either figure refers to::
 
     python scripts/dump_js3c_predictions.py --js3c-repo external/JS3C-Net \
         --semantickitti_root data/SemanticKITTI/dataset \
         --output_dir data/js3cnet_predictions \
         --sequences 08
-    python scripts/eval.py eval/js3c_val_1step \
+    python scripts/eval.py eval/js3c_val_realistic \
         --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
 """
 

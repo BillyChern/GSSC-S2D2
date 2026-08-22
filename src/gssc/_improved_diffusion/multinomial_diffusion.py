@@ -6,6 +6,33 @@ import torch.nn.functional as F
 
 """
 Based in part on: https://github.com/lucidrains/denoising-diffusion-pytorch/blob/5989f4c77eafcdc6be0fb4739f0f277a6dd7f7d8/denoising_diffusion_pytorch/denoising_diffusion_pytorch.py#L281
+
+DERIVED FROM THIRD-PARTY CODE, and from more upstreams than the line above
+names. This directory's NOTICE covers the improved-diffusion fork; the
+categorical-diffusion machinery in THIS file comes from elsewhere. Ancestry,
+measured line-by-line and recorded in THIRD_PARTY_NOTICES.md (sections 1-3) at
+the repository root:
+
+  * ehoogeboom/multinomial_diffusion (diffusion_utils/diffusion_multinomial.py)
+    NO upstream license is published -- the only signal is a trove classifier
+    in its setup.py, and there is no upstream copyright notice to retain.
+    See THIRD_PARTY_NOTICES.md section 2.
+  * pyramid-discrete-diffusion (models/conditional_diffusion/con_diffusion.py)
+    https://github.com/yuhengliu02/pyramid-discrete-diffusion
+    MIT License, Copyright (c) 2023 Yuheng Liu. Most of what this file shares
+    with PDD is the ehoogeboom core above; the PDD-specific residue is chiefly
+    the auxiliary-loss weighting and PDD's intermediate-returning sample loop.
+    See THIRD_PARTY_NOTICES.md section 1.
+  * lucidrains/denoising-diffusion-pytorch
+    MIT License, Copyright (c) 2020 Phil Wang             -- the credit above
+
+Line-by-line overlap counts live ONLY in THIRD_PARTY_NOTICES.md, next to the
+procedure that reproduces them: they are properties of two moving files, and
+the copies that used to sit here had drifted from the measurement.
+
+The MIT permission notices these copyright lines require are reproduced in full
+in THIRD_PARTY_NOTICES.md, which ships in the wheel at
+``gssc/THIRD_PARTY_NOTICES.md``.
 """
 eps = 1e-8
 

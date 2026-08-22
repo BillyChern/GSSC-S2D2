@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """check_asset_manifest.py -- the release-bundle checksum/manifest integrity gate.
 
-DEFECT THIS EXISTS FOR (all four measured on /workspace/GSSC-S2D2-assets, 2026-08-20):
+DEFECT THIS EXISTS FOR (all four measured on the asset staging bundle, 2026-08-20):
 
   D1  FOUR competing bookkeeping files ship in one bundle:
         ./MANIFEST.txt              54 lines, paths relative to the bundle root
@@ -52,6 +52,24 @@ STATUS WHEN WRITTEN (2026-08-20 ~03:00 UTC)
   That is the point -- it exists to keep it green. Every check above was proved
   able to go red by --selftest, which synthesises the historical two-authority
   shape rather than skipping itself now that only one authority ships.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_ASSETS      the asset staging bundle               default: <repo>/../GSSC-S2D2-assets
+    TMPDIR           scratch root (never /tmp on this box)  default: ~/.cache/gssc-release-checks
+
+THE ASSET STAGING BUNDLE IS NOT PART OF THE PUBLIC RELEASE.
+It is a maintainer working tree; a clone of this repository does not contain it, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 
 from __future__ import annotations
@@ -67,11 +85,14 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
-ASSETS = Path("/workspace/GSSC-S2D2-assets")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+ASSETS = Path(os.environ.get("GSSC_ASSETS") or REPO.parent / "GSSC-S2D2-assets")
 CKPT = ASSETS / "checkpoints"
 
-# Scratch. /tmp deadlocks this box; never use it.
-TMPDIR = Path(os.environ.get("TMPDIR") or "/workspace/.claude/jobs/d55ebe8b/tmp")
+# Scratch.  NOT /tmp: a full /tmp has deadlocked the maintainer's box repeatedly, so the
+# default is a named cache dir and TMPDIR overrides it.
+TMPDIR = Path(os.environ.get("TMPDIR")
+              or Path.home() / ".cache" / "gssc-release-checks")
 
 MANIFEST_RE = re.compile(r"^MANIFEST.*\.txt$", re.I)
 CHECKSUM_RE = re.compile(r"^(checksums.*\.txt|.*\.sha256)$", re.I)

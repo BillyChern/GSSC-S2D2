@@ -373,7 +373,8 @@ class FinalCorrectedPipeline:
         optimizer = torch.optim.AdamW(
             model.parameters(),
             lr=lr,
-            betas=(0.9, 0.999)  # Default Adam betas, no adjustments
+            betas=(0.9, 0.999),  # Default Adam betas, no adjustments
+            weight_decay=0.01,   # Torch AdamW default, stated explicitly
         )
 
         # Handle checkpoint resuming

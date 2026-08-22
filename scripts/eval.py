@@ -15,7 +15,8 @@ Reproduce the headline 38.54% val mIoU (single correction step, N=1)::
     python scripts/eval.py eval/val_1step \
         --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
-Reproduce the 38.73% val mIoU under N=1 + D4 TTA::
+Reproduce the 38.73% val mIoU under N=4 + D4 TTA (the config sets
+``correction_steps: 4``; N=1 + D4 gives 38.56%)::
 
     python scripts/eval.py eval/val_d4tta \
         --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
@@ -61,7 +62,11 @@ def main() -> None:
         "--metrics",
         nargs="+",
         default=["miou", "completion_iou", "per_class"],
-        help="Metric set: miou, completion_iou, per_class",
+        help="Metric set: miou, completion_iou, per_class. Currently ADVISORY: the "
+             "official semantic-kitti-api scorer emits all three in one pass, so the "
+             "value is recorded but does not subset what is computed or written "
+             "(gssc.inference.evaluate.run_evaluation). Passing a narrower set does "
+             "not make the run cheaper.",
     )
     parser.add_argument(
         "--keep-predictions",

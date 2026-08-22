@@ -17,6 +17,7 @@ assignees: BillyChern
 git clone https://github.com/BillyChern/GSSC-S2D2.git
 cd GSSC-S2D2
 uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
+source .venv/bin/activate   # otherwise `python` below is the system interpreter
 # ... your commands ...
 ```
 
@@ -38,6 +39,7 @@ uv venv --python 3.10 && uv sync && uv pip install spconv-cu126==2.3.8
 ## Environment
 
 Run `python -c "import torch, sys; print(sys.version, torch.__version__, torch.version.cuda)"`
+(from the activated `.venv`, or as `uv run python -c ...`)
 and paste the output:
 
 ```

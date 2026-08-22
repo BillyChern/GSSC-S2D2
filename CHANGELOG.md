@@ -36,37 +36,204 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
-### Changed
+### Changed — the project is now MIT-licensed
 
-- Presentation only; no API, config or measured-value change. Both hidden-test
-  scores are now stated with equal confidence: **39.2 %** (N=4 + D4 TTA) is our
-  entry on the Codabench results tab, which displays each team's best score, and
-  **38.8 %** (N=1, no TTA) is the row the paper indexes its *causal,
-  single-sweep, single-sample* superlative on. The previous wording framed 38.8's
-  absence from the results tab as a deficiency ("not a row that can be looked up
-  there", "treat the link as our leaderboard presence, not as the evidence for
-  38.8", "EXCLUDED ... the only row of ours that is"); that is ordinary platform
-  behaviour, not an omission, and the apologetic framing is gone. Appendix G
-  records that the server returned both scores.
-- The hidden-test margin is now stated ONE way throughout, matching the paper:
-  **+2.1 pp** over the previous best published score under the predicate
-  (SCPNet, 36.7). `README.md` had been quoting it two ways in one document —
-  +2.1 pp over SCPNet in the hero paragraph, but "+0.9 over TALoS 37.9" in the
-  results table, the val bullet and `docs/INFERENCE.md`. The paper states no
-  TALoS margin: Tab. I marks TALoS "excluded from bolding: test-time
-  adaptation", and the TALoS row now carries that label.
-- The SemanticKITTI badge is split in two, so each badge's label matches what its
-  destination shows: the leaderboard badge reads 39.2 and links to the Codabench
-  results tab; the test badge reads 38.8 and links to `docs/REPRODUCIBILITY.md`,
-  which carries that row and its runnable command. The old single badge promised
-  38.8 and landed on a board displaying 39.2. Also adds the `#/results-tab`
-  fragment the badge link alone was missing.
+GSSC-authored code, configs, documentation and the GSSC-trained model weights ship under the
+**MIT** licence in place of Apache-2.0. Every licence name in `README.md`, `CITATION.cff`,
+`assets/README.md` and in this file now reads MIT; the third-party terms are unaffected —
+LMSCNet keeps its own Apache-2.0, SemanticKITTI and the artefacts derived from it (the synthetic
+pool, the object bank, the base-model prediction dumps, and by inheritance the trained weights)
+keep CC-BY-NC-SA 4.0, and third-party code keeps its original licence.
+
+Third-party code is **not** confined to `external/`, and `README.md` no longer says it is: a
+substantial copy from Pyramid Discrete Diffusion sits at `src/gssc/models/pyramid_unet.py` and the
+`src/gssc/_improved_diffusion/` fork sits beside it. The full inventory — upstream project, terms,
+copyright holder, files affected — is the new root `THIRD_PARTY_NOTICES.md`, which `README.md`'s
+License section now links 3 times (it referenced neither that file nor any notice before) and which
+`pyproject.toml` force-includes into the wheel at `gssc/THIRD_PARTY_NOTICES.md`. There is
+deliberately **no root `NOTICE`**: MIT imposes no NOTICE-file obligation (that is Apache-2.0
+§4(d)), and one briefly added during this sweep was measured to make
+`.release_checks/check_strict_load.py` treat the whole tree as vendored and enforce nothing while
+still printing OK. That gate's `_vendored()` now stops at the repository root before testing, and
+`_selftest_root_notice()` pins the behaviour. Measured today with no root `NOTICE` present:
+`corpus()` returns 99 files, **23 enforced** and 76 advisory; the 23 → 0 collapse is recorded in
+that gate's own source comment at `check_strict_load.py:95-101`.
+
+`README.md` now also records the SCPNet base weights (`scpnet_v2_port.pth`) as redistributed
+with the SCPNet authors' permission under this repository's MIT licence, the upstream project
+remaining governed by its own terms, and adds the licence bullet the ~441 GB of base-model
+prediction dumps never had: SemanticKITTI-derived, so CC-BY-NC-SA 4.0, each carrying its
+producing model's attribution as well. Beside the SemanticKITTI licence line it now names the
+two citations semantic-kitti.org requires (Behley et al., ICCV 2019; Geiger, Lenz and Urtasun,
+CVPR 2012) — neither appeared anywhere in the repository before.
+
+### Changed — the three README figures are the paper's current figures, and the captions describe them
+
+`assets/teaser.png`, `assets/architecture.png` and `assets/qualitative.png` were replaced with
+the live paper figures, in that order:
+Fig. 2 (`fig:ps3_pipeline`), the PS³ offline pipeline;
+Fig. 5 (`fig:s2d2`), the refinement figure;
+Fig. 6 (`fig:qualitative`), the qualitative comparison. The three
+captions described the *previous* images and are rewritten against what is now on screen. Three
+things they had been asserting are gone with them: a "Stage B" deployment panel the PS³ figure
+does not contain; a four-level-denoiser panel that belongs to paper Fig. 4, not to the
+refinement figure; and "a rare class the base SOTA misses entirely" on a pair of scenes where
+SCPNet in fact scores 31.3 % and 33.0 % and it is JS3C-Net that collapses. The per-sample chips
+are now labelled as the *N* = 4, +*D*<sub>4</sub>-TTA figures they are, with the voxel counts
+behind them pointed at supplementary Tab. XIV.
+
+`assets/README.md`, which the earlier pass left untouched, described the *previous* images too and
+is rewritten from the files themselves: each row now states what is actually rendered band by
+band, names the paper figure and the source PDF, and puts `teaser.png` in "Method at a glance"
+rather than "top of README.md, above the badges", where it has never been. Its regeneration
+recipe named a TeX file and a Ghostscript command that produce none of the three; the recipe is
+now the one the shipped files were checked against —
+`pdftoppm -png -r 200 material/figures/{fig4_da_pipeline,fig3_s2d2_v3,fig4_qualitative}.pdf` —
+re-run today and reproducing all three **pixel-identically** (max per-channel difference 0 at
+1355 × 1890, 1356 × 1377 and 1355 × 882).
+
+### Changed — the JS3C-Net cross-base numbers are labelled by evaluator, not by BEV source
+
+Across `README.md` and the historical entries in this file: **24.3 % (+1.6 pp)** is the paper's
+headline for this base — derived BEV, official `semantic-kitti-api`, seq 08 in full — and
+**26.7 %** is that *same derived-BEV setting* read by the paper's internal training-time
+evaluator, a continuity row that is not protocol-matched to the SCPNet and LMSCNet rows. The
+evaluator is what separates the two; the BEV source does not. GT-BEV conditioning is a separate
+diagnostic (the repo measures **26.05 %** for it under the official api) and is not the protocol
+behind 26.7. Every line calling 26.05 a "paper headline", and every line pairing 26.05 with
+26.72 as one protocol under two evaluators, is corrected in place **across `README.md`, `docs/*.md`
+and this file**. Read that as scoped to those files, not to the tree: at the time of writing,
+`src/gssc/models/js3c_base.py` and `scripts/reproduce_table.py` still carry the old pairing in
+comments, and are handed to the lane that owns them. The claim is stated with its scope because a
+previous sweep of exactly this defect reported "clean" over a source list that silently excluded
+the files where the defect survived.
+
+Measured, not asserted: running `eval/js3c_val_realistic` (derived BEV, *N* = 1, no TTA) on the
+released `gssc_js3c_s2d2_real` checkpoint over all 4,071 val frames of seq 08 returns **24.32 %**
+under the official `semantic-kitti-api` — the 24.3 headline, from the derived-BEV setting, not
+from GT BEV.
+
+### Fixed — the SemanticKITTI SOTA claim on TALoS carried no restriction
+
+`README.md`'s acknowledgement called TALoS the "previous SemanticKITTI SSC SOTA". The paper makes
+no unrestricted superlative for anyone: its own claim is the best *causal, single-sweep,
+single-sample* result on the leaderboard, and TALoS's line-of-sight adaptation aggregates other
+moments — future ones included — which is why Tab. I excludes it from that comparison and from
+its bolding. The acknowledgement now states TALoS's method, points at the headline table above it
+for TALoS's test row, and claims no superlative. Both of our own test scores stay stated
+plainly: 39.2 % (*N* = 4 + *D*<sub>4</sub>
+TTA), our entry on the Codabench results tab, and 38.8 % (*N* = 1, no TTA), the row the paper
+indexes its superlative on.
+
+### Fixed — SemanticPOSS zero-shot read 6.6 where the paper prints 6.5
+
+The v2.2.0 entry below put the zero-shot SemanticPOSS endpoint at 6.6 mIoU. The paper prints
+**6.5** (exact measured value 0.0654969), which is also what `README.md` has said all along, and
+the delta printed beside it in that entry — +5.5, left unchanged — is the one that closes only
+against 6.5. This is the defect `.release_checks/check_paper_numbers.py` was written for; it
+survived because that gate's source list does not include `CHANGELOG.md`.
+
+### Fixed — the documented checksum command ran from the wrong directory
+
+`SECURITY.md` and `.github/ISSUE_TEMPLATE/reproducibility_question.md` both stated that the paths
+inside `checksums.txt` are "rooted at `checkpoints/`" and told the reader to run the check from
+`data/`. They are relative to `checkpoints/` — the first entry is `MANIFEST.txt`, not
+`checkpoints/MANIFEST.txt` — so from `data/` all 51 lines print `FAILED open or read` and
+`sha256sum` exits 1 on a byte-perfect download, while `SECURITY.md` tells the reader never to
+dismiss such a line. Both the issue template's command and `SECURITY.md`'s single-file variant now
+run from `data/checkpoints/`, matching `SECURITY.md`'s primary command, which was already correct;
+measured 51/51 `OK`, exit 0. The explanatory sentence above each is reworded to match.
+
+### Fixed — README claimed CI enforces `mypy src`, which fails
+
+`lint.yml` runs bare `mypy`, which takes its scope from the `[tool.mypy] files` list in
+`pyproject.toml` (9 source files, clean). `mypy src` is a wider scope, is run by no workflow, and
+does not pass. README's code-quality block printed `mypy src` under a `(CI-enforced)` label; it now
+prints the command CI actually runs under that label and keeps the wide scope on a separate line
+marked local and advisory. `CONTRIBUTING.md`'s CI-enforced table stated a third scope
+(`mypy src/gssc/inference src/gssc/utils`) against its own rule that a row states the scope the
+workflow runs; that cell now reads `mypy`.
+
+### Fixed — the quick start never activated the virtualenv it creates
+
+`uv venv` creates `.venv` and prints how to activate it; it does not change the caller's `PATH`.
+Steps 2 and 3 of the README quick start then called a bare `python`, which on a fresh machine is
+the system interpreter and has neither the project nor its dependencies. `source .venv/bin/activate`
+is now part of step 1, and the same line is added to the bug-report template's reproduction block
+and to the reproduction snippet `release.yml` writes into every GitHub Release.
+
+### Fixed — release-history navigation pointed at tags that do not exist
+
+`## [1.1.1]` linked to `compare/v1.1.0...v1.1.1`, and no `v1.1.0` tag exists in this repository or
+on the remote, so that heading became a clickable 404 the moment the repo went public. It now
+compares against `v1.0.0-rc1`, the nearest real predecessor tag. The unused `[1.1.0]` and `[1.0.0]`
+definitions, which named release URLs for two untagged historical entries, are removed. A
+`[Unreleased]` definition is restored — it had been overwritten by `[2.3.1]` and the heading had
+been rendering as literal bracketed text since.
+
+### Fixed — `[Unreleased]` documented changes that were already inside the tag
+
+The three bullets it carried (the split SemanticKITTI badges, the one-way +2.1 pp margin, and the
+both-scores framing) all shipped in `v2.3.8`, which points at the same commit as `HEAD`. They are
+folded into the `[2.3.8]` entry, whose own text says "nothing sits outside the tag".
+
+### Fixed — the published asset sizes were remembered, not measured
+
+`README.md`'s asset table, quickstart comment, hardware row and FAQ carried a **~135 GB**
+"eval-only" figure that `docs/DATASET.md` now explicitly retracts as wrong in both of its
+readings, plus a **~414 GB** prediction total whose parts (178 + 190 + 46) were each stale. Every
+size in those four places is re-measured with `du -Lsb` on the staged payload and quoted as
+`GiB / GB`, matching `docs/DATASET.md`'s table: SCPNet 177 GiB / 190 GB, JS3C-Net 189 GiB /
+203 GB, LMSCNet 45 GiB / 49 GB — 411.0 GiB / 441.3 GB together, the whole-unit rows adding to 442
+only because each is rounded on its own — checkpoints 4.58 GiB / 4.9 GB across the 51 files
+`checksums.txt` covers, object bank 313 MiB / 328 MB of data, synthetic pools 127 GiB / 136 GB
+(31K) and 229 GiB / 246 GB (57K). The headline eval reads SCPNet val seq 08 alone —
+8.5 GiB / 9.1 GB — and the quickstart now shows the `--include 'scpnet_predictions/08/*'` fetch
+that takes only that, instead of the whole prefix. The eval-only stack is ~96 GB, not 135.
+
+The synthetic-pool row advertised **five** variants (0K / 10K / 20K / 31K / 57K); two are
+released. 0K means real frames only, so no 0K tarball can exist, and the 10K / 20K subsets are not
+staged. `scripts/download_assets.py` still offers all five as `--choices` and still quotes the old
+sizes in its `--help`; that file belongs to another lane and is handed off.
+
+### Fixed — the retraining recipe promised two GPUs to a single-GPU trainer
+
+`README.md`'s retraining heading read "≈ 37 GPU-hours to step 40000 on 2 × H100 80 GB" above
+`--gpu 0,1`. `gssc.training.train_scene_completion` implements no `DataParallel`, no
+`DistributedDataParallel` and no `torch.distributed`, and `scripts/train.py` launches one plain
+subprocess: `--gpu 0,1` only sets `CUDA_VISIBLE_DEVICES=0,1`, making a second card visible and
+leaving it idle. The heading, the command and the hardware row now say one GPU and point at
+`docs/TRAIN.md`, which carries the full note. (The *pyramid* trainers are a separate entry point
+and do implement DDP.)
+
+### Fixed — three lines of the repository-layout tree described the wrong code
+
+`losses/` was listed as "KL posterior + Lovász + auxiliary + focal-CE"; only Lovász-Softmax lives
+there, the other three terms being inside `gssc/diffusion/multinomial.py`, as that package's own
+docstring says. `utils/` was listed as "config loader, seeding, registry"; it holds the config
+loader, checkpoint I/O and binding checks, the v1.x deprecation shims and DW-IoU. `configs/` was
+labelled "Hydra configs", which invites Hydra override syntax that cannot work — Hydra is not a
+dependency of this project (`grep -ci hydra uv.lock` → 0) and the configs are plain YAML read by
+`gssc.utils.config_loader`. The tree also now lists `THIRD_PARTY_NOTICES.md`.
+
+### Fixed — `CITATION.cff` carried the one unrestricted SOTA claim left in the repo
+
+Its `abstract:` read "State-of-the-art LiDAR semantic scene completion on SemanticKITTI" — an
+unrestricted superlative in the file written for machine reuse, and one no gate can see: the only
+gate that opens `CITATION.cff` for content is `check_docs_freshness`, and it reads the `version:`
+and `date-released:` lines alone. The paper's superlative is restricted to *causal, single-sweep,
+single-sample*, and Tab. I carries rows above ours outside that predicate. The abstract now
+states both of our own scores with the predicate attached: 38.8 % at one step with no TTA, best
+under that restriction to our knowledge; 39.2 % with four steps and an eight-view
+*D*<sub>4</sub> ensemble, which sits outside it.
 
 ## [2.3.8] — 2026-08-13
 
-Cut on 2026-08-13 for the version-bump fix below, then re-cut on 2026-08-21 onto the
-release-hardening work that followed it, so the tag now spans the whole of
-`git log v2.3.7..v2.3.8`, which is where the scope of this entry comes from. Run
+Cut on 2026-08-13 for the version-bump fix below, then re-cut onto the release-hardening work
+that followed it, so the tag now spans the whole of `git log v2.3.7..v2.3.8`, which is where the
+scope of this entry comes from. The tag has been re-pointed several times since the first cut;
+run `git log -1 --format=%ci v2.3.8` for the cut date that is current rather than trusting a date
+frozen into prose. Run
 `git diff --shortstat v2.3.7 v2.3.8` for the current count rather than trusting a number
 frozen into prose. Nothing sits outside the tag, so a `git checkout v2.3.8` gets every
 change listed here. `CITATION.cff` keeps the 2026-08-13 release date.
@@ -80,6 +247,13 @@ and paper numbers; protocol disclosure; security hashes; strict checkpoint loadi
 tag parity. Every one carries a `--selftest` that re-injects the defect it was written
 for and asserts that the *named* check fails, so a gate that has quietly stopped
 measuring is caught by the gate rather than by a reader.
+
+Ten of the sixteen read artefacts that are **not** part of the public release — the asset
+bundle, the manuscript, the experiments checkout — and fail with a named line saying so rather
+than passing on their absence; their roots are the environment variables `GSSC_REPO`,
+`GSSC_ASSETS`, `GSSC_PAPER` and `GSSC_EXPERIMENTS`, each with a repo-relative default, documented
+in [`.release_checks/README.md`](.release_checks/README.md) along with the entry point
+(`.release_checks/run_all.sh`) and the measured coverage in a relocated clone.
 
 Two of them exist because fixing the worktree is not the same as fixing the release.
 `check_tag_parity.py` diffs what the paper's pinned tag actually contains against the worktree
@@ -115,6 +289,32 @@ root, glob (`*_bev.npy` vs `*.bin`) and filtering (the dataset drops frames whos
 `_voxels.npy` or `_bev_top.npy` is missing). Seeding the evaluator's list would select a
 different 100 frames and return a plausible number reproducing nothing. Documented instead:
 what `--max-frames` does, what the published protocol is, and what reproducing it would take.
+
+### Changed — both hidden-test scores, stated plainly
+
+- Presentation only; no API, config or measured-value change. Both hidden-test
+  scores are now stated with equal confidence: **39.2 %** (N=4 + D4 TTA) is our
+  entry on the Codabench results tab, which displays each team's best score, and
+  **38.8 %** (N=1, no TTA) is the row the paper indexes its *causal,
+  single-sweep, single-sample* superlative on. The previous wording framed 38.8's
+  absence from the results tab as a deficiency ("not a row that can be looked up
+  there", "treat the link as our leaderboard presence, not as the evidence for
+  38.8", "EXCLUDED ... the only row of ours that is"); that is ordinary platform
+  behaviour, not an omission, and the apologetic framing is gone. Appendix G
+  records that the server returned both scores.
+- The hidden-test margin is now stated ONE way throughout, matching the paper:
+  **+2.1 pp** over the previous best published score under the predicate
+  (SCPNet, 36.7). `README.md` had been quoting it two ways in one document —
+  +2.1 pp over SCPNet in the hero paragraph, but "+0.9 over TALoS 37.9" in the
+  results table, the val bullet and `docs/INFERENCE.md`. The paper states no
+  TALoS margin: Tab. I marks TALoS "excluded from bolding: test-time
+  adaptation", and the TALoS row now carries that label.
+- The SemanticKITTI badge is split in two, so each badge's label matches what its
+  destination shows: the leaderboard badge reads 39.2 and links to the Codabench
+  results tab; the test badge reads 38.8 and links to `docs/REPRODUCIBILITY.md`,
+  which carries that row and its runnable command. The old single badge promised
+  38.8 and landed on a board displaying 39.2. Also adds the `#/results-tab`
+  fragment the badge link alone was missing.
 
 ### Changed — the CI badges now mean what they say
 `.github/workflows/test.yml` installed only `pytest pyyaml`, so on a clean runner the job died
@@ -228,14 +428,22 @@ adversarial review of the release repo found them; the residue was:
 
 The paper's JS3C-Net headline is **24.3 % (+1.6 pp)** (derived BEV, official
 `semantic-kitti-api`), and **"26.1" appears zero times** in the paper or its supplement, so it
-cannot be a rounding of anything the paper prints. 26.05 and 26.72 are kept everywhere as
-labelled GT-BEV diagnostics; only the false attribution to the paper is gone. Measured values
+cannot be a rounding of anything the paper prints. Both values are kept everywhere as labelled
+diagnostics — 26.05 the GT-BEV one, 26.72 the internal-evaluator reading of the *same derived-BEV
+run* the 24.3 headline comes from — and only the false attribution to the paper is gone. Measured values
 in code (`expected_mIoU: 26.05`) were NOT changed — they are real measurements; only the
 comments calling them the paper's headline were.
 
 Why it recurred: the v2.3.3 sweep matched phrasings ("26.1" beside "headline") rather than the
 CLAIM. This release swept every line pairing 26.1/26.05 with the word "paper" and re-checked
-with a claim-shaped pattern until it returned clean.
+with a claim-shaped pattern until it returned clean **over the sources the sweep read** — README,
+`docs/`, `src/`, `scripts/` and the asset manifests.
+
+> **Scope correction, recorded later.** That sweep did not read `CHANGELOG.md`, and neither does
+> `.release_checks/check_paper_numbers.py`, whose source list is README + `docs/*.md` + the two
+> asset manifests. Four claim-shaped lines therefore survived inside the dated entries below
+> (2.2.0, 2.0.0 and 1.1.0) calling 26.05 the paper headline. They are corrected in place, each
+> under its own note. Read "returned clean" as scoped to the sources listed above, not to this file.
 
 ### Fixed — the repo told reviewers the paper points at the wrong tag
 `README.md:384` asserted that the submission snapshot referenced in the paper supplementary was
@@ -345,8 +553,11 @@ a *stated* number that was never the headline.
   38.8 % headline row had no runnable command while the 39.2 % 8-fold-D4 row
   did. This is why the submission snapshot is the v2.3.x line and not an earlier tag.
 - **`scripts/perframe_vru.py`** + **`tests/test_perframe_vru.py`** — per-frame
-  VRU instrument, gated on the published cells, and it now warns when
-  `--skip_existing` would silently reuse a dump produced by a different base.
+  VRU instrument, gated on the published cells.
+- **`src/gssc/inference/generate_predictions.py`** now warns when `--skip_existing`
+  would silently reuse a dump produced by a different base (the warning was
+  attributed to `scripts/perframe_vru.py` in an earlier revision of this entry;
+  `grep -n 'skip_existing' scripts/perframe_vru.py` returns nothing).
 - **`src/gssc/utils/dw_iou.py`** + **`tests/test_dw_iou.py`** — DW-IoU,
   validated against all 20 published cells.
 - **`--tau`** on the inference driver, so the paper's temperature-invariance
@@ -383,17 +594,29 @@ a *stated* number that was never the headline.
 ### Docs — JS3C-Net cross-base number reconciliation
 - Aligned every JS3C-Net cross-base figure across README, docs, MODEL_ZOO,
   REPRODUCIBILITY, BASELINES, TRAIN, INFERENCE, and the release-asset MANIFEST
-  to the canonical three-number scheme:
-  - **26.05 % (+3.32 pp)** — paper headline, GT BEV + official `semantic-kitti-api`.
-  - **26.72 % (+3.99 pp)** — same GT-BEV protocol under the paper's internal
-    SSCMetrics; demoted to a footnote / ship-both number (it was previously
-    mislabelled as the official-evaluator headline in several places).
-  - **24.32 % (+1.59 pp)** — reproducible at-deploy number, derived BEV +
-    official `semantic-kitti-api` (what `scripts/reproduce_table.py` yields).
+  to one labelled scheme.
+
+  > **Corrected after this release — the scheme shipped here mislabelled two of its
+  > three numbers.** It called 26.05 the "paper headline" and 26.72 "the same GT-BEV
+  > protocol under the paper's internal SSCMetrics". Neither number is printed in the
+  > paper, and the GT-BEV attribution for the internal-evaluator row is wrong. What
+  > stands, per supplementary Tab. XV:
+  >
+  > - **24.3 % (+1.6 pp over the 22.7 % base)** — the paper's headline for this base
+  >   (main Tab. III, `tab:portable_s2d2`): derived BEV, scored by the official
+  >   `semantic-kitti-api` on all 4,071 frames of seq 08, and what
+  >   `scripts/reproduce_table.py` yields.
+  > - **26.7 % (+4.0 pp against the official 22.7 % base, +4.3 against the internal
+  >   22.4 %)** — the *same* derived-BEV setting read by the paper's internal
+  >   training-time evaluator. The evaluator is what separates it from 24.3, not the
+  >   BEV source. The paper keeps it only for continuity with earlier drafts and marks
+  >   it not protocol-matched to the SCPNet and LMSCNet rows.
+  > - **26.05 %** — a repo-measured GT-BEV diagnostic under the official api. GT-BEV
+  >   is a separate setting, not the protocol behind 26.7.
 
 ### Added — zero-shot cross-dataset evaluation (KITTI-360, SemanticPOSS)
 - **`scripts/eval_kitti360.py`**, **`scripts/score_kitti360.py`**, **`scripts/eval_semanticposs.py`**, **`configs/eval/kitti360_zeroshot_1step.yaml`**, **`configs/eval/semanticposs_seq02.yaml`**, and **`src/gssc/data/{kitti360.py, kitti360_class_map.py, semanticposs.py}`** evaluate the frozen SemanticKITTI headline checkpoint (`gssc_31k_mf_step40000`) on two unseen domains, with no fine-tuning and no target labels.
-- Results: **SSCBench-KITTI360** (val seq. 06) 5.8 → 6.2 mIoU (+0.4) / 18.1 → 19.5 CompIoU (+1.4); **SemanticPOSS** (val seq. 02, TALoS Tab. 4 map) 1.0 → 6.6 mIoU (+5.5) / 31.8 → 54.9 CompIoU (+23.1). Provisioning and on-disk layout are in `docs/DATASET.md`; runnable commands in `README.md`.
+- Results: **SSCBench-KITTI360** (val seq. 06) 5.8 → 6.2 mIoU (+0.4) / 18.1 → 19.5 CompIoU (+1.4); **SemanticPOSS** (val seq. 02, TALoS Tab. 4 map) 1.0 → 6.5 mIoU (+5.5) / 31.8 → 54.9 CompIoU (+23.1). Provisioning and on-disk layout are in `docs/DATASET.md`; runnable commands in `README.md`.
 
 ### Fixed — LMSCNet `model_ema.safetensors` BatchNorm buffers
 - Re-exported `gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` so it ships the full **278 tensors**, including all **45 BatchNorm** running buffers. It now loads cleanly and reproduces the paper's **16.59 %** val mIoU (+1.8 over the 14.76 % LMSCNet base) directly — no full-state-checkpoint workaround needed. The SCPNet and JS3C-Net EMA files were always complete. Details in `docs/MODEL_ZOO.md`.
@@ -425,7 +648,7 @@ is **v2.3.1**.
 
 ### Migration guide (v1.x → v2.0.0)
 - Replace every occurrence of the legacy SCPNet-specific BEV-derivation flag (CLI and YAML, the pre-v1.1.1 name) with `--bev_from_base` / `bev_from_base:`. The semantic is identical; only the name changed (see v1.1.1 entry below for the rename rationale).
-- The headline numerical artefacts are unaffected: this is a CLI/API surface cleanup, not a model or recipe change. `38.54 % val mIoU` (SCPNet headline) and the JS3C-Net cross-base result (`26.05 %` paper headline under the official `semantic-kitti-api` with GT BEV; `26.72 %` internal SSCMetrics footnote; `24.32 %` at-deploy derived BEV) reproduce byte-identically from the same checkpoints.
+- The headline numerical artefacts are unaffected: this is a CLI/API surface cleanup, not a model or recipe change. `38.54 % val mIoU` (SCPNet headline) and the JS3C-Net cross-base result (`24.3 %`, the paper's headline for this base: derived BEV under the official `semantic-kitti-api`; `26.7 %` for that same derived-BEV setting under the paper's internal training-time evaluator; `26.05 %` for the separate GT-BEV diagnostic) reproduce byte-identically from the same checkpoints.
 
 ## [1.1.1] — 2026-05-18
 
@@ -441,20 +664,26 @@ is **v2.3.1**.
 
 ### Added — JS3C-Net cross-base support
 
-- **Cross-base headline** (paper Tab. III rows 90–91): stacking S²D² on
+- **Cross-base headline** (paper Tab. III, `tab:portable_s2d2`): stacking S²D² on
   the older point-voxel hybrid base JS3C-Net (Yan et al. 2021) lifts val
-  mIoU **22.73 % → 26.05 % (+3.32 pp)** under the paper headline protocol
-  (GT BEV + official `semantic-kitti-api`). The same GT-BEV protocol scored
-  with the paper's internal SSCMetrics reads **26.72 % (+3.99 pp)** (a
-  footnote ship-both number, see supp tab:supp_b6_val), and the reproducible
-  at-deploy number under the realistic-deployment protocol (derived BEV +
-  official `semantic-kitti-api`) is **22.73 % → 24.32 % (+1.59 pp)**. All
-  three paths reproduce end-to-end from the released checkpoint:
+  mIoU **22.7 % → 24.3 % (+1.6 pp)** under the paper's headline protocol for this
+  base — derived BEV, official `semantic-kitti-api`, all 4,071 frames of seq 08.
+  The *same* derived-BEV setting read by the paper's internal training-time
+  evaluator reads **26.7 % (+4.0 pp against the official base, +4.3 against the
+  internal one)**, a continuity row (supplementary Tab. XV) that differs from 24.3
+  by the evaluator, not by the BEV source. GT-BEV conditioning is a separate
+  diagnostic and reads **26.05 %** under the official api, a repo-measured figure
+  the paper does not print. Both reproducible paths run end-to-end from the released
+  checkpoint (26.7 is the internal evaluator's reading of the first, not a separate run,
+  and no shipped config produces it):
   ```
   python scripts/dump_js3c_predictions.py --js3c-repo external/JS3C-Net …
-  python scripts/eval.py eval/js3c_val_paper     …  # paper protocol  → ~26.7 %
-  python scripts/eval.py eval/js3c_val_realistic …  # realistic deploy → 24.32 %
+  python scripts/eval.py eval/js3c_val_realistic …  # derived BEV, official api → 24.3 %
+  python scripts/eval.py eval/js3c_val_paper     …  # GT-BEV diagnostic         → 26.05 %
   ```
+  > **Corrected after this release.** As shipped, this entry called 26.05 the paper
+  > headline and 26.72 the same GT-BEV protocol under the internal evaluator. Neither
+  > value is printed in the paper; the labels above are the ones that stand.
 - `src/gssc/models/js3c_base.py` — predictions reader (no model code,
   predictions are shipped as a separate dataset mirroring
   `scpnet_predictions/`).
@@ -641,10 +870,11 @@ is **v2.3.1**.
   reproducing 38.73 % val mIoU.
 - Hidden-test submission flow documented in `docs/INFERENCE.md`
   reaching 39.2 % test mIoU on the SemanticKITTI leaderboard.
-- Apache 2.0 license, Python 3.10–3.12, PyTorch 2.4, spconv 2.3.8.
+- MIT license, Python 3.10–3.12, PyTorch 2.4, spconv 2.3.8.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.8...HEAD
 [2.3.8]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.7...v2.3.8
 [2.3.7]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.6...v2.3.7
 [2.3.6]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.5...v2.3.6
@@ -657,6 +887,10 @@ is **v2.3.1**.
 [2.2.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.1.1...v2.0.0
-[1.1.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/BillyChern/GSSC-S2D2/releases/tag/v1.1.0
-[1.0.0]: https://github.com/BillyChern/GSSC-S2D2/releases/tag/v1.0.0
+[1.1.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v1.0.0-rc1...v1.1.1
+
+<!-- No [1.1.0] or [1.0.0] link definition: those two entries are headed "untagged
+     historical release" and no v1.1.0 / v1.0.0 tag exists, so any release or compare
+     URL naming them is a 404. `v1.0.0-rc1` is the nearest real predecessor tag and is
+     what the [1.1.1] compare above is based against. Every vX.Y.Z named in a link
+     definition on this page resolves via `git rev-parse`. -->

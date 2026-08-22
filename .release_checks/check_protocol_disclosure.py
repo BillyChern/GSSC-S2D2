@@ -3,6 +3,11 @@ r"""GATE: a number measured under a NON-OFFICIAL evaluation protocol must never 
 
 READ THIS BEFORE "FIXING" ANYTHING IT REPORTS
 --------------------------------------------------------------------------------------------
+LINE NUMBERS IN THIS BLOCK ARE A DATED SNAPSHOT of the checkout named above, not
+navigation. Several have already moved: follow the SYMBOL, the heading or the quoted
+text, and re-derive the location with `grep -n`. Every check below RE-MEASURES the
+live artefacts, so nothing here is load-bearing for a verdict.
+
 The checkpoint behind the paper's BEV secondary-task row records, in its own config.json
 (``GSSC-S2D2-assets/checkpoints/bev/bev_s2d2_scpnet/config.json``):
 
@@ -81,18 +86,36 @@ SCOPE
 USAGE
     python .release_checks/check_protocol_disclosure.py
     python .release_checks/check_protocol_disclosure.py --selftest
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_ASSETS      the asset staging bundle               default: <repo>/../GSSC-S2D2-assets
+
+THE ASSET STAGING BUNDLE IS NOT PART OF THE PUBLIC RELEASE.
+It is a maintainer working tree; a clone of this repository does not contain it, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Sequence, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
-ASSETS = Path("/workspace/GSSC-S2D2-assets")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+ASSETS = Path(os.environ.get("GSSC_ASSETS") or REPO.parent / "GSSC-S2D2-assets")
 CKPT_ROOT = ASSETS / "checkpoints"
 
 #: Keys that carry a measured percentage. Fractions (<= 1.0) are scaled; percents are kept.
@@ -110,12 +133,40 @@ METRIC_MARK = re.compile(r"%|\bpp\b|\bmIoU\b|\bIoU\b", re.I)
 CKPT_PATH = re.compile(r"(?:data/)?checkpoints/([A-Za-z0-9_]+/[A-Za-z0-9_]+)/")
 
 
+#: Surfaces DELIBERATELY not judged, each with the measurement that put it here, and each
+#: PRINTED by R1 on every run. A silent omission and a judged file look identical in the output.
+DOC_SOURCE_EXCLUSIONS: Tuple[Tuple[str, str], ...] = (
+    ("CHANGELOG.md",
+     "measured 2026-08-22: adding it yields exactly 2 findings, both on the same archived "
+     "'Pre-1.1.0 unreleased' bullet, which quotes 36.09 % val BEV mIoU with no protocol. It is "
+     "a real disclosure gap in a historical release note rather than a live instruction, and "
+     "the file is a QUOTATION surface -- its job is to reproduce the strings it removed, which "
+     "this gate reads as fresh claims. Judging it needs a quotation rule that does not exist "
+     "yet. Handed off rather than hidden; this line is the record."),
+)
+
+
 def doc_sources() -> List[Path]:
-    out = [REPO / "README.md"]
+    """Every PUBLIC surface that can quote a protocol-sensitive value.
+
+    WIDENED 2026-08-22, in step with check_paper_numbers. It read README.md, docs/*.md, the eval
+    configs and the two assets manifests; CITATION.cff, CONTRIBUTING.md, SECURITY.md, the GitHub
+    templates and workflows, the per-dataset asset READMEs and the Hugging Face cards were
+    invisible to it. Each was measured ALONE against this gate before being added and came back
+    green; the one that did not is in DOC_SOURCE_EXCLUSIONS with its finding count.
+    """
+    out = [REPO / "README.md", REPO / "CITATION.cff", REPO / "CONTRIBUTING.md",
+           REPO / "SECURITY.md"]
     out += sorted((REPO / "docs").glob("*.md"))
+    out += sorted((REPO / ".github").rglob("*.md"))
+    out += sorted((REPO / ".github").rglob("*.yml"))
     out += sorted(REPO.glob("configs/*/*.yaml"))
     out += [ASSETS / "MANIFEST.txt", ASSETS / "README.md", ASSETS / "checkpoints" / "MANIFEST.txt"]
-    return [p for p in out if p.is_file()]
+    out += sorted(ASSETS.glob("datasets/*/README.md"))
+    out += sorted(ASSETS.glob("hf_cards/*.md"))
+    excluded = {name for name, _why in DOC_SOURCE_EXCLUSIONS}
+    assert excluded, "the exclusion table must never be silently emptied"
+    return [q for q in out if q.is_file() and q.name not in excluded]
 
 
 class Ckpt(NamedTuple):
@@ -276,6 +327,9 @@ def run(paths: Sequence[Path], ckpts: Sequence[Ckpt], broken: Sequence[str]) -> 
     if not ckpts:
         r1.fail(f"{CKPT_ROOT}: no config.json found; the asset tree moved and this gate is "
                 f"judging nothing")
+    r1.note(f"{sum(1 for q in paths if q.is_file())} doc source(s) read")
+    for name, why in DOC_SOURCE_EXCLUSIONS:
+        r1.note(f"NOT JUDGED: {name} -- {why}")
 
     # value -> the non-official checkpoints that declare it
     owners: Dict[str, List[Ckpt]] = {}

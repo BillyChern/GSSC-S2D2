@@ -2,7 +2,7 @@
 """Write SCPNet-only zero-shot predictions to KITTI-360 .label format (baseline).
 
 Reads the SemanticKITTI-train-space SCPNet predictions dumped by
-tools/run_scpnet_inference.py (<seq>/<frame>_pred.npy, values 0-19), projects
+src/gssc/inference/run_scpnet.py (<seq>/<frame>_pred.npy, values 0-19), projects
 them SemanticKITTI->KITTI-360 train space (remap_scpnet_to_kitti360), then to
 KITTI-360 ORIGINAL 0-255 labels (KITTI360_LEARNING_MAP_INV), and writes
 <frame>.label uint16 flat — the SCPNet-only baseline (no S2D2 refinement).

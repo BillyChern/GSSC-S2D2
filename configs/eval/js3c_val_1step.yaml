@@ -1,16 +1,17 @@
-_paper_table: "tab:portable_s2d2 (JS3C cross-base) + supplementary tab:supp_b6_val (paper protocol)"
+_paper_table: "same as js3c_val_paper.yaml (alias): supplementary tab:supp_b6_val's GT-BEV oracle row. NOT tab:portable_s2d2, which is derived BEV."
 _description: |
-  JS3C-Net cross-base eval reproducing the paper tab:portable_s2d2 (JS3C row) protocol:
-  N=1 Algo2 sampling with GT-BEV conditioning. See `js3c_val_paper.yaml` for
-  the explicit protocol description and `js3c_val_realistic.yaml` for the
-  realistic-deployment variant (derived BEV).
+  Alias of `js3c_val_paper.yaml` (identical in every consumed key), kept for
+  v1.1.0-pre callers: N=1 Algo2 sampling with GT-BEV conditioning.
 
-  Expected mIoU: ~26.7 % (paper claim 26.72 % under internal SSCMetrics;
-  GSSC-S2D2 reports via official semantic-kitti-api which differs by the
-  +0.31 pp internal/official gap documented in supplementary tab:supp_b6_val).
+  GT BEV is a DIAGNOSTIC here. The paper's tabulated JS3C-Net + S2D2 numbers —
+  24.3 % under the official semantic-kitti-api (tab:portable_s2d2, +1.6 pp over the
+  22.7 % base) and 26.7 % under the internal training-time evaluator — are the SAME
+  run under DERIVED BEV; run `js3c_val_realistic.yaml` for those. The 26.7/24.3
+  difference is an evaluator gap, not a BEV-source gap.
 
-  This config is aliased to `js3c_val_paper.yaml` for backwards compatibility
-  with v1.1.0-pre callers.
+  See `js3c_val_paper.yaml` for what this GT-BEV path does reproduce (supplementary
+  tab:supp_b6_val's 61.8 % oracle row, with the separately trained GT-BEV
+  checkpoint).
 # Consumed by run_evaluation: split, sequences, base_pred_dir, bev_source,
 # bev_root, correction_steps, tta. The remaining keys document the hardcoded
 # protocol but are NOT read (base_kind: the JS3C base is selected via

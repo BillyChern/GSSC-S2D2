@@ -3,6 +3,11 @@
 
 THE DEFECTS THIS GATE EXISTS FOR (all measured 2026-08-20 at HEAD 07725af)
 --------------------------------------------------------------------------
+LINE NUMBERS IN THIS BLOCK ARE A DATED SNAPSHOT of the checkout named above, not
+navigation. Several have already moved: follow the SYMBOL, the heading or the quoted
+text, and re-derive the location with `grep -n`. Every check below RE-MEASURES the
+live artefacts, so nothing here is load-bearing for a verdict.
+
 F1  README.md:39 heads "### What's new".  Its newest bullet is
         "* **2026-05-26** -- Release **v2.1.0**: LMSCNet third-base support. ..."
     while `pyproject.toml:7` reads `version = "2.3.8"`.  TEN CHANGELOG releases
@@ -33,7 +38,8 @@ EQUALITY BETWEEN TWO ARTEFACTS that both move:
     README newest version  ==  pyproject version
     CHANGELOG version set  ==  git tag set
     CITATION version/date  ==  CHANGELOG newest entry's version/date
-    HEAD ahead of newest tag  ->  [Unreleased] non-empty
+    worktree differs from newest tag  <->  [Unreleased] non-empty
+    every vX.Y.Z in a CHANGELOG link definition  ==  a ref `git rev-parse` resolves
 A constant would need editing at every release and would rot into a false green; the paper
 harness has already had a gate rot exactly that way (a frozen self-measurement with no live
 counterpart).
@@ -54,10 +60,34 @@ INSTRUMENT NOTES -- WHERE A NAIVE PARSER GOES WRONG HERE
   tag moved onto HEAD, or commits that revert to the tagged tree, both mean the DOCUMENT
   has nothing to record.  Diffing the trees answers the question the [Unreleased] section
   is actually about.
+* ...and it diffs the tag against the WORKTREE, not against HEAD.  During a fix cycle the
+  work is uncommitted, so `tag..HEAD` reports zero drift while the author is midway through
+  writing the very entry this check reads.  Same doctrine, and the same reason, as
+  check_tag_parity's tag-vs-worktree comparison.
+* THE [Unreleased] ARM IS BIDIRECTIONAL, and was not until 2026-08-22.  `not ahead or
+  bool(unrel_body)` is structurally incapable of seeing a NON-EMPTY [Unreleased] over an
+  UNCHANGED tree -- a release note describing work that exists nowhere.  That is the same
+  defect class as a changelog entry asserting an edit that was never made, which this
+  session found live in this repository.  Both directions now fail.
+* LINK DEFINITIONS ARE READ.  The gate looked only at `## [x.y.z]` headings, so a
+  `compare/...v1.1.0` URL against a tag that does not exist survived every run.  Every
+  `vX.Y.Z` inside a `[label]: <url>` line must resolve via `git rev-parse`; `HEAD` is not
+  matched, because it always resolves and pins nothing.  CHANGELOG.md's own trailing
+  comment already PROMISED this -- an unenforced promise is what this harness exists for.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
 """
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -67,7 +97,7 @@ from datetime import date
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
 
 #: Tags with a pre-release suffix are not releases and need no CHANGELOG entry.
 # NOTE the missing \b: "v1.0.0-rc1" has no word boundary between "rc" and "1", so a
@@ -100,6 +130,24 @@ class Gate:
 def git(root: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(root), *args],
                           capture_output=True, text=True).stdout
+
+
+def git_ok(root: Path, *args: str) -> bool:
+    """True when the command exits 0. Used to ask git whether a ref exists, not what it says."""
+    return subprocess.run(["git", "-C", str(root), *args],
+                          capture_output=True, text=True).returncode == 0
+
+
+#: A markdown link definition line: `[2.3.8]: https://...`. Matched structurally so the block
+#: is found wherever it sits, rather than by assuming it is the last N lines of the file.
+LINK_DEF = re.compile(r"^\[[^\]]+\]:\s*\S+")
+#: Every `vX.Y.Z[-pre]` inside such a line -- both endpoints of a compare URL, and the tag in a
+#: release URL. `HEAD` is deliberately not matched: it always resolves and pins nothing.
+#: The pre-release suffix is DOT-SEPARATED IDENTIFIERS, not "any run of dots and alphanumerics".
+#: Measured: the loose form swallowed a whole compare URL -- `v1.0.0-rc1...v1.1.1` matched as ONE
+#: token and `git rev-parse` reported it unresolvable, a finding about the regex, not the file.
+LINK_DEF_VERSION = re.compile(
+    r"\bv\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?(?![0-9A-Za-z-])")
 
 
 def semver_key(v: str) -> Tuple:
@@ -270,17 +318,58 @@ def run(root: Path, gate: Optional[Gate] = None) -> Gate:
                        f"wrong day")
     g.check("citation_agrees_with_changelog", not cff_bad, "; ".join(cff_bad))
 
-    # ---- F2: unreleased work must be recorded.
+    # ---- F2: unreleased work must be recorded, and recorded work must exist.
     newest_tag = max(all_tags, key=lambda t: semver_key(t.lstrip("v")))
-    stat = git(root, "diff", "--stat", f"{newest_tag}..HEAD").strip().splitlines()
+    # WORKTREE, not `tag..HEAD`. During a fix cycle the work is in the worktree and not yet
+    # committed, so `tag..HEAD` reports zero drift while the author is midway through writing
+    # the very entry this check reads. Diffing the tag against the WORKING TREE answers the
+    # question [Unreleased] is actually about -- the same doctrine check_tag_parity states for
+    # the same reason. `git diff --stat <tag>` with no second ref does exactly that.
+    stat = git(root, "diff", "--stat", newest_tag).strip().splitlines()
     ahead = bool(stat)
-    names = [l for l in git(root, "diff", "--name-only",
-                            f"{newest_tag}..HEAD").splitlines() if l.strip()]
-    g.check("unreleased_section_records_head_drift",
-            not ahead or bool(unrel_body),
-            f"HEAD is ahead of {newest_tag} ({stat[-1].strip() if stat else '?'}; "
-            f"{', '.join(names[:5])}) but CHANGELOG.md:{unrel_line} [Unreleased] is EMPTY "
-            f"-- the document claims nothing has happened since the tag")
+    names = [l for l in git(root, "diff", "--name-only", newest_tag).splitlines() if l.strip()]
+    # BIDIRECTIONAL, and it was not. `not ahead or bool(unrel_body)` is structurally incapable
+    # of seeing a NON-EMPTY [Unreleased] with ZERO drift -- a section describing work that
+    # exists nowhere in the tree. The docstring's own line "HEAD ahead of newest tag ->
+    # [Unreleased] non-empty" reads as an implication in one direction; the defect class it
+    # guards runs both ways, and a release note asserting a repo state that does not exist is
+    # exactly the failure this whole harness was built after.
+    if ahead and not unrel_body:
+        g.check("unreleased_section_records_head_drift", False,
+                f"the worktree is ahead of {newest_tag} ({stat[-1].strip() if stat else '?'}; "
+                f"{', '.join(names[:5])}) but CHANGELOG.md:{unrel_line} [Unreleased] is EMPTY "
+                f"-- the document claims nothing has happened since the tag")
+    elif unrel_body and not ahead:
+        g.check("unreleased_section_records_head_drift", False,
+                f"CHANGELOG.md:{unrel_line} [Unreleased] describes {len(unrel_body.split())} "
+                f"words of unreleased work, but the worktree is byte-identical to {newest_tag} "
+                f"-- the section records changes that exist in no tree, so a reader diffing the "
+                f"tag against this checkout finds nothing the entry describes")
+    else:
+        g.check("unreleased_section_records_head_drift", True, "")
+
+    # ---- F5: every version named in a CHANGELOG link definition must be checkoutable.
+    # The gate never read the link-definition block at all, which is how a compare URL against
+    # a non-existent `v1.1.0` survived. The file's own trailing comment now PROMISES that
+    # "every vX.Y.Z named in a link definition on this page resolves via `git rev-parse`" --
+    # an unenforced promise is the class this harness exists for, so it is enforced here.
+    unresolvable: List[str] = []
+    defs = 0
+    cl_path = root / "CHANGELOG.md"
+    cl_text = cl_path.read_text(encoding="utf-8", errors="replace") if cl_path.is_file() else ""
+    for n, line in enumerate(cl_text.splitlines(), 1):
+        if not LINK_DEF.match(line):
+            continue
+        defs += 1
+        for ver in set(LINK_DEF_VERSION.findall(line)):
+            if not git_ok(root, "rev-parse", "--verify", "--quiet", f"{ver}^{{commit}}"):
+                unresolvable.append(f"CHANGELOG.md:{n} links {ver}, which `git rev-parse` "
+                                    f"cannot resolve -- that compare URL is a 404")
+    g.check("changelog_link_definitions_resolve",
+            bool(defs) and not unresolvable,
+            "; ".join(unresolvable[:4]) if unresolvable else
+            "no `[x.y.z]: <url>` link definition found in CHANGELOG.md -- this check measured "
+            "nothing, which is not the same as passing")
     return g
 
 
@@ -317,6 +406,10 @@ FIX_CHANGELOG = """# Changelog
 ## [1.0.0] - 2026-04-01
 
 - first
+
+[Unreleased]: https://example.invalid/compare/v1.2.0...HEAD
+[1.2.0]: https://example.invalid/compare/v1.0.0...v1.2.0
+[1.0.0]: https://example.invalid/releases/tag/v1.0.0
 """
 
 FIX_CFF = """cff-version: 1.2.0
@@ -353,6 +446,13 @@ def _fixture(tmp: Path, name: str = "fx") -> Path:
                        capture_output=True, env=env)
         subprocess.run(["git", "-C", str(root), "tag", tag], check=True,
                        capture_output=True, env=env)
+    # The fixture's [Unreleased] section has a body, so the fixture must ALSO have drift past
+    # the newest tag or the bidirectional arm rightly fails the baseline. An UNCOMMITTED file
+    # is used deliberately: it is the state a maintainer is in while writing that very entry,
+    # and it pins that the drift measurement reads the WORKTREE and not just `tag..HEAD`.
+    (root / "unstaged_work.txt").write_text("work in progress\n")
+    subprocess.run(["git", "-C", str(root), "add", "-A"], check=True,
+                   capture_output=True, env=env)
     return root
 
 
@@ -464,6 +564,37 @@ def selftest() -> int:
     expect("commits past the tag, empty [Unreleased]", f4,
            "unreleased_section_records_head_drift", True)
 
+    # --- FAULT 4b: THE OTHER DIRECTION -- a non-empty [Unreleased] with NO drift at all.
+    # `not ahead or bool(unrel_body)` could not express this: the section describes work that
+    # exists in no tree, and every arm of the old test was satisfied. Removing the fixture's
+    # only drift (its uncommitted file) leaves the worktree byte-identical to v1.2.0 while
+    # [Unreleased] still says "- something landed".
+    f4b = _fixture(tmp, "f4b")
+    (f4b / "unstaged_work.txt").unlink()
+    subprocess.run(["git", "-C", str(f4b), "add", "-A"], check=True, capture_output=True)
+    assert not git(f4b, "diff", "--stat", "v1.2.0").strip(), \
+        "FIXTURE DRIFT: removing the scratch file did not make the worktree match the tag"
+    expect("non-empty [Unreleased] with an unchanged tree", f4b,
+           "unreleased_section_records_head_drift", True)
+
+    # --- FAULT 6: a link definition naming a tag that does not exist (the v1.1.0 compare URL
+    # shape). The gate never looked at the link-definition block at all.
+    expect("link definition names a non-existent tag",
+           mutate("f6", "CHANGELOG.md",
+                  "[1.2.0]: https://example.invalid/compare/v1.0.0...v1.2.0",
+                  "[1.1.0]: https://example.invalid/compare/v1.0.0...v1.1.0"),
+           "changelog_link_definitions_resolve", True)
+
+    # --- FAULT 6b: ...and anti-vacuity for it. No link definitions at all must be RED, not a
+    # silent pass -- the failure mode two gates in this project have already shipped.
+    expect("no link definitions at all",
+           mutate("f6b", "CHANGELOG.md",
+                  "[Unreleased]: https://example.invalid/compare/v1.2.0...HEAD\n"
+                  "[1.2.0]: https://example.invalid/compare/v1.0.0...v1.2.0\n"
+                  "[1.0.0]: https://example.invalid/releases/tag/v1.0.0\n",
+                  "(the link-definition block deleted entirely)\n"),
+           "changelog_link_definitions_resolve", True)
+
     # --- FAULT 5: anti-vacuity.  A README with no "What's new" section at all must be RED,
     # not silently skipped.
     expect("no What's new heading",
@@ -471,7 +602,7 @@ def selftest() -> int:
            "parsers_read_something", True)
 
     shutil.rmtree(tmp, ignore_errors=True)
-    total = 10
+    total = 13
     print(f"SELFTEST OK: {total - missed}/{total} checks provably fail when broken"
           if not missed else
           f"SELFTEST FAILED: {total - missed}/{total} checks provably fail when broken")

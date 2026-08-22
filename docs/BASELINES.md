@@ -15,7 +15,12 @@ prediction `x_src` is refined by S²D².
 
 * Original: [SCPNet](https://github.com/SCPNet/Codes-for-SCPNet) (CVPR 2023)
 * Our port + spconv patches: `src/gssc/inference/run_scpnet.py`
-* Released weights: `scpnet_v2_port.pth` in our model zoo.
+* Released weights: `scpnet_v2_port.pth` in our model zoo — SCPNet's own
+  pretrained weights carried through our spconv v2 port, redistributed with
+  the SCPNet authors' permission. They ship under this repository's MIT
+  licence, but the model is Xia et al.'s work: cite the CVPR 2023 paper if
+  you use it. See `docs/MODEL_ZOO.md` ("SCPNet base") for the full
+  attribution note.
 
 ### spconv v1 → v2 port
 
@@ -50,7 +55,8 @@ The v1.1.0 cross-base reproduction (paper tab:portable_s2d2, whose headline for
 this base is **+1.6 pp** val mIoU with derived BEV) uses JS3C-Net
 (Yan et al. 2021, AAAI) as a *prediction-only* alternative base. The +3.32 pp
 figure this section used to lead with is our own GT-BEV diagnostic delta, not a
-value the paper prints; see the three-number box below.
+value the paper prints, and it is a different protocol from the +4.0 pp
+internal-evaluator continuity row; see the three-number box below.
 
 * Original: [JS3C-Net](https://github.com/yanx27/JS3C-Net) (AAAI 2021)
 * Our reader: `src/gssc/models/js3c_base.py` — a thin per-frame `.npy` loader.
@@ -71,22 +77,33 @@ value the paper prints; see the three-number box below.
   paper cites for this base and what the released checkpoint was trained under
   (`configs/train/js3c_real.yaml` sets `bev_from_base: true`).
 
-  > **Three JS3C numbers (read before comparing any delta).** The JS3C-Net
-  > cross-base result carries three figures:
-  > - **22.7 → 24.3 % (+1.6 pp)** — the **paper headline** for this base: derived
-  >   BEV under the official `semantic-kitti-api`, the same evaluator that scores
-  >   the 22.7 % base, so the delta is protocol-consistent. Precise output
-  >   **24.32 % (+1.59 pp)**.
-  > - **26.05 % (+3.32 pp)** — a GT-BEV diagnostic, **not** the headline. Earlier
-  >   revisions of this file called it the paper headline and said the paper
-  >   "rounds it to 26.1"; the string 26.1 appears nowhere in the paper or its
-  >   supplement, so that was doubly wrong.
-  > - **26.72 % (+3.99 pp)** — the *same* GT-BEV protocol scored with the
-  >   paper's **internal training-time evaluator** (`SSCMetrics`). A continuity
-  >   row in the paper, **not** the headline.
-  > - **24.32 % (+1.59 pp)** — the reproducible **at-deploy** number with
-  >   derived BEV under the official `semantic-kitti-api` (what
-  >   `scripts/reproduce_table.py` yields).
+  > **Three JS3C numbers, and which protocol each belongs to.** All three come
+  > from the same released checkpoint, `gssc_js3c/gssc_js3c_s2d2_real`. **What
+  > separates 26.7 from 24.3 is the evaluator, not the BEV source** — both are
+  > derived BEV.
+  > - **22.7 → 24.3 % (+1.6 pp)** — the **paper headline** for this base
+  >   (main Tab. III, `tab:portable_s2d2`): **derived BEV**, scored by the
+  >   **official `semantic-kitti-api`**, the same evaluator that scores the
+  >   22.7 % base, so the delta is protocol-consistent. Precise output
+  >   **24.32 % (+1.59 pp)**. Reproduced by `eval/js3c_val_realistic`.
+  > - **26.7 % (+4.0 pp)** — the **same derived-BEV setting** scored with the
+  >   paper's **internal training-time evaluator** (`SSCMetrics`); precise
+  >   internal output **26.72 %**. This is the row the supplementary
+  >   validation-protocol table (`tab:supp_b6_val`) labels *"real-only, derived
+  >   BEV, internal eval"*, and the supplement retains it for continuity only.
+  >   It is **not** a GT-BEV number.
+  > - **26.05 %** — a **GT-BEV diagnostic** of ours: `eval/js3c_val_paper`
+  >   (= `eval/js3c_val_1step`) sets `bev_source: gt`, conditioning on a
+  >   ground-truth BEV oracle, and is scored by the official
+  >   `semantic-kitti-api`. **The paper does not print it** — neither "26.05"
+  >   nor "26.1" appears in the paper or its supplement — and it is **not** the
+  >   protocol behind 26.7. Earlier revisions of this file called it the paper
+  >   headline and said the paper "rounds it to 26.1"; that was doubly wrong.
+  >
+  > The paper's own GT-BEV entry is a different thing again: the 61.8 % row of
+  > `tab:supp_b6_val` is a *separately trained* GT-BEV variant, labelled there
+  > as an upper bound rather than a deployment number, and it is not the
+  > released checkpoint.
   >
   > See `docs/MODEL_ZOO.md` and `docs/REPRODUCIBILITY.md` for the full
   > disclosure.
@@ -120,7 +137,9 @@ base, +1.8 pp val mIoU) uses LMSCNet as a *prediction-only* alternative base.
   over the 14.76 % on-disk-rescored base), real-frames-only training,
   `cold_diffusion=true`. NOTE: the released LMSCNet `model_ema.safetensors` ships
   complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no
-  full-state-checkpoint workaround is needed.
+  full-state-checkpoint workaround is needed. 16.59 is a **step-65,000** figure —
+  the released checkpoint is the best-mIoU selection at `global_step: 65000`,
+  even though `configs/train/lmscnet_real.yaml` sets `num_iterations: 100000`.
 * Unlike the JS3C-Net row, LMSCNet has no GT-BEV vs. derived-BEV split: the
   seed BEV is always height-pooled from LMSCNet's own 3D prediction
   (`bev_from_base: true`, never GT BEV), so 16.59 % is already the at-deploy

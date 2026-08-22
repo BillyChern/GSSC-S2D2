@@ -1,0 +1,41 @@
+_paper_table: "supplementary tab:supp_pyramid_hyperparams (Stage 3, 256^3) and the 'Offline augmentation cost' paragraph"
+_description: >
+  Pyramid discrete diffusion, Stage 3 (256x256x32) with dual conditioning. The most expensive
+  single training run in the framework. Run once, offline; the synthetic pool it produces is
+  released, so reproducing the paper does NOT require rerunning this.
+
+  PREREQUISITE: the pre-quantized corpus at `data/SemanticKITTI_quantized/` (S3 reads its `s2/`
+  level, and `s3_cond/` if present) plus the raw SSC tree at `data/SemanticKITTI/`. No script in
+  this release produces the quantized corpus -- see the "Pyramid diffusion" section of
+  docs/TRAIN.md. Stage 3 takes --ssc-root and --quantized-root rather than --data-root, and
+  `scripts/train.py` passes both for this recipe.
+
+  RECORDED BY THE RELEASED CHECKPOINT (data/checkpoints/pyramid/pyramid_s3/config.json):
+  epoch 584, global_step 4,965,168 (= 8,502 iterations/epoch, matching the batch-size-9 figure
+  in train_pyramid_s3.py), base_lr 0.004. Its `source_run` field names the research-tree
+  artefact (the `s3_v2_lr004` run's best-mIoU file) and its `source_sha256` is
+  451e5edee37c8ec4775d3d9f381c152653bbeb26c170f4beeadcfdd9f1d22345, which that artefact still
+  hashes to. NOTE that base_lr is 0.004, NOT the 0.006 that
+  train_pyramid_s3.py used to carry as its argparse default -- the checkpoint is the authority
+  and the default has been corrected to match it. `epochs: 1000` below is the launch budget; the
+  released artefact is the BEST checkpoint, reached at epoch 584, not the end of that budget.
+
+  MEASURED WALL-CLOCK -- calendar span between checkpoint mtimes of the run that produced the
+  released weights (outputs/checkpoints/s3_v2_lr004): epoch 10 (s3_epoch_0010.pt, 2025-12-22
+  02:22) -> epoch 584 (best_miou_0584.pt, written in the same minute as best_miou.pt, the file
+  config.json names as source_run -- 2026-02-08 01:47) = 47 d 23 h, i.e. ~1,150 h. That span
+  INCLUDES idle time: the job was resumed at least once (training_resumed.log, 2026-02-02) and
+  kept running past the released best, at least to epoch 733 (best_val_0733.pt, 2026-02-25;
+  latest.pt 2026-02-26). It is therefore a calendar figure, not GPU-time,
+  and deliberately NOT quoted in GPU-hours. Do not read the superseded
+  outputs/checkpoints/s3 run (lr 0.006, 2025-12-06 -> 2025-12-21) for this recipe: the shipped
+  checkpoint's own `restaged_reason` records that run as the wrong one.
+
+  NOTE ON KEY STYLE: the pyramid trainers declare hyphenated flags (--batch-size), unlike
+  train_scene_completion.py which declares underscored ones. load_yaml_to_args emits --<key>
+  verbatim, so these keys are hyphenated on purpose. Do not "normalise" them.
+batch-size: 9
+lr: 0.004
+epochs: 1000
+warmup-epochs: 5
+num-workers: 8

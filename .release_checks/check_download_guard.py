@@ -3,6 +3,11 @@
 
 THE DEFECT THIS GATE EXISTS FOR
 -------------------------------
+LINE NUMBERS IN THIS BLOCK ARE A DATED SNAPSHOT of the checkout named above, not
+navigation. Several have already moved: follow the SYMBOL, the heading or the quoted
+text, and re-derive the location with `grep -n`. Every check below RE-MEASURES the
+live artefacts, so nothing here is load-bearing for a verdict.
+
 `scripts/download_assets.py:_ensure_url_configured` guards on ONE shape of unavailability:
 
     if url.startswith("[") and url.endswith("]"):        # a `[PLACEHOLDER]` token
@@ -79,6 +84,15 @@ appended block became dead code and the shipped script became healthy, so five o
 faults stopped reaching anything the gate measures while still reading like injections.
 Every fault now disables BOTH guards -- the one that ships in `_fetch` and the appended
 one -- and is asserted to actually perturb the probe before its check is graded.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
 """
 
 from __future__ import annotations
@@ -91,9 +105,9 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Sequence, Tuple
+from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
 DOWNLOADER = REPO / "scripts" / "download_assets.py"
 POINTER = "docs/DATASET.md"
 
@@ -108,10 +122,22 @@ SUBJECT = re.compile(r"download_assets|asset URLs|download command", re.I)
 FAIL_VERB = re.compile(r"\bexits?\s+with\b|\bfails?\s+loudly\b|\bwill\s+print\b|\bprints?\b|"
                        r"\bexits?\s+with\s+the\b|\berror\b", re.I)
 
-#: Scratch root. Deliberately NOT falling back to /tmp: a full /tmp has deadlocked this box
-#: five times, and a gate that hangs the machine is worse than a gate that refuses to run.
-_TMPDIR = os.environ.get("TMPDIR")
-TMP = Path(_TMPDIR) if _TMPDIR else None
+#: Scratch root. Deliberately NOT falling back to /tmp: a full /tmp has deadlocked the
+#: maintainer's box five times, and a gate that hangs the machine is worse than a gate that
+#: refuses to run. TMPDIR overrides it. The default is a NAMED CACHE DIR rather than nothing,
+#: so a visitor who has exported no variables still gets a runnable gate that is not pointed
+#: at /tmp; the refusal below survives only for a host with no home directory at all.
+def _scratch_root() -> Optional[Path]:
+    override = os.environ.get("TMPDIR")
+    if override:
+        return Path(override)
+    try:
+        return Path.home() / ".cache" / "gssc-release-checks"
+    except RuntimeError:                      # no resolvable home on this host
+        return None
+
+
+TMP = _scratch_root()
 
 _RUNNER = r'''
 import json, os, runpy, sys
@@ -426,8 +452,9 @@ def measure(script: Path, sandbox: Path, docs: Dict[str, str],
 
 def _sandbox(name: str) -> Path:
     if TMP is None:
-        raise SystemExit("FATAL: TMPDIR is unset. This probe runs a copy of the downloader and "
-                         "must not scratch in /tmp on this host. Export TMPDIR first.")
+        raise SystemExit("FATAL: no scratch root. This probe runs a copy of the downloader "
+                         "and must not scratch in /tmp (a full /tmp has deadlocked this box "
+                         "repeatedly). Export TMPDIR to a writable directory and re-run.")
     d = TMP / "check_download_guard" / name
     if d.exists():
         shutil.rmtree(d)

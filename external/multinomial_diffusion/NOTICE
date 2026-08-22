@@ -3,8 +3,8 @@ Third-Party Code Notice
 
 This directory (`external/multinomial_diffusion/`) contains vendored
 third-party code that is NOT part of the GSSC-S2D2 project itself. It is
-redistributed here under its original license, separate from the
-Apache-2.0 license that governs the rest of this repository.
+redistributed on its own upstream terms, separate from the MIT license that
+governs the rest of this repository (see the root LICENSE).
 
 Upstream project
 ----------------
@@ -16,43 +16,55 @@ Upstream project
            Emiel Hoogeboom, Didrik Nielsen, Priyank Jaini,
            Patrick Forré, Max Welling. NeurIPS 2021.
            arXiv:2102.05379  (https://arxiv.org/abs/2102.05379)
-  Code authors / copyright holders:
-           Emiel Hoogeboom, Didrik Nielsen
+  Code authors:
+           Emiel Hoogeboom, Didrik Nielsen -- the names in the upstream
+           `setup.py` `author=` field. This is NOT an upstream copyright
+           notice; see below.
 
-License
--------
+License: none is published
+--------------------------
 
-The upstream code is released under the MIT License (declared via the
-`License :: OSI Approved :: MIT License` classifier in its `setup.py`).
-The full MIT license text is reproduced below. The original copyright
-notice is retained as required by the MIT terms.
+Upstream publishes no LICENSE file and no copyright notice. A clone of the
+upstream repository (checked 2026-08-22, HEAD `9d907a6`) contains no
+`LICENSE`, `LICENCE`, `COPYING`, `NOTICE` or `COPYRIGHT` file anywhere in the
+tree, and its README states no terms. The only license signal in the whole
+repository is a single PyPI trove classifier in `setup.py`:
 
-  MIT License
+      classifiers=[
+          "Programming Language :: Python :: 3",
+          "License :: OSI Approved :: MIT License",
+          "Operating System :: OS Independent",
+      ],
 
-  Copyright (c) Emiel Hoogeboom, Didrik Nielsen
+That classifier is the entire basis on which this copy is redistributed. It is
+not a license text, it names no copyright holder, and it grants no rights
+explicitly. No license text is reproduced here and no license is asserted on
+the upstream authors' behalf: there is no upstream copyright notice to retain,
+so none is quoted. If you intend to redistribute this material yourself, seek
+an explicit grant from the upstream authors rather than relying on the
+classifier.
 
-  Permission is hereby granted, free of charge, to any person obtaining a
-  copy of this software and associated documentation files (the
-  "Software"), to deal in the Software without restriction, including
-  without limitation the rights to use, copy, modify, merge, publish,
-  distribute, sublicense, and/or sell copies of the Software, and to
-  permit persons to whom the Software is furnished to do so, subject to
-  the following conditions:
+An earlier revision of this file reproduced the MIT license text under a
+copyright line reading "Copyright (c) Emiel Hoogeboom, Didrik Nielsen" and
+said the original copyright notice was retained as the MIT terms require.
+Both statements were wrong: that line was synthesised from `setup.py`'s
+`author=` field, and there is no upstream copyright notice. The full record is
+in ../../THIRD_PARTY_NOTICES.md, section 2.
 
-  The above copyright notice and this permission notice shall be included
-  in all copies or substantial portions of the Software.
+What is vendored here, and what was changed
+-------------------------------------------
 
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+46 tracked files: 45 taken from the upstream tree, plus this NOTICE. The
+upstream tree has 54 tracked files; the 9 not vendored are its dataset loaders
+(`segmentation_diffusion/datasets/`, `text_diffusion/datasets/`), which the
+provenance record does not need.
 
-Modifications
--------------
+Exactly one vendored file differs from upstream: `segmentation_diffusion/
+README.md`, where a hard-coded `--log_home /var/scratch/ehoogebo` path in the
+example command was replaced with `./logs`. Every other vendored file is
+byte-identical to upstream at the commit above (verified 2026-08-22 by diffing
+this directory against a fresh clone).
 
-This vendored copy may contain minor adaptations for integration with the
-GSSC-S2D2 codebase. All such modifications remain under the original MIT
-License above.
+No module outside this directory imports it. It is kept as the provenance
+record for the derivative that does ship,
+`src/gssc/_improved_diffusion/multinomial_diffusion.py`.

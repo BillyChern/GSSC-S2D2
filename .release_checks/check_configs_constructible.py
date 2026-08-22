@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """GATE: a shipped config that cannot even build its diffusion object.
 
-DEFECT THIS EXISTS FOR (measured, v2.3.8 / HEAD 07725af):
-  src/gssc/diffusion/multinomial.py:823-831 logs the noise schedule with
+DEFECT THIS EXISTS FOR (measured, v2.3.8 / HEAD 07725af). EVERY `file:line` in this block is
+a SNAPSHOT of that checkout and several have already rotted -- the defect is FIXED in the
+current tree, so follow the SYMBOL names, never the line numbers:
+  MultinomialDiffusion3DV2.__init__ logged the noise schedule with
 
       logger.debug(..., alphas_cumprod[0].item(), alphas_cumprod[50].item(),
                         alphas_cumprod[99].item(), ...)
@@ -14,15 +16,19 @@ DEFECT THIS EXISTS FOR (measured, v2.3.8 / HEAD 07725af):
       T=100 -> ctor OK      T=50 -> IndexError: index 50 is out of bounds for dim 0 with size 50
                             T=10 -> IndexError: index 50 is out of bounds for dim 0 with size 10
 
-  configs/train/T10.yaml:25 declares `num_timesteps: 10` and configs/train/T50.yaml:24
+  configs/train/T10.yaml declares `num_timesteps: 10` and configs/train/T50.yaml
   declares 50. Both are SHIPPED configs with paper provenance notes in their headers, and
   NEITHER CAN START. A user following the repo gets a traceback out of a logging call.
 
-  The same hardcoding is in the sampler: multinomial.py:1166-1167 builds the timestep
-  schedule as `range(99, -1, -1)` / `np.linspace(99, 0, n_steps)`, so even with the
-  logger fixed, sample_algo2 would index alphas[99] for a T=10 model. configs/eval/
-  timestep_ablation.yaml:20 already documents this ("does NOT read num_timesteps from
-  the checkpoint") -- the defect is known and written down, just not fixed or gated.
+  The same hardcoding was in the sampler: `MultinomialDiffusion3DV2.sample_algo2` built the
+  timestep schedule as `range(99, -1, -1)` / `np.linspace(99, 0, n_steps)`, so even with the
+  logger fixed it would index alphas[99] for a T=10 model. `configs/eval/
+  timestep_ablation.yaml` already documented this ("does NOT read num_timesteps from
+  the checkpoint") -- the defect was known and written down, just not fixed or gated.
+
+  BOTH ARE FIXED TODAY and the gate is what keeps them fixed: `multinomial.py` now derives
+  `t_last = num_timesteps - 1` in both places. This gate CONSTRUCTS every shipped config
+  and RUNS the sampler, so it re-measures rather than replaying this transcript.
 
 WHAT THIS GATE DOES
   It does not lint. For EVERY shipped config under configs/{train,eval,infer}/ it reads
@@ -44,14 +50,25 @@ WHAT THIS GATE DOES
                                       forbidden values are DERIVED from the class signature,
                                       not written down here.
 
-WHICH CLASS: the release inference paths (generate_predictions.py:202, d4_tta.py:120)
-construct MultinomialDiffusion3DV2 unconditionally, and train_scene_completion.py:662
-picks V2 whenever `diffusion_version: v2` -- which every shipped train config declares.
+WHICH CLASS: the release inference paths -- `load_model` in generate_predictions.py and in
+d4_tta.py -- construct MultinomialDiffusion3DV2 unconditionally, and
+train_scene_completion.py picks V2 whenever `diffusion_version: v2`, which every shipped
+train config declares. (Symbols, not line numbers: all three of the pointers that stood here
+had rotted.)
 So V2 is the default here and V1 is used only if a config explicitly says v1.
 
 EXPECTED TODAY: FAIL on configs/train/T10.yaml and configs/train/T50.yaml, and on
 no_hardcoded_schedule_literals. If those go green without multinomial.py changing,
 this gate has been broken, not the defect fixed.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
 """
 from __future__ import annotations
 
@@ -62,7 +79,7 @@ import os
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
 CONFIGS = REPO / "configs"
 DIFF_SRC = REPO / "src" / "gssc" / "diffusion" / "multinomial.py"
 CONFIG_DIRS = ("train", "eval", "infer")
@@ -228,9 +245,11 @@ def analyse(configs, diff_src: str) -> list[tuple[str, bool, str]]:
             results.append((
                 f"constructible:{rel}", False,
                 f"{rel} declares num_timesteps={T_declared!r} and "
-                f"{type(e).__name__}: {e} -- this shipped config cannot start. "
-                f"src/gssc/diffusion/multinomial.py:828 indexes alphas_cumprod[50]/[99] "
-                f"with literals inside an eagerly-evaluated logger.debug"))
+                f"{type(e).__name__}: {e} -- this shipped config cannot start. The defect "
+                f"class to look for: a LITERAL timestep index (50, 99) in "
+                f"MultinomialDiffusion3DV2.__init__'s schedule-logging block, inside an "
+                f"eagerly-evaluated logger.debug -- grep multinomial.py for "
+                f"`alphas_cumprod[`, not a line number"))
 
         # Every step count the config declares, exercised for real. The check LINE is
         # emitted whatever happens: a check that silently disappears when its subject
@@ -263,9 +282,11 @@ def analyse(configs, diff_src: str) -> list[tuple[str, bool, str]]:
                     f"sampler_runs:{rel}", not bad,
                     f"{sorted(steps)} step count(s) ran"
                     if not bad else
-                    f"{rel}: sample_algo2 fails at {bad[:2]} -- "
-                    f"src/gssc/diffusion/multinomial.py:1167 builds the schedule as "
-                    f"range(99,-1,-1)/linspace(99,0,n) regardless of num_timesteps"))
+                    f"{rel}: sample_algo2 fails at {bad[:2]} -- the defect class to look "
+                    f"for: MultinomialDiffusion3DV2.sample_algo2 building its timestep list "
+                    f"as range(99,-1,-1)/linspace(99,0,n) from a LITERAL rather than from "
+                    f"self.num_timesteps; grep multinomial.py for `linspace(` inside that "
+                    f"method"))
 
         # declared timestep INDICES must exist in this config's schedule
         T = T_declared if isinstance(T_declared, int) else _default_T(M, cfg)

@@ -3,9 +3,12 @@ _description: |
   JS3C-Net + S²D² cross-base validation: trains with GT BEV (loaded from the
   preprocessed `<voxel_root>/<seq>/<frame>_bev.npy`) instead of the
   derived-BEV path the released model used. Pairs with
-  `eval/js3c_val_paper.yaml` for a train/eval-consistent GT-BEV evaluation
-  that should reproduce ~26.7 % val mIoU (the paper supp tab:supp_b6_val
-  protocol, end-to-end).
+  `eval/js3c_val_paper.yaml` for a train/eval-consistent GT-BEV evaluation, which is
+  supplementary tab:supp_b6_val's oracle row: 61.8 % val mIoU / 64.4 % completion
+  IoU under the official semantic-kitti-api. That row mixes a training change with
+  the GT-BEV oracle leak, so the paper reads it as an upper bound, not a deployment
+  number. It is NOT the 26.7 % figure — that is the internal evaluator's reading of
+  the DERIVED-BEV run in `js3c_real.yaml`.
 
   Run-time note: launched on the shared GPU0 alongside the derived-BEV
   sibling config (`js3c_real_derived.yaml`) with `batch_size: 2` so both fit

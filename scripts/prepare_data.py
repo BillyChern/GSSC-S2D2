@@ -8,8 +8,16 @@ This script:
 1. Verifies the sequence directory structure (sequences/00, 08, 11 present).
 2. Reports the per-sequence voxel-frame count for every sequence found.
 
-The released 256x256x32 voxel grids are downloaded ready-to-use via
-scripts/download_assets.py; no on-the-fly preprocessing is performed here.
+It only *verifies*; it writes nothing. ``scripts/download_assets.py`` likewise does not
+carry the 256x256x32 voxel cache -- the hosted assets are checkpoints, base predictions
+and the synthetic pool. The trainers and the ``--bev_source gt`` eval path read
+``<data_root>/SemanticKITTI_3D/256/<seq>/<frame>_{voxels,bev,gt_scene}.npy``, which is
+derived from the raw voxel release by::
+
+    python scripts/prepare_256_data.py --semantickitti_root data/SemanticKITTI
+
+Run that once after this check passes and before ``scripts/train.py``; without it every
+training recipe enumerates zero samples.
 """
 from __future__ import annotations
 

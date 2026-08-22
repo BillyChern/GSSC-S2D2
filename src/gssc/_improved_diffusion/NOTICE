@@ -3,11 +3,16 @@ Third-Party Code Notice
 
 This directory (`src/gssc/_improved_diffusion/`) is a fork of vendored
 third-party code that is NOT part of the GSSC-S2D2 project itself. It is
-redistributed here under its original license, separate from the
-Apache-2.0 license that governs the rest of this repository.
+redistributed here under its original licenses, separate from the MIT
+license that governs the rest of this repository (see the root LICENSE).
 
-Upstream project
-----------------
+FOUR distinct upstream projects are represented here, not one. An earlier
+version of this file declared only improved-diffusion for the whole
+directory; the complete record, with the measured overlap for each file, is
+in THIRD_PARTY_NOTICES.md at the repository root.
+
+Upstream project 1 -- improved-diffusion (most of this directory)
+-----------------------------------------------------------------
 
   Name:    improved-diffusion
   Source:  https://github.com/openai/improved-diffusion
@@ -16,17 +21,79 @@ Upstream project
            arXiv:2102.09672  (https://arxiv.org/abs/2102.09672)
   Code authors / copyright holders:
            OpenAI
+  License: MIT (full text below). Upstream publishes a LICENSE file, and
+           the copyright notice below is the one it carries.
 
-License
--------
+  Covers gaussian_diffusion.py, nn.py, losses.py, resample.py, respace.py,
+  script_util.py, train_util.py, unet.py, logger.py, dist_util.py,
+  fp16_util.py, image_datasets.py, and the four UNet variants derived from
+  upstream unet.py -- unet_sparse.py, unet_multinomial.py, unet_factorized.py
+  and unet_old_fullres_baseline.py. The measured overlap for each is in
+  THIRD_PARTY_NOTICES.md section 4, together with the exact procedure that
+  reproduces it. Figures are deliberately NOT duplicated here: they are
+  properties of two moving files, and the copies in this file had already
+  drifted from the measurement once.
 
-The upstream code is released under the MIT License. The full MIT license
-text is reproduced below. The original copyright notice is retained as
-required by the MIT terms.
+Upstream project 2 -- point-e (transformer.py)
+----------------------------------------------
+
+  Name:    point-e
+  Source:  https://github.com/openai/point-e
+  Copyright holder: OpenAI
+  License: MIT, Copyright (c) 2022 OpenAI.
+
+  transformer.py is derived from point_e/models/transformer.py; the measured
+  overlap is in THIRD_PARTY_NOTICES.md section 5. This is a DIFFERENT OpenAI project from
+  improved-diffusion, so "Code authors: OpenAI" above is true of it only by
+  coincidence; it is recorded separately for that reason.
+
+Upstream project 3 -- 2DPASS (point_encoder.py)
+-----------------------------------------------
+
+  Name:    2DPASS
+  Source:  https://github.com/yanx27/2DPASS
+  Paper:   "2DPASS: 2D Priors Assisted Semantic Segmentation on LiDAR Point
+           Clouds", Yan et al., ECCV 2022.
+  License: MIT, Copyright (c) 2022 Benny  (the name in the upstream LICENSE
+           file; yanx27 is the repository owner).
+
+  point_encoder.py is adapted from network/voxel_fea_generator.py; the
+  measured overlap is in THIRD_PARTY_NOTICES.md section 6. That file's own
+  opening comment now names this project, the licence and the holder.
+
+Upstream project 4 -- pyramid-discrete-diffusion and its own ancestors
+  (multinomial_diffusion.py)
+----------------------------------------------------------------------
+
+  multinomial_diffusion.py is NOT part of improved-diffusion. It derives
+  from:
+
+    * ehoogeboom/multinomial_diffusion -- NO upstream license is published:
+      the repository has no LICENSE file and no copyright notice, and MIT is
+      asserted only by a trove classifier in its setup.py. This project
+      asserts no license on those authors' behalf. Measured overlap:
+      THIRD_PARTY_NOTICES.md section 2.
+    * pyramid-discrete-diffusion (models/conditional_diffusion/
+      con_diffusion.py) -- MIT, Copyright (c) 2023 Yuheng Liu. Measured
+      overlap, and how much of it is the ehoogeboom core above rather than
+      PDD's own work: THIRD_PARTY_NOTICES.md section 1.
+    * lucidrains/denoising-diffusion-pytorch -- MIT, Copyright (c) 2020
+      Phil Wang, credited in the file's own header.
+
+  The full MIT permission notices for Yuheng Liu and Phil Wang are in
+  THIRD_PARTY_NOTICES.md, sections 1 and 3.
+
+MIT License text (applies to projects 1, 2 and 3 above, and -- with their own
+copyright lines -- to the MIT ancestors listed under 4)
+-------------------------------------------------------------------------
 
   MIT License
 
   Copyright (c) 2021 OpenAI
+  Copyright (c) 2022 OpenAI                 (point-e)
+  Copyright (c) 2022 Benny                  (2DPASS)
+  Copyright (c) 2023 Yuheng Liu             (pyramid-discrete-diffusion)
+  Copyright (c) 2020 Phil Wang              (denoising-diffusion-pytorch)
 
   Permission is hereby granted, free of charge, to any person obtaining a
   copy of this software and associated documentation files (the
@@ -51,5 +118,8 @@ Fork status
 -----------
 
 This directory is a fork of the upstream improved-diffusion code, adapted
-for integration with the GSSC-S2D2 codebase. All such modifications remain
-under the original MIT License above.
+for integration with the GSSC-S2D2 codebase, with the additional files
+above taken from the other three upstreams. GSSC-authored modifications are
+released under the same terms as the file they modify; they do not place any
+upstream author's code under this project's own MIT grant, and they do not
+create a license where an upstream publishes none (see project 4).

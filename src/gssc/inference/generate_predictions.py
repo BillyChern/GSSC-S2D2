@@ -130,14 +130,15 @@ def main() -> None:
                               '3D prediction (matches `--bev_from_base` training-time '
                               'override). '
                               "'gt': load preprocessed GT BEV from `<voxel_root>/<seq>/<frame>_bev.npy`. "
-                              'Used to reproduce the paper GT-BEV-conditioned protocol '
-                              '(JS3C-Net + S²D² val mIoU 26.05%% under the official '
-                              'semantic-kitti-api headline; 26.72%% under the paper internal '
-                              'SSCMetrics, supp tab:supp_b6_val footnote).'))
+                              'This is a DIAGNOSTIC protocol only: it is not the setting behind '
+                              'any tabulated JS3C-Net + S²D² number. The paper Tab. III row (24.3%% '
+                              'official semantic-kitti-api, +1.6 pp over the 22.7%% base) and the '
+                              '26.7%% internal-evaluator reading of the SAME run are both DERIVED '
+                              'BEV; what separates them is the evaluator, not the BEV source.'))
     parser.add_argument('--bev_root', type=str, default=None,
                         help=('Root for GT BEV files when `--bev_source gt`. Defaults to '
-                              '`<data_root>/../SemanticKITTI_3D/256` (mirrors the internal '
-                              'preprocessing layout from `tools/prepare_256_data.py`).'))
+                              '`<data_root>/../SemanticKITTI_3D/256`, the layout produced by '
+                              '`scripts/prepare_256_data.py`.'))
     parser.add_argument('--scpnet_only', action='store_true',
                         help='Skip cold diffusion, just convert SCPNet predictions to .label format')
     parser.add_argument('--ssc_multiscale', action='store_true',
@@ -226,7 +227,7 @@ def main() -> None:
         if args.bev_root is not None:
             bev_root = args.bev_root
         else:
-            # Default: <data_root>/../SemanticKITTI_3D/256 (mirrors prepare_256_data.py).
+            # Default: <data_root>/../SemanticKITTI_3D/256 (scripts/prepare_256_data.py).
             bev_root = os.path.join(os.path.dirname(args.data_root.rstrip('/')),
                                     'SemanticKITTI_3D', '256')
         logger.info("Using GT BEV from %s (paper supp tab:supp_b6_val protocol)", bev_root)
@@ -294,8 +295,9 @@ def main() -> None:
                     if not os.path.isfile(bev_path):
                         raise FileNotFoundError(
                             f"GT BEV missing for --bev_source gt: {bev_path}. "
-                            "Run `python tools/prepare_256_data.py` to materialise "
-                            "preprocessed BEV files, or switch to `--bev_source derived`."
+                            "Run `python scripts/prepare_256_data.py --semantickitti_root "
+                            "data/SemanticKITTI` to materialise the preprocessed BEV files, "
+                            "or switch to `--bev_source derived`."
                         )
                     bev_np = np.load(bev_path).astype(np.int64)
                     bev = torch.from_numpy(bev_np).unsqueeze(0).to(device)

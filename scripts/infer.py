@@ -9,7 +9,9 @@ from ``configs/infer/<name>.yaml``:
 config            split  gen sequences     steps  tta   paper row
 ================  =====  ================  =====  ====  ====================================
 infer/val_1step   val    08                1      none  tab:perclass_delta (val per-class)
-infer/val_d4tta   val    08                1      d4    tab:main_results (val + D4 TTA)
+infer/val_d4tta   val    08                4      d4    tab:main_results (val + D4 TTA)
+infer/test_1step  test   11..21 (hidden)   1      none  tab:main_results (38.8 test row,
+                                                          the paper's headline)
 infer/test_d4tta  test   11..21 (hidden)   4      d4    tab:main_results (39.2 test row)
 ================  =====  ================  =====  ====  ====================================
 
@@ -20,11 +22,18 @@ CLI flags override the config (``--split`` / ``--steps`` / ``--tta``).
 
 Examples
 --------
-Reproduce the 39.2% test leaderboard row (hidden sequences 11-21)::
+Reproduce the 38.8% test leaderboard row -- the paper's headline, single pass
+(hidden sequences 11-21)::
+
+    python scripts/infer.py infer/test_1step \
+        --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors \
+        --output outputs/test_submission
+
+Reproduce the 39.2% test leaderboard row (4 correction steps + 8-view D4 TTA)::
 
     python scripts/infer.py infer/test_d4tta \
         --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors \
-        --output outputs/test_submission
+        --output outputs/test_d4tta_submission
 
 Generate val per-class predictions (single correction step, seq 08)::
 
@@ -88,7 +97,9 @@ def main() -> None:
         description="GSSC-S2D2 inference (.label generator).",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("config", help="Infer config: infer/val_1step, infer/val_d4tta, infer/test_d4tta")
+    p.add_argument("config",
+                   help="Infer config: infer/val_1step, infer/val_d4tta, "
+                        "infer/test_1step (the paper's 38.8 headline test row), infer/test_d4tta")
     p.add_argument("--checkpoint", required=True)
     p.add_argument("--output", required=True, help="Where .label predictions land")
     p.add_argument("--data-root", default=str(REPO_ROOT / "data"))

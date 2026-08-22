@@ -1,6 +1,25 @@
 """
 Pyramid Discrete Diffusion for SemanticKITTI - Exact implementation from original paper.
 Adapted for SemanticKITTI voxel dimensions: s1(32×32×4) → s2(64×64×8) → s4(256×256×32)
+
+DERIVED FROM THIRD-PARTY CODE. Ancestry of this file, measured line-by-line and
+recorded in THIRD_PARTY_NOTICES.md (sections 1-3) at the repository root:
+
+  * pyramid-discrete-diffusion (models/conditional_diffusion/con_diffusion.py)
+    https://github.com/yuhengliu02/pyramid-discrete-diffusion
+    MIT License, Copyright (c) 2023 Yuheng Liu           -- 184 matched lines
+  * ehoogeboom/multinomial_diffusion (diffusion_utils/diffusion_multinomial.py)
+    NO upstream license is published; see THIRD_PARTY_NOTICES.md section 2
+                                                          -- 165 matched lines
+  * lucidrains/denoising-diffusion-pytorch
+    MIT License, Copyright (c) 2020 Phil Wang             -- credited by the
+    upstream con_diffusion.py header
+
+Most of the shared content is the multinomial-diffusion core common to all
+three; the PDD-specific residue is the auxiliary-loss weighting. The MIT
+permission notices these copyright lines require are reproduced in full in
+THIRD_PARTY_NOTICES.md, which ships in the wheel at
+``gssc/THIRD_PARTY_NOTICES.md``.
 """
 from inspect import isfunction
 

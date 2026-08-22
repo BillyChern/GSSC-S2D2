@@ -4,22 +4,27 @@
 THE THREE DEFECTS THIS GATE EXISTS FOR (all measured 2026-08-20 at HEAD 07725af)
 -------------------------------------------------------------------------------
 D1  `.github/workflows/lint.yml` runs, verbatim, `ruff check src/ tests/ scripts/`.
-    That command FAILS at HEAD:
-        F401 `os` imported but unused --> tests/test_scratch_space.py:18:8
+    That command FAILED at the HEAD this was written against:
+        F401 `os` imported but unused --> tests/test_scratch_space.py, the `import os` line
         Found 1 error.
+    (Recorded as a defect CLASS, not as a live location: that import is gone and the line
+    numbers around it have moved. What the check re-runs is the workflow's own command, so
+    it re-measures rather than replaying this transcript.)
     The lint badge is therefore red-by-construction for anybody who pushes.
 
 D2  `.github/workflows/test.yml` installs exactly `pip install pytest pyyaml`, then runs
     four selected node ids.  On a CLEAN runner that command dies AT COLLECTION:
-        tests/test_evaluate_parser.py:14 -> gssc.inference.__init__ ->
-        gssc/inference/evaluate_bev.py:34 -> `import numpy as np`  --> ImportError
+        tests/test_evaluate_parser.py's `from gssc.inference.evaluate import ...`
+        -> gssc.inference.__init__ -> src/gssc/inference/evaluate_bev.py's
+        `import numpy as np`  --> ImportError
     It is green on the author's box only because torch/numpy are installed there.  This is
     the exact failure mode a "CI is green" claim cannot see from inside the box that has
     the dependencies.  So the check does not trust the local environment: it re-runs the
     workflow's own command with every third-party import ORIGINATING IN REPO CODE blocked
     unless the workflow declared it.  Measured: 1 error during collection, exit 2.
 
-D3  `CONTRIBUTING.md:7` heads a table "Hard requirements (CI-enforced)" with FIVE rows.
+D3  CONTRIBUTING.md's "### Hard requirements (CI-enforced)" heading (grep for it -- it has
+    already moved once since this was written) heads a table with FIVE rows.
     CI enforces TWO of them (ruff, mypy).  Unenforced: `pytest tests/ -v` ("80 cases" --
     CI runs 4 node ids from 3 of the 13 test files), `pytest --cov --cov-fail-under=80`
     (no workflow runs coverage at all; the local coverage number is ~57%, i.e. the gate
@@ -57,6 +62,17 @@ sides to FILE SETS and requires workflow >= doc.  `mypy` invoked bare resolves i
 from `[tool.mypy] files` in pyproject.toml, which is the only honest way to compare a
 config-driven invocation with a documented path list.
 
+*BOTH surfaces that claim CI enforcement are read, not just the table.*  Until 2026-08-22
+this gate parsed `CONTRIBUTING.md` and nothing else -- `grep -n README` over this file
+returned zero hits -- while README's own fenced command block carries three lines tagged
+`(CI-enforced)`, and that block is what almost every visitor reads. The README parser is
+structural in both directions: a line counts as a claim when its trailing comment matches
+CI_CLAIM, and is skipped when the same comment matches LOCAL_ONLY, which is how the live
+`mypy src   # ... (local, advisory -- ... no workflow runs it)` line stays out of it. A
+claim that states its own reduced scope ("light subset", "scope = ...") is satisfied by a
+narrower workflow run; a claim that states none is not, and NO claim is satisfied by a tool
+no workflow runs at all.
+
 *Unrunnable commands are named, not skipped.*  EXEMPT is an allowlist of EXEMPTIONS with
 reasons, never an allowlist of targets: anything not listed and not runnable FAILS check
 C4 rather than vanishing.  An allowlist of targets fails silent; this one fails loud.
@@ -67,6 +83,16 @@ C1 -> fix the code (or the workflow command), not this gate.  C2 -> add the miss
 packages to the workflow's install step (torch/numpy/spconv are heavy; the alternative is
 to stop advertising those test files in a torch-free job).  C3 -> either wire the missing
 gates into a workflow or move those rows to the "Aspirational" table below them.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_VENV_BIN    bin/ dir the named CI tools live in    default: the running interpreter's
 """
 
 from __future__ import annotations
@@ -82,7 +108,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import yaml
 
-REPO = Path("/workspace/GSSC-S2D2")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
 WORKFLOW_DIR = REPO / ".github" / "workflows"
 CONTRIBUTING = REPO / "CONTRIBUTING.md"
 PYPROJECT = REPO / "pyproject.toml"
@@ -91,7 +117,30 @@ PYPROJECT = REPO / "pyproject.toml"
 #: GitHub's runner gets it from `uv pip install`.  We cannot install, so we point PATH at
 #: the project venv.  A tool that is missing makes the command UNMEASURABLE -> FAIL, never
 #: a pass: "the tool isn't here" is not evidence that CI is green.
-VENV_BIN = Path("/workspace/Semantic_Scene_Completion_LiDAR/.venv/bin")
+def _venv_bin() -> Path:
+    """bin/ dir prepended to PATH when a workflow command is replayed.
+
+    Env first, then a ``.venv`` beside the checkout, then the bin/ dir of the
+    interpreter running this gate -- which is the right answer when the harness is
+    invoked with the project venv's python, as run_all.sh does.  It was an absolute
+    path into one machine's virtualenv, which no visitor can resolve.
+    """
+    override = os.environ.get("GSSC_VENV_BIN")
+    if override:
+        return Path(override)
+    # sys.prefix, NOT Path(sys.executable).resolve(): a venv's bin/python is a SYMLINK to
+    # the base interpreter, so resolving it lands in /usr/bin and silently loses every tool
+    # the venv installed.  Measured -- the first version of this function did exactly that
+    # and turned three green checks red by reporting ruff and pytest as missing.
+    if sys.prefix != sys.base_prefix:                 # running inside a virtualenv
+        return Path(sys.prefix) / "bin"
+    local = REPO / ".venv" / "bin"
+    if local.is_dir():
+        return local
+    return Path(sys.executable).parent
+
+
+VENV_BIN = _venv_bin()
 
 CMD_TIMEOUT = 900
 
@@ -128,9 +177,10 @@ EXEMPT_COMMANDS: Sequence[Tuple[str, str]] = (
 #: documented scope OR the doc itself declares the narrowing.
 EXEMPT_SCOPE: Sequence[Tuple[str, str]] = (
     ("mypy",
-     "CONTRIBUTING.md:26-31 states the type-gating scope note verbatim (public-API "
-     "surface only; `src/gssc/_improved_diffusion/` and `training/train_pyramid_*` "
-     "deliberately excluded), and pyproject [tool.mypy] files= encodes exactly that. "
+     "CONTRIBUTING.md states the type-gating scope note verbatim under its mypy row "
+     "(public-API surface only; `src/gssc/_improved_diffusion/` and "
+     "`training/train_pyramid_*` deliberately excluded), and pyproject [tool.mypy] "
+     "files= encodes exactly that. "
      "The narrowing is DECLARED, so the row is not a false claim"),
 )
 
@@ -305,7 +355,7 @@ class _Blocker(importlib.abc.MetaPathFinder):
             return None      # stdlib, builtin, or repo-local: no install declares it
         # Innermost repo frame first: the OUTERMOST one is the test file, but the module
         # that actually does the undeclared import is usually several frames deeper
-        # (tests/test_evaluate_parser.py:14 -> gssc/inference/evaluate_bev.py:34 ->
+        # (tests/test_evaluate_parser.py -> src/gssc/inference/evaluate_bev.py ->
         # `import numpy`). Reporting the outer frame sends the author to the wrong file.
         for fr in reversed(traceback.extract_stack()[:-1]):
             fn = fr.filename
@@ -396,8 +446,62 @@ def missing_tools(script: str) -> List[str]:
 # CONTRIBUTING "CI-enforced" table
 # --------------------------------------------------------------------------------------
 class Row:
-    def __init__(self, standard: str, tool: str, command: str, line: int) -> None:
+    def __init__(self, standard: str, tool: str, command: str, line: int,
+                 declares_narrowing: bool = False) -> None:
         self.standard, self.tool, self.command, self.line = standard, tool, command, line
+        #: The row states its own reduced scope ("light subset", "scope = ..."). A row that
+        #: DECLARES a narrowing is not making a false claim, so a workflow that runs the tool
+        #: over less than the full command's scope satisfies it. A row that declares nothing
+        #: is not satisfied by a narrower run, and no row is ever satisfied by a tool no
+        #: workflow runs at all.
+        self.declares_narrowing = declares_narrowing
+
+
+#: Words that make a CI-enforcement claim SELF-NARROWING. Measured on the live README, whose
+#: pytest line reads "# unit + smoke tests (light subset CI-enforced)": CI runs four node ids
+#: from three of the thirteen test files, which is exactly what "light subset" says.
+NARROWING = re.compile(r"\bsubset\b|\bscope\s*=|\bpartial\b|\blight\b|\bpublic[- ]API\b", re.I)
+
+#: A claim of CI enforcement, matched structurally so a rename cannot silence it.
+CI_CLAIM = re.compile(r"\bCI[-\s]?enforc", re.I)
+
+#: ...and its opposite, on the same line. The README's `mypy src` line reads
+#: "(local, advisory -- not clean today, and no workflow runs it)"; reading it as a claim would
+#: manufacture a defect out of a sentence that is already telling the truth.
+LOCAL_ONLY = re.compile(r"\blocal\b(?![^)]*\bCI\b)|\badvisory\b", re.I)
+
+
+def parse_readme_ci_lines(path: Path) -> Tuple[List["Row"], int]:
+    """CI-enforcement claims made in README's fenced command block.
+
+    WHY THIS EXISTS SEPARATELY FROM parse_ci_table: that one parses CONTRIBUTING.md only, and
+    `grep -n README .release_checks/check_ci_honesty.py` returned nothing until 2026-08-22 --
+    so the README, the surface almost every visitor actually reads, could advertise
+    "(CI-enforced)" against a command no workflow runs and no gate would see it.
+
+    A line counts as a claim when it sits inside a fenced block, carries a trailing comment
+    matching CI_CLAIM, and is not disclaimed by LOCAL_ONLY on the same line.
+    """
+    if not path.is_file():
+        return ([], 0)
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    rows: List[Row] = []
+    block = 0
+    inside = False
+    for i, raw in enumerate(lines, 1):
+        if raw.lstrip().startswith("```") or raw.lstrip().startswith("~~~"):
+            inside = not inside
+            continue
+        if not inside or "#" not in raw:
+            continue
+        cmd, _, comment = raw.partition("#")
+        cmd, comment = cmd.strip(), comment.strip()
+        if not cmd or not CI_CLAIM.search(comment) or LOCAL_ONLY.search(comment):
+            continue
+        block = block or i
+        rows.append(Row(comment, cmd.split()[0], cmd, i,
+                        declares_narrowing=bool(NARROWING.search(comment))))
+    return (rows, block)
 
 
 def parse_ci_table(path: Path) -> Tuple[List[Row], int]:
@@ -584,9 +688,40 @@ def run(root: Path, gate: Optional[Gate] = None, tmp: Optional[Path] = None) -> 
             (f"no python/pytest workflow command found -- nothing measured; "
              if not py_cmds else "") + "; ".join(dep_bad[:3] + unmeasured[:3]))
 
-    # ---- C3: the CI-enforced table vs what workflows run.
-    rows, tbl_line = parse_ci_table(root / "CONTRIBUTING.md")
+    # ---- C3: every CI-enforcement claim, in either doc, vs what workflows run.
     wf_scopes = [resolve_scope(root, c.script.replace("\n", " ")) for c in cmds]
+    rows, tbl_line = parse_ci_table(root / "CONTRIBUTING.md")
+    unbacked = _unbacked_rows(root, rows, wf_scopes, "CONTRIBUTING.md")
+    g.check("contributing_ci_enforced_rows_are_backed",
+            bool(rows) and not unbacked,
+            (f"no 'CI-enforced' table parsed from CONTRIBUTING.md -- the gate read "
+             f"nothing; " if not rows else
+             f"{len(unbacked)}/{len(rows)} rows under CONTRIBUTING.md:{tbl_line} are not "
+             f"enforced by any workflow: ") + "; ".join(unbacked[:4]))
+
+    # The README carries the SAME claim in a different shape and was outside this gate
+    # entirely. It is the surface most visitors read, so an unbacked "(CI-enforced)" comment
+    # there is at least as costly as one in CONTRIBUTING.md's table.
+    rrows, rblock = parse_readme_ci_lines(root / "README.md")
+    runbacked = _unbacked_rows(root, rrows, wf_scopes, "README.md")
+    g.check("readme_ci_enforced_lines_are_backed",
+            bool(rrows) and not runbacked,
+            (f"no '(CI-enforced)' line parsed from README.md's fenced command block -- the "
+             f"gate read nothing, so this check measured nothing; " if not rrows else
+             f"{len(runbacked)}/{len(rrows)} '(CI-enforced)' line(s) from README.md:{rblock} "
+             f"are not enforced by any workflow: ") + "; ".join(runbacked[:4]))
+    return g
+
+
+def _unbacked_rows(root: Path, rows: Sequence["Row"],
+                   wf_scopes: Sequence[Tuple[str, Set[str], Set[str]]],
+                   source: str) -> List[str]:
+    """Which CI-enforcement claims no workflow backs. Shared by CONTRIBUTING.md and README.md.
+
+    A "narrow" hit -- the tool runs, over less than the claim's scope -- is accepted only when
+    the narrowing is DECLARED, either by the row itself (`declares_narrowing`) or by
+    EXEMPT_SCOPE. A tool no workflow runs at all is never accepted.
+    """
     unbacked: List[str] = []
     for r in rows:
         tool, want_files, want_flags = resolve_scope(root, r.command)
@@ -603,28 +738,21 @@ def run(root: Path, gate: Optional[Gate] = None, tmp: Optional[Path] = None) -> 
             break
         if hit and hit[0] == "ok":
             continue
-        ex = scope_exemption(tool)
-        if hit and hit[0] == "narrow" and ex:
+        if hit and hit[0] == "narrow" and (r.declares_narrowing or scope_exemption(tool)):
             continue
         if hit and hit[0] == "narrow":
             miss = sorted(want_files - hit[1])
             unbacked.append(
-                f"CONTRIBUTING.md:{r.line} '{r.standard}' claims CI runs "
+                f"{source}:{r.line} '{r.standard}' claims CI runs "
                 f"`{r.command}` but the only workflow invocation of {tool} covers "
                 f"{len(hit[1])}/{len(want_files)} of its scope; unenforced: "
                 f"{miss[:4]}{'...' if len(miss) > 4 else ''}")
         else:
             unbacked.append(
-                f"CONTRIBUTING.md:{r.line} '{r.standard}' claims CI runs "
+                f"{source}:{r.line} '{r.standard}' claims CI runs "
                 f"`{r.command}` but no workflow under .github/workflows runs "
                 f"{tool}{' with ' + str(sorted(want_flags)) if want_flags else ''}")
-    g.check("contributing_ci_enforced_rows_are_backed",
-            bool(rows) and not unbacked,
-            (f"no 'CI-enforced' table parsed from CONTRIBUTING.md -- the gate read "
-             f"nothing; " if not rows else
-             f"{len(unbacked)}/{len(rows)} rows under CONTRIBUTING.md:{tbl_line} are not "
-             f"enforced by any workflow: ") + "; ".join(unbacked[:4]))
-    return g
+    return unbacked
 
 
 # --------------------------------------------------------------------------------------
@@ -762,8 +890,44 @@ def selftest() -> int:
         print("  MISSED   scope_exemption_does_not_leak_to_pytest")
         missed += 1
 
+    # --- FAULT 7 (C3/README): the SAME claim, made in README's fenced block instead.
+    # Three arms, because three different things can go wrong here and only one of them is
+    # "the check fails": it must fire on an unbacked claim, NAME it, and it must NOT fire on
+    # the two lines the live README deliberately marks local/advisory.
+    f7 = tmp / "f7"
+    shutil.copytree(base, f7)
+    rd = f7 / "README.md"
+    b7 = rd.read_text()
+    a7 = b7.replace("ruff check src/ tests/ scripts/      # style + import order   (CI-enforced)",
+                    "vulture src/                         # dead code   (CI-enforced)\n"
+                    "ruff check src/ tests/ scripts/      # style + import order   (CI-enforced)",
+                    1)
+    assert a7 != b7, "FIXTURE DRIFT: README's (CI-enforced) ruff line moved"
+    rd.write_text(a7)
+    g7 = run(f7, tmp=tmp / "t7")
+    det7 = dict((n, d) for n, ok, d in g7.results
+                if not ok).get("readme_ci_enforced_lines_are_backed", "")
+    expect("unbacked README (CI-enforced) line injected", g7,
+           "readme_ci_enforced_lines_are_backed", True)
+    if "vulture" in det7:
+        print("  TRIPPED  readme_ci_detail_names_the_injected_line")
+    else:
+        print(f"  MISSED   readme_ci_detail_names_the_injected_line   ({det7[:160]})")
+        missed += 1
+    # The local/advisory lines must stay invisible to it: `mypy src`, `pytest --cov`,
+    # `vulture src/` and `bandit -r src/` are all in the same fenced block and none is
+    # enforced by any workflow. If the parser took them as claims the live README would fail.
+    rrows, _ = parse_readme_ci_lines(REPO / "README.md")
+    claimed = {r.command for r in rrows}
+    leaked = [c for c in claimed if c.startswith(("mypy src", "pytest --cov", "vulture", "bandit"))]
+    if not leaked and claimed:
+        print("  TRIPPED  readme_ci_parser_skips_local_only_lines")
+    else:
+        print(f"  MISSED   readme_ci_parser_skips_local_only_lines   (took {leaked} as claims)")
+        missed += 1
+
     shutil.rmtree(tmp, ignore_errors=True)
-    total = 10
+    total = 13
     print(f"SELFTEST OK: {total - missed}/{total} checks provably fail when broken"
           if not missed else
           f"SELFTEST FAILED: {total - missed}/{total} checks provably fail when broken")

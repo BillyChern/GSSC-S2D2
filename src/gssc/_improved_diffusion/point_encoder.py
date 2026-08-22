@@ -1,4 +1,9 @@
-# adapted from voxel_fea_generator.py
+# Adapted from 2DPASS (https://github.com/yanx27/2DPASS),
+# network/voxel_fea_generator.py -- MIT License, Copyright (c) 2022 Benny
+# (the holder named in the upstream LICENSE; yanx27 is the repository owner).
+# See THIRD_PARTY_NOTICES.md section 6 for the full notice and the measured
+# overlap. A bare upstream filename does not identify a project, which is why
+# this header names one.
 # import ipdb; ipdb.set_trace()
 import numpy as np
 import spconv.pytorch as spconv

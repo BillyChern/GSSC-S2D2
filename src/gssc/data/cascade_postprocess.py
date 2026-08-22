@@ -108,7 +108,8 @@ class PostProcessConfig:
     # Paste-count budget for RareClassEnhancer. These four are read by enhance() at lines ~318,
     # 378, 396-397 and 416; they were dropped when the pipeline gained voxel_budget_ratio, which
     # left enhance() raising AttributeError on its own config for every scene. The values are the
-    # ones tools/cascaded_generation.py passes, so caller and callee agree again.
+    # ones the research-tree cascaded-generation driver passes, so caller and callee
+    # agree again (that driver is not part of this release).
     min_objects_to_add: int = 20      # lower bound on the per-scene paste budget
     max_objects_to_add: int = 50      # upper bound; also caps Phase 1 across all classes
     max_objects_per_class: int = 10   # per-class ceiling inside the budget

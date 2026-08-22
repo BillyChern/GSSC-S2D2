@@ -7,9 +7,12 @@ SECURITY.md's trust model is the repository's answer to the fact that it loads c
 `torch.load(..., weights_only=False)` -- i.e. that a hostile checkpoint is arbitrary code
 execution. Its mitigation is one sentence:
 
-    SECURITY.md:63  "Published checkpoints will ship with SHA256 hashes documented in
-                     [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) on release. Verify before loading:"
-    SECURITY.md:66     sha256sum data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
+    SECURITY.md, under its trust model (grep "Verify before loading", not a line number --
+    this pointer read ":63" / ":66" and the file has been rewritten since):
+
+        "Published checkpoints will ship with SHA256 hashes documented in
+         [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) on release. Verify before loading:"
+           sha256sum data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors
 
 Measured on 2026-08-20:
 
@@ -22,6 +25,25 @@ Measured on 2026-08-20:
 So the only defence offered against the deserialization attack vector the same file lists as
 in-scope is a pointer to a table that does not exist. That is worse than silence: a reader who
 follows it concludes the verification exists and that they merely failed to find it.
+
+TWO ARMS ADDED 2026-08-22, EACH FOR A DEFECT THAT SHIPPED GREEN
+---------------------------------------------------------------
+  published_metadata_hashes_match_assets
+      `released_leaves()` drops `*.txt` as "MANIFEST / checksums metadata, not weights", which
+      is right for the who-has-a-hash checks and wrong for the does-it-match check: nothing
+      keyed docs/MODEL_ZOO.md's `MANIFEST.txt` row to anything, so when MANIFEST.txt was
+      regenerated and its digest moved from `4d05afd9dc10...` to `87a91895447e...`, the doc
+      kept the old value and this gate printed PASS. SECURITY.md tells readers a FAILED line
+      means "do not load that file"; a silently wrong row in that table is worse than none.
+
+  verification_command_exits_zero
+      The old arm asserted `bool(cmds)` -- that some doc contained the STRING
+      `sha256sum -c <file>`. Three byte-identical broken commands shipped green under that
+      rule, because the string was right and the CWD was wrong: the paths inside checksums.txt
+      are relative to the download root, so the same command run one directory up FAILS every
+      line. Each documented command is now EXECUTED, in a miniature payload laid out where the
+      DOWNLOADER puts it, and must exit 0. Measured while writing it: rewriting
+      `cd data/checkpoints &&` to `cd data &&` leaves the string arm green and fails this one.
 
 AND THE FILE THAT DOES SHIP IS THE WRONG ONE
 --------------------------------------------
@@ -72,6 +94,23 @@ NAMED AS ONE: a stale safetensors digest is invisible by default. Run the full f
 publishing; the check's failure detail always reports how many files it actually hashed.
 
 STATUS ON 2026-08-20: FAILS, by design. 7 of 9 checks fail on the shipped artefacts.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_ASSETS      the asset staging bundle               default: <repo>/../GSSC-S2D2-assets
+
+THE ASSET STAGING BUNDLE IS NOT PART OF THE PUBLIC RELEASE.
+It is a maintainer working tree; a clone of this repository does not contain it, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 
 from __future__ import annotations
@@ -79,12 +118,15 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
-ASSETS = Path("/workspace/GSSC-S2D2-assets")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+ASSETS = Path(os.environ.get("GSSC_ASSETS") or REPO.parent / "GSSC-S2D2-assets")
 SECURITY = REPO / "SECURITY.md"
 ASSETS_CHECKSUMS = None  # resolved by _locate() below, after ASSETS is defined
 PAYLOAD = ASSETS / "checkpoints"          # what `huggingface-cli upload <repo> checkpoints/` sends
@@ -105,7 +147,11 @@ FULL_HASH = os.environ.get("RELEASE_CHECK_FULL_HASH") == "1"
 #: Files scanned for published digests. `uv.lock` is excluded on purpose: it is full of 64-hex
 #: wheel hashes and would make every "a hash is published" check pass for the wrong reason --
 #: the single most likely way this gate could have been fooled. `external/` is vendored.
-DOC_GLOBS = ("*.md", "docs/*.md", "examples/*.ipynb", "assets/*.md", ".github/*.md")
+#: `.github/ISSUE_TEMPLATE/*.md` is listed separately because `.github/*.md` does not reach
+#: it, and the reproducibility template prints the same `sha256sum -c` command a reader is
+#: told to run -- an instruction that was outside every check here until 2026-08-22.
+DOC_GLOBS = ("*.md", "docs/*.md", "examples/*.ipynb", "assets/*.md", ".github/*.md",
+             ".github/ISSUE_TEMPLATE/*.md")
 
 
 class Leaf(NamedTuple):
@@ -235,6 +281,139 @@ def published_hashes(docs: Dict[str, str]) -> List[Tuple[str, int, str, str]]:
     return out
 
 
+#: Files whose verification commands are EXECUTED, and the size ceiling for a fixture file.
+#: Only small recorded entries are materialised: the point under test is CWD RESOLUTION, and
+#: copying 4.9 GB to prove a relative path would make the gate unrunnable.
+VERIFY_FIXTURE_MAX_BYTES = 1 << 20
+VERIFY_FIXTURE_SAMPLE = 6
+
+#: A ```fence``` opener/closer. Only a command INSIDE one is an instruction; the same string in
+#: prose is a mention. Measured need: CHANGELOG.md narrates "it now documents the `sha256sum -c`
+#: path against the `checksums.txt` that ships", which VERIFY_CMD matches and which is not a
+#: command anybody can run.
+FENCE = re.compile(r"^\s*(?:```|~~~)")
+
+
+def fenced_verify_commands(docs: Dict[str, str]) -> List[Tuple[str, int, str]]:
+    """(doc, first-line, command) for every `sha256sum -c` command in a fenced code block.
+
+    BACKSLASH CONTINUATIONS ARE JOINED FIRST. The shipped one-file form is written over two
+    lines; reading them separately yielded the fragment `checksums.txt | sha256sum -c -`, which
+    bash reports as "checksums.txt: command not found" -- a finding about the parser, not about
+    the doc. Same class of bug as `_pattern_strings` in check_asset_namespace.
+    """
+    out: List[Tuple[str, int, str]] = []
+    for doc, text in sorted(docs.items()):
+        inside = False
+        pending: List[str] = []
+        start = 0
+        for n, line in enumerate(text.splitlines(), 1):
+            if FENCE.match(line):
+                inside = not inside
+                pending = []
+                continue
+            if not inside:
+                continue
+            stripped = line.strip().lstrip("$ ").strip()
+            if not pending:
+                start = n
+            if stripped.endswith("\\"):
+                pending.append(stripped[:-1].strip())
+                continue
+            full = " ".join(pending + [stripped]).strip()
+            pending = []
+            if VERIFY_CMD.search(full):
+                out.append((doc, start, full))
+    return out
+
+
+def _fixture_for(command: str) -> Optional[Tuple[Path, str]]:
+    """Build a miniature download tree for one documented command; -> (cwd_root, shell_cmd).
+
+    The tree reproduces the REPO-RELATIVE path the command's own `cd` names, so a command that
+    cds to the wrong directory fails here exactly as it fails for a reader. The checksums file
+    is the SHIPPED one, trimmed to the entries actually materialised -- trimming keeps the
+    recorded PATHS untouched, which is the thing under test, while keeping the fixture small.
+    """
+    # THE DOWNLOAD ROOT IS NOT TAKEN FROM THE COMMAND. Reading it from the command's own `cd`
+    # made the fixture move with the fault and the check could not fail: rewriting
+    # `cd data/checkpoints` to `cd data` also built the payload under `data/`, so the wrong
+    # command still exited 0. The tree is laid out where the DOWNLOADER puts it -- the repo's
+    # own `data/checkpoints` -- and the command's `cd` is then the thing under test.
+    root_rel = (REPO / "data" / "checkpoints")
+    if not root_rel.exists():
+        return None
+    dl_rel = root_rel.relative_to(REPO).as_posix()
+    ck_file = PAYLOAD / "checksums.txt"
+    if not ck_file.is_file():
+        return None
+    recorded = parse_checksums(ck_file.read_text(encoding="utf-8"))
+    # Any path literal the command names must be in the sample, or a `grep <path> | sha256sum -c -`
+    # form would run against an empty stream and prove nothing about that path.
+    named = [k for k in recorded if k in command]
+    small = sorted((k for k in recorded
+                    if (PAYLOAD / k).is_file()
+                    and (PAYLOAD / k).stat().st_size <= VERIFY_FIXTURE_MAX_BYTES),
+                   key=lambda k: (PAYLOAD / k).stat().st_size)
+    sample = [k for k in dict.fromkeys(named + small[:VERIFY_FIXTURE_SAMPLE])
+              if (PAYLOAD / k).is_file()]
+    if not sample:
+        return None
+    root = Path(tempfile.mkdtemp(prefix="gssc-verify-"))     # honours TMPDIR; never /tmp here
+    dl = root / dl_rel
+    dl.mkdir(parents=True, exist_ok=True)
+    digests: Dict[str, str] = {}
+    for k in sample:
+        dst = dl / k
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        if (PAYLOAD / k).stat().st_size <= VERIFY_FIXTURE_MAX_BYTES:
+            shutil.copyfile(PAYLOAD / k, dst)
+            digests[k] = recorded[k]
+        else:
+            # A path the command NAMES explicitly but that is too large to copy (the shipped
+            # one-file example names a 133 MiB safetensors). A STAND-IN carrying its own
+            # recomputed digest is written at the same relative path. What that proves is what
+            # this check is for: the command, run from the cwd the doc names, RESOLVES the
+            # recorded path and prints OK. Whether the REAL digest matches is a different
+            # question and is owned by assets_checksums_are_current, which hashes real bytes.
+            body = f"stand-in for {k}\n".encode()
+            dst.write_bytes(body)
+            digests[k] = hashlib.sha256(body).hexdigest()
+    (dl / "checksums.txt").write_text(
+        "".join(f"{digests[k]}  {k}\n" for k in sample), encoding="utf-8")
+    return root, command
+
+
+def run_documented_verifications(
+        cmds: Sequence[Tuple[str, int, str]]) -> Tuple[List[str], List[str]]:
+    """Execute each documented command in its own fixture. -> (ran, failures)."""
+    ran: List[str] = []
+    failures: List[str] = []
+    for doc, n, command in cmds:
+        built = _fixture_for(command)
+        if built is None:
+            failures.append(f"{doc}:{n}: `{command}` could not be given a fixture -- "
+                            f"{PAYLOAD}/checksums.txt is missing or names no small file, so "
+                            f"this command is UNVERIFIED rather than verified")
+            continue
+        root, shell_cmd = built
+        try:
+            proc = subprocess.run(["bash", "-c", shell_cmd], cwd=root,
+                                  capture_output=True, text=True, timeout=120)
+            bad = [ln for ln in proc.stdout.splitlines() if not ln.rstrip().endswith(": OK")]
+            if proc.returncode != 0 or bad:
+                failures.append(
+                    f"{doc}:{n}: `{command}` exits {proc.returncode} from the cwd it names "
+                    f"(first offending line: {(bad or proc.stderr.splitlines() or [''])[0][:120]!r})")
+            else:
+                ran.append(f"{doc}:{n}")
+        except (OSError, subprocess.SubprocessError) as e:
+            failures.append(f"{doc}:{n}: `{command}` could not be executed: {e}")
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+    return ran, failures
+
+
 # --------------------------------------------------------------------------- evaluation
 
 Verdict = Tuple[bool, str]
@@ -246,6 +425,32 @@ def _key_of(context: str, leaves: Sequence[Leaf]) -> Optional[str]:
         stem = leaf.rel[len("checkpoints/"):] if leaf.rel.startswith("checkpoints/") else leaf.rel
         if stem in context or leaf.rel in context:
             return leaf.rel
+    return None
+
+
+def _recorded_key_of(context: str, recorded: Dict[str, str]) -> Optional[str]:
+    """Which RECORDED path (checksums.txt key, metadata included) a published digest is keyed to.
+
+    Why this exists separately from `_key_of`: that one keys published digests to released
+    LEAVES, and `released_leaves()` drops `*.txt` as "MANIFEST / checksums metadata, not
+    weights". The exclusion is right for the who-has-a-hash checks and WRONG for the
+    does-the-published-hash-match check -- on 2026-08-22 docs/MODEL_ZOO.md published
+    `4d05afd9dc1006bc...` for MANIFEST.txt while the file on disk hashed to
+    `87a91895447e0c22...`, and this gate reported PASS because the row was keyed to nothing.
+    SECURITY.md tells readers a FAILED line means "do not load that file"; a table with a
+    silently wrong row is worse than no table.
+
+    Matching is LONGEST-KEY-FIRST and must be UNAMBIGUOUS. A bare basename like `config.json`
+    matches 18 recorded paths, so a basename is only accepted when exactly one recorded path
+    carries it; otherwise the digest is left unkeyed and reported as such rather than paired
+    with a guess.
+    """
+    for key in sorted(recorded, key=len, reverse=True):
+        if key in context:
+            return key
+    base_hits = {k for k in recorded if k.rsplit("/", 1)[-1] in context}
+    if len(base_hits) == 1:
+        return next(iter(base_hits))
     return None
 
 
@@ -301,6 +506,29 @@ def evaluate(security: str, docs: Dict[str, str], assets_ck: Dict[str, str],
         f"a released checkpoint path -- see every_released_checkpoint_has_published_hash",
     )
 
+    # -- 4b. ...and so must every published digest keyed to RECORDED METADATA -----------------
+    # `released_leaves()` drops *.txt, so check 4 above cannot see MANIFEST.txt or a checksums
+    # file that a doc publishes a digest for. This arm keys published digests to the recorded
+    # CHECKSUMS table instead, which includes those, and compares. Any digest that check 4
+    # already judged is skipped so a real mismatch is not reported twice.
+    already = {k for _d, _n, _hx, k in keyed}
+    meta_keyed = []
+    for d, n, hx, ctx in pub:
+        if _key_of(ctx, leaves) in already:
+            continue
+        k = _recorded_key_of(ctx, assets_ck)
+        if k is not None:
+            meta_keyed.append((d, n, hx, k))
+    meta_wrong = [f"{d}:{n} publishes {hx[:12]}... for {k}, but {ASSETS_CHECKSUMS.name} records "
+                  f"{assets_ck.get(k, '<nothing>')[:12]}..."
+                  for d, n, hx, k in meta_keyed if assets_ck.get(k) != hx]
+    res["published_metadata_hashes_match_assets"] = (
+        not meta_wrong,
+        "; ".join(meta_wrong) if meta_wrong else
+        f"{len(meta_keyed)} published digest(s) keyed to a recorded non-checkpoint path "
+        f"(MANIFEST / checksums metadata) and all match",
+    )
+
     # -- 5. the reference side must be complete ---------------------------------------------
     uncovered = [l.rel for l in leaves if _payload_rel(l.rel) not in assets_ck]
     res["assets_checksums_cover_released_leaves"] = (
@@ -341,22 +569,38 @@ def evaluate(security: str, docs: Dict[str, str], assets_ck: Dict[str, str],
     )
 
     # -- 9. a command that yields a VERDICT, not a digest ------------------------------------
-    cmds = [(d, n, line.strip()) for d, t in sorted(docs.items())
-            for n, line in enumerate(t.splitlines(), 1) if VERIFY_CMD.search(line)]
+    cmds = fenced_verify_commands(docs)
     res["verification_command_documented"] = (
         bool(cmds),
-        "no doc gives a `sha256sum -c <file>` command; SECURITY.md prints a bare "
-        "`sha256sum <path>`, which emits a digest and no verdict, so a reader has nothing to "
-        "compare it against",
+        "no doc gives a `sha256sum -c <file>` command inside a fenced code block; SECURITY.md "
+        "prints a bare `sha256sum <path>`, which emits a digest and no verdict, so a reader has "
+        "nothing to compare it against",
+    )
+
+    # -- 10. ...and it must EXIT 0 when RUN, from the cwd the doc names ----------------------
+    # This used to assert `bool(cmds)` and nothing else: that some doc contained the STRING
+    # `sha256sum -c <file>`. Three byte-identical broken commands shipped green under that
+    # rule, because the string was right and the CWD was wrong -- the paths inside checksums.txt
+    # are relative to the download root, so the same command run one directory up FAILS every
+    # line "open or read". A gate that reads a command without running it cannot see that.
+    ran, failures = run_documented_verifications(cmds)
+    res["verification_command_exits_zero"] = (
+        bool(ran) and not failures,
+        "; ".join(failures) if failures else
+        (f"{len(ran)} documented command(s) run against a real fixture laid out at "
+         f"data/checkpoints/ and all exit 0: {', '.join(ran)}" if ran else
+         "no documented verification command could be executed against a fixture, so this check "
+         "measured nothing -- see verification_command_documented"),
     )
     return res
 
 
 ORDER = ("security_md_names_hash_doc", "named_doc_publishes_hashes",
          "every_released_checkpoint_has_published_hash", "published_hashes_match_assets",
+         "published_metadata_hashes_match_assets",
          "assets_checksums_cover_released_leaves", "assets_checksums_are_current",
          "checksums_file_inside_download_payload", "shipped_checksums_cover_released_files",
-         "verification_command_documented")
+         "verification_command_documented", "verification_command_exits_zero")
 
 
 def report(res: "Dict[str, Verdict]") -> int:
@@ -391,6 +635,16 @@ def gather():
 # --------------------------------------------------------------------------- selftest
 
 
+def _metadata_keys(recorded: Dict[str, str], leaves: Sequence[Leaf]) -> List[str]:
+    """Recorded paths that are NOT released leaves -- the MANIFEST / checksums metadata rows.
+
+    These are exactly the rows `released_leaves()` filters out, i.e. the ones check 4 is blind
+    to and check 4b was added for.
+    """
+    leafset = {_payload_rel(l.rel) for l in leaves}
+    return sorted(k for k in recorded if k not in leafset)
+
+
 def _repaired(security, docs, assets_ck, shipped_ck, leaves, rec, meta, repo_files):
     """A consistent world built from the REAL digests, so the fixture cannot drift.
 
@@ -409,7 +663,16 @@ def _repaired(security, docs, assets_ck, shipped_ck, leaves, rec, meta, repo_fil
             fixed_ck[_payload_rel(leaf.rel)] = h
     zoo = "# Model Zoo\n\n| File | SHA256 |\n|---|---|\n" + "".join(
         f"| `{l.rel}` | `{fixed_ck[_payload_rel(l.rel)]}` |\n" for l in leaves)
-    zoo += "\nVerify everything you downloaded:\n\n```bash\nsha256sum -c checksums.txt\n```\n"
+    # The fixture MUST carry a metadata row, or published_metadata_hashes_match_assets passes
+    # vacuously on a table it never keyed anything in -- the arm that never fires. The row is
+    # built from the real checksums entry, so it cannot drift away from what ships.
+    for mk in _metadata_keys(fixed_ck, leaves):
+        zoo += f"| `{mk}` | `{fixed_ck[mk]}` |\n"
+    # The cd is load-bearing in the FIXTURE too: the recorded paths are relative to the download
+    # root, so a fixture command without it would fail verification_command_exits_zero and the
+    # whole selftest would report the baseline as broken rather than the fault.
+    zoo += ("\nVerify everything you downloaded:\n\n```bash\n"
+            "cd data/checkpoints && sha256sum -c checksums.txt\n```\n")
     fixed_docs = dict(docs)
     fixed_docs["docs/MODEL_ZOO.md"] = zoo
     fixed_shipped = {l.rel: fixed_ck[_payload_rel(l.rel)] for l in leaves}
@@ -448,6 +711,22 @@ def selftest() -> int:
         stripped = {k: HEX64.sub("x" * 64, v) for k, v in docs.items()}
         return _assert_changed(docs, stripped, "no-hashes")
 
+    def _wrong_metadata_hash(docs_in, ck_in, leaves_in) -> Dict[str, str]:
+        """Corrupt the published digest of a METADATA row (MANIFEST.txt), nothing else.
+
+        Replays the 2026-08-22 defect exactly: MANIFEST.txt was regenerated, its SHA256 moved,
+        and docs/MODEL_ZOO.md kept the old one. check 4 reported PASS throughout, because
+        `released_leaves()` drops `*.txt`.
+        """
+        mks = _metadata_keys(ck_in, leaves_in)
+        if not mks:
+            raise AssertionError("no metadata row in the checksums file: this arm cannot fire, "
+                                 "which is itself the defect it guards against")
+        good = ck_in[mks[0]]
+        bad = ("e" * 64) if good != "e" * 64 else "f" * 64
+        out = {k: v.replace(good, bad) for k, v in docs_in.items()}
+        return _assert_changed(docs_in, out, "wrong-metadata-hash")
+
     def wrong_doc_hash() -> Dict[str, str]:
         target = leaves[0].rel
         # ck is keyed payload-relative (that is what ships at the download root),
@@ -468,6 +747,8 @@ def selftest() -> int:
             lambda: with_(docs=drop_doc_hashes()),
         "published_hashes_match_assets":
             lambda: with_(docs=wrong_doc_hash()),
+        "published_metadata_hashes_match_assets":
+            lambda: with_(docs=_wrong_metadata_hash(docs, ck, leaves)),
         "assets_checksums_cover_released_leaves":
             lambda: with_(assets_ck=_assert_changed(
                 ck, {k: v for k, v in ck.items()
@@ -485,6 +766,12 @@ def selftest() -> int:
             lambda: with_(docs=_assert_changed(
                 docs, {k: VERIFY_CMD.sub("sha256sum <file>", v) for k, v in docs.items()},
                 "nocmd")),
+        # The exact defect: right command, wrong directory. The string-only arm above stays
+        # green on this fault -- measured -- which is why the executing arm exists.
+        "verification_command_exits_zero":
+            lambda: with_(docs=_assert_changed(
+                docs, {k: v.replace("cd data/checkpoints &&", "cd data &&")
+                       for k, v in docs.items()}, "wrongcwd")),
     }
     for name in ORDER:
         if name in pre_bad:

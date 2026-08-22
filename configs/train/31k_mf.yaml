@@ -1,5 +1,13 @@
 _paper_table: "tab:main_results and tab:perclass_delta (headline)"
 _description: "31K-MF: SCPNet base + 31K synthetic + multi-frame LiDAR. The headline configuration that yields 38.54% val mIoU and 39.2% test mIoU (D4 TTA)."
+# PREREQUISITES (neither is fetched by scripts/download_assets.py):
+#   python scripts/prepare_256_data.py       --semantickitti_root data/SemanticKITTI
+#   python scripts/prepare_multi_frame_data.py --semantickitti_root data/SemanticKITTI
+# The first builds data/SemanticKITTI_3D/256/ (17.3 GB for val 08, 98.8 GB for the
+# eleven annotated sequences); without it the trainer raises MissingVoxelCacheError.
+# The second builds data/SemanticKITTI_3D/256_multi_frame/ (2.4 GB), which is what
+# makes this an "_mf" run: cold diffusion does NOT require it, so if it is absent the
+# loader logs a warning and trains on SINGLE-frame LiDAR instead of failing.
 data_root: data
 model_type: sparse_full
 s3_mode: teacher

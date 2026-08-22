@@ -3,7 +3,12 @@ r"""GATE: a release doc must not present, as a PAPER value, a number the paper n
 
 WHY THIS EXISTS -- the defects it was built from, all confirmed by measurement on 2026-08-20
 --------------------------------------------------------------------------------------------
- 1. ``GSSC-S2D2-assets/MANIFEST.txt:40`` states "the 26.1% / +3.3 pp value is the paper headline
+LINE NUMBERS IN THIS BLOCK ARE A DATED SNAPSHOT of the checkout named above, not
+navigation. Several have already moved: follow the SYMBOL, the heading or the quoted
+text, and re-derive the location with `grep -n`. Every check below RE-MEASURES the
+live artefacts, so nothing here is load-bearing for a verdict.
+
+ 1. The asset bundle's ``checkpoints/MANIFEST.txt`` stated "the 26.1% / +3.3 pp value is the paper headline
     ... It is the value cited in the abstract and conclusion".  ``26.1``, ``26.05`` and ``+3.3``
     occur ZERO times in main.pdf and supplementary.pdf.  The paper's JS3C-Net cross-base row is
     24.3 / +1.6.  The claim is not a rounding of anything the paper prints.
@@ -20,6 +25,15 @@ WHY THIS EXISTS -- the defects it was built from, all confirmed by measurement o
     ``docs/MODEL_ZOO.md:190``.  The paper's BEV secondary task reads 34.8 -> 36.1 (+1.3);
     ``34.3`` occurs ZERO times in either PDF.  (The checkpoint's own config.json says the base is
     34.75, i.e. 34.8 -- see check_protocol_disclosure.py, which owns the protocol half of this.)
+
+SOURCE SET WIDENED 2026-08-22, because a gate only judges what it reads. It read README.md,
+docs/*.md and the two assets manifests. CITATION.cff's abstract, CONTRIBUTING.md, SECURITY.md,
+the issue templates, the workflow files, the four per-dataset asset READMEs and the two Hugging
+Face cards -- 18 more public surfaces -- were invisible to all sixteen gates. Each was measured
+ALONE against this gate before being added; 16 came back green and are now judged, and the two
+that did not are in DOC_SOURCE_EXCLUSIONS with their finding counts and are PRINTED on every
+run. `_selftest`'s `widened-source:*` arms plant a fabricated paper value in each new family
+and require it to be caught, so a widening that lists paths without judging them cannot pass.
 
 PROGRESS SIGNAL, observed while this gate was being written: the assets ``MANIFEST.txt`` was
 regenerated mid-session by ``make_manifest.py`` and the false 26.1 / +3.3 headline claim
@@ -86,29 +100,94 @@ WHAT IT DOES NOT DO
 USAGE
     python .release_checks/check_paper_numbers.py
     python .release_checks/check_paper_numbers.py --selftest
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_ASSETS      the asset staging bundle               default: <repo>/../GSSC-S2D2-assets
+    GSSC_PAPER       the manuscript checkout                default: <repo>/../GSSC-paper
+
+THE ASSET STAGING BUNDLE AND THE MANUSCRIPT CHECKOUT ARE NOT PART OF THE PUBLIC RELEASE.
+They are maintainer working trees; a clone of this repository does not contain them, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Sequence, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
-ASSETS = Path("/workspace/GSSC-S2D2-assets")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+ASSETS = Path(os.environ.get("GSSC_ASSETS") or REPO.parent / "GSSC-S2D2-assets")
+PAPER = Path(os.environ.get("GSSC_PAPER") or REPO.parent / "GSSC-paper")
 PAPER_PDFS = (
-    Path("/workspace/GSSC-paper/pdf/main.pdf"),
-    Path("/workspace/GSSC-paper/pdf/supplementary.pdf"),
+    PAPER / "pdf" / "main.pdf",
+    PAPER / "pdf" / "supplementary.pdf",
 )
 
 #: Doc sources, in the order a reader meets them. Globs are expanded live: a new docs/*.md must
 #: come under judgement without editing this gate.
+#: Surfaces DELIBERATELY not judged, each with the measurement that put it here. A silent
+#: omission is how "the SemanticPOSS 6.6 line survived several sweeps" happens; a NAMED one is
+#: printed by R1 on every run, so the hole is visible to whoever reads the output.
+#: MEASURED 2026-08-22 by pointing doc_sources() at each file alone and running main():
+DOC_SOURCE_EXCLUSIONS: Tuple[Tuple[str, str], ...] = (
+    ("CHANGELOG.md",
+     "20 findings, and every one sampled is the release note QUOTING the string it removed -- "
+     "e.g. a '### Fixed -- SemanticPOSS zero-shot read 6.6 where the paper prints 6.5' section "
+     "whose body lists `docs/TRAIN.md:67 \"**26.05 %** (paper ... headline)\"` as the residue "
+     "that was deleted. A changelog's job is to quote the wrong value; a gate that fails on "
+     "that trains people to ignore it. Judging this file needs a QUOTATION rule (a value inside "
+     "a quoted fragment under a Fixed/Removed heading is a record, not a claim), which does not "
+     "exist yet. Until it does, the file is unjudged and this line says so."),
+    ("hf_cards/THIRD_PARTY_NOTICES.md",
+     "8+ findings, all of them SOURCE-OVERLAP RATIOS ('165 matched lines (52.5 % of our file)') "
+     "anchored only by that document's own internal section-sign cross-references, which "
+     "PAPER_ANCHOR reads as paper pointers. Measured before excluding: `grep -nE "
+     "'mIoU|IoU|paper (prints|reports|headline)'` over the file returns ONE line, and it makes "
+     "no numeric claim -- the file publishes no metric about the paper, so excluding it loses "
+     "no coverage. check_protocol_disclosure and check_paper_labels still read it."),
+)
+
+
 def doc_sources() -> List[Path]:
-    out = [REPO / "README.md"]
+    """Every PUBLIC prose surface that can present a paper value.
+
+    WIDENED 2026-08-22. It read README.md, docs/*.md and the two assets manifests, which is why
+    a retracted number could sit unjudged in CITATION.cff, CONTRIBUTING.md, SECURITY.md, the
+    issue templates, the workflow files, the per-dataset asset READMEs and the Hugging Face
+    cards -- all of them read by strangers. Every file added below was measured ALONE against
+    this gate first and came back green; the two that did not are in DOC_SOURCE_EXCLUSIONS with
+    their finding counts, not dropped in silence.
+    """
+    out = [REPO / "README.md", REPO / "CITATION.cff", REPO / "CONTRIBUTING.md",
+           REPO / "SECURITY.md"]
     out += sorted((REPO / "docs").glob("*.md"))
+    out += sorted((REPO / ".github").rglob("*.md"))
+    out += sorted((REPO / ".github").rglob("*.yml"))
     out += [ASSETS / "MANIFEST.txt", ASSETS / "README.md", ASSETS / "checkpoints" / "MANIFEST.txt"]
-    return [p for p in out if p.is_file()]
+    out += sorted(ASSETS.glob("datasets/*/README.md"))
+    out += sorted(ASSETS.glob("hf_cards/*.md"))
+    excluded = {name for name, _why in DOC_SOURCE_EXCLUSIONS}
+    keep = []
+    for q in out:
+        rel = str(q)
+        if any(rel.endswith("/" + name) or q.name == name for name, _w in DOC_SOURCE_EXCLUSIONS):
+            continue
+        keep.append(q)
+    assert excluded, "the exclusion table must never be silently emptied"
+    return [q for q in keep if q.is_file()]
 
 
 #: Values a human opened the PDFs and confirmed. R2 fails if the extractor cannot find them --
@@ -173,6 +252,21 @@ ARROW_PAIR = re.compile(
 #: TALoS, CarlaSC, KITTI-360.
 SCOPE_KEY_SHAPE = re.compile(r"\b[A-Z][A-Za-z0-9]*(?:[-‑][A-Za-z0-9]+)*\b")
 SCOPE_KEY_MAX = 40
+
+#: Tokens that pass the shape and frequency rules but localise NOTHING, because they name the
+#: implementation rather than a dataset, a benchmark or a method. This is a stoplist and
+#: therefore rots, so the rule for adding to it is strict: a token goes here ONLY with the
+#: finding that forced it, never pre-emptively.
+#:   * "PyTorch" -- CITATION.cff's abstract opens "Official PyTorch implementation ... 38.8%
+#:     mIoU on the SemanticKITTI hidden test". 38.8 is the paper headline and is in
+#:     CONTROL_VALUES, but R6 took "PyTorch" as the block's scope key and failed the value for
+#:     not sitting within SCOPE_WINDOW of it in the PDFs. The framework a repo is written in
+#:     says nothing about which measurement a number belongs to.
+#: A MECHANICAL criterion was tried first and REJECTED, so nobody re-derives it: "a scope key
+#: must occur in the PDFs within 120 chars of a metric-shaped number" keeps PyTorch, PyPI and
+#: NumPy (all 2/2, 2/2, 1/1) while dropping LiDiff and SegRefiner (0/1, 0/2), which are real
+#: method names. It separates nothing.
+SCOPE_KEY_STOP = frozenset({"PyTorch"})
 SCOPE_WINDOW = 1200          # characters either side of a key occurrence
 DELTA_TOL = Decimal("0.05")  # pp; R5 compares one-decimal doc arithmetic
 MIN_CLAUSE = 20              # chars; below this a "clause" is a wrap fragment
@@ -212,9 +306,21 @@ def norm(text: str) -> str:
                 .replace(" ", " ").replace(" ", " ").replace(" ", " "))
 
 
+class PaperMissing(RuntimeError):
+    """The manuscript PDFs are not on this machine.  Raised instead of letting PyMuPDF
+    throw, so a visitor without the (unpublished) paper checkout gets one named FAIL line
+    rather than a traceback quoting a path that means nothing to them."""
+
+
 def read_pdfs() -> Dict[str, str]:
     import fitz  # PyMuPDF
 
+    absent = [str(p) for p in PAPER_PDFS if not p.is_file()]
+    if absent:
+        raise PaperMissing(
+            f"{', '.join(absent)} not found. The manuscript checkout is NOT part of the "
+            f"public release; point GSSC_PAPER at your own copy to run this gate. Absent "
+            f"is not evidence the numbers agree, so this gate fails rather than skipping.")
     out: Dict[str, str] = {}
     for p in PAPER_PDFS:
         doc = fitz.open(p)
@@ -343,6 +449,8 @@ def scope_keys(block: str, pdfs: Dict[str, str], freq: Dict[str, int]) -> List[s
     """Distinctive proper nouns shared by the block and the PDFs (see SCOPE_KEY_MAX)."""
     keys = []
     for tok in set(SCOPE_KEY_SHAPE.findall(block)):
+        if tok in SCOPE_KEY_STOP:
+            continue
         if len(tok) < 4 or sum(c.isupper() for c in tok) < 2:
             continue
         if not any(c.islower() for c in tok):
@@ -395,9 +503,16 @@ def run(paths: Sequence[Path], pdfs: Dict[str, str]) -> List[Result]:
         if p.is_file() and not p.read_text(errors="replace").strip():
             r1.fail(str(p), "source is empty")
     for label, group in (("repo entry point", [REPO / "README.md"]),
+                         ("repo metadata", [REPO / "CITATION.cff", REPO / "CONTRIBUTING.md",
+                                            REPO / "SECURITY.md"]),
                          ("repo docs", sorted((REPO / "docs").glob("*.md"))),
+                         ("github surface", sorted((REPO / ".github").rglob("*.md"))
+                                           + sorted((REPO / ".github").rglob("*.yml"))),
                          ("assets docs", [ASSETS / "MANIFEST.txt", ASSETS / "README.md",
-                                          ASSETS / "checkpoints" / "MANIFEST.txt"])):
+                                          ASSETS / "checkpoints" / "MANIFEST.txt"]),
+                         ("assets dataset docs", sorted(ASSETS.glob("datasets/*/README.md"))),
+                         ("hugging face cards", [ASSETS / "hf_cards" / "dataset_card.md",
+                                                 ASSETS / "hf_cards" / "model_card.md"])):
         alive = [p for p in group if p.is_file()]
         if not alive:
             r1.fail(str(group[0].parent), f"no '{label}' source exists any more; this gate is "
@@ -406,6 +521,10 @@ def run(paths: Sequence[Path], pdfs: Dict[str, str]) -> List[Result]:
             r1.note(f"{label}: {len(alive)}/{len(group)} present "
                     f"({', '.join(str(p) for p in group if not p.is_file())} absent)")
     r1.note(f"{sum(1 for p in paths if p.is_file())} doc source(s) read")
+    # A named exclusion is printed on EVERY run. An unjudged surface that nobody can see in the
+    # output is indistinguishable from a judged one, which is the failure this table exists for.
+    for name, why in DOC_SOURCE_EXCLUSIONS:
+        r1.note(f"NOT JUDGED: {name} -- {why}")
 
     total = sum(len(re.findall(r"\d", t)) for t in pdfs.values())
     if total < 5000:
@@ -647,16 +766,65 @@ def selftest() -> int:
         print("  MISSED   headline-claims-backed")
         missed.append("headline-claims-backed")
 
+    # WIDENED-SOURCE ARM. doc_sources() gained CITATION.cff, CONTRIBUTING.md, SECURITY.md,
+    # .github/**, the per-dataset asset READMEs and the HF cards on 2026-08-22. Listing a path
+    # is not judging it: a widening that returned the paths and then dropped them in `harvest`
+    # would look identical in the output. So this asserts the FAMILIES are present AND that a
+    # fabricated paper value planted in each new family's file shape is actually caught.
+    for fam, rel in (("repo metadata", "CITATION.cff"),
+                     ("github surface", ".github/ISSUE_TEMPLATE/x.md"),
+                     ("assets dataset docs", "datasets/scpnet_predictions/README.md"),
+                     ("hugging face cards", "hf_cards/model_card.md")):
+        planted = write(rel, "Card\n\nThe paper tab:main_results row reads **99.87 %** mIoU.\n")
+        res = {r.name: r for r in run([planted], pdfs)}
+        if res["paper-values-in-pdf"].ok:
+            print(f"  MISSED   widened-source:{fam}")
+            missed.append(f"widened-source:{fam}")
+        else:
+            print(f"  TRIPPED  widened-source:{fam}")
+    live = {str(q) for q in doc_sources()}
+    for must in ("CITATION.cff", "CONTRIBUTING.md", "SECURITY.md"):
+        if not any(q.endswith("/" + must) for q in live):
+            print(f"  MISSED   widened-source:doc_sources-contains-{must}")
+            missed.append(f"widened-source:doc_sources-contains-{must}")
+    if not any("/.github/" in q for q in live):
+        print("  MISSED   widened-source:doc_sources-contains-github")
+        missed.append("widened-source:doc_sources-contains-github")
+    if not any("/hf_cards/" in q for q in live):
+        print("  MISSED   widened-source:doc_sources-contains-hf_cards")
+        missed.append("widened-source:doc_sources-contains-hf_cards")
+    # ...and an exclusion must stay EXCLUDED-AND-NAMED, never quietly dropped from the table.
+    if any(q.endswith("/CHANGELOG.md") for q in live) or not DOC_SOURCE_EXCLUSIONS:
+        print("  MISSED   widened-source:exclusions-are-named")
+        missed.append("widened-source:exclusions-are-named")
+    else:
+        print("  TRIPPED  widened-source:exclusions-are-named")
+
     import shutil
     shutil.rmtree(tmp, ignore_errors=True)          # scratch only, never inside a repo
-    n = 8
+    n = 18
     print(f"SELFTEST OK: {n - len(missed)}/{n} checks provably fail when broken"
           if not missed else
           f"SELFTEST FAILED: {len(missed)} check(s) did not fail when broken: {missed}")
     return 1 if missed else 0
 
 
+def main() -> int:
+    try:
+        pdfs = read_pdfs()
+    except PaperMissing as e:
+        print(f"  FAIL  paper_pdfs_present   ({e})")
+        print("FAILED: 1 failing check(s)")
+        return 1
+    return report(run(doc_sources(), pdfs))
+
+
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
-        raise SystemExit(selftest())
-    raise SystemExit(report(run(doc_sources(), read_pdfs())))
+        try:
+            raise SystemExit(selftest())
+        except PaperMissing as e:
+            print(f"  FAIL  paper_pdfs_present   ({e})")
+            print("SELFTEST FAILED: the fixture needs the manuscript PDFs")
+            raise SystemExit(1)
+    raise SystemExit(main())

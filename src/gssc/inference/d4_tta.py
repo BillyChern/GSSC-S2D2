@@ -16,11 +16,19 @@ Transform inversion conventions (voxel grid axes):
 The base prediction can come from any frozen SSC backbone (SCPNet for the
 headline; JS3C-Net for the v1.1.0 cross-base reproduction).
 
-Usage:
-  python tools/generate_tta_predictions_d4.py \
-      --checkpoint outputs/scene_completion/Exp1_scpnet_synth_BEV/step_40000.pt \
+Usage (via the shipped entry point, which loads configs/infer/val_d4tta.yaml and
+forwards ``correction_steps: 4`` as ``--cold_steps 4``)::
+
+  python scripts/infer.py infer/val_d4tta \
+      --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors \
+      --output outputs/val_d4tta
+
+The equivalent direct invocation of this module::
+
+  python -m gssc.inference.d4_tta \
+      --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors \
       --cold_steps 4 \
-      --output_dir outputs/official_predictions_exp1_31k_mf_40k_4step_tta_d4
+      --output_dir outputs/val_d4tta
 """
 from __future__ import annotations
 

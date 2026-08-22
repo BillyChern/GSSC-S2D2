@@ -7,7 +7,7 @@ name = "gssc"
 version = "2.3.8"
 description = "Official PyTorch implementation of S2D2 (Structured Source Discrete Diffusion) -- 'Generative Semantic Scene Completion'."
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = { text = "MIT" }
 requires-python = ">=3.10,<3.13"
 authors = [
     { name = "Shi Chen" },
@@ -26,7 +26,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Intended Audience :: Science/Research",
@@ -40,8 +40,6 @@ dependencies = [
     "tqdm>=4.66",
     "pyyaml>=6.0",
     "einops>=0.7",
-    "hydra-core>=1.3",
-    "omegaconf>=2.3",
     "safetensors>=0.4.3",
     "huggingface-hub>=0.24",
     "tensorboard>=2.16",
@@ -53,7 +51,13 @@ dependencies = [
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
-    "ruff>=0.6",
+    # Pinned, not floored: lint results are version-dependent, so CI,
+    # pre-commit and this extra must all run the SAME ruff. Measured on this
+    # tree: 0.6.9 aborts at config parse (exit 2, "Unknown rule selector:
+    # `RUF046`"), 0.12.12 reports 4 UP038 errors, 0.15.12 prints "All checks
+    # passed!". Bump this pin, .pre-commit-config.yaml's `rev:` and
+    # .github/workflows/lint.yml together or they drift again.
+    "ruff==0.15.12",
     "mypy>=1.10",
     "types-PyYAML>=6.0",
     "vulture>=2.11",
@@ -96,7 +100,16 @@ packages = ["src/gssc"]
 # Hatch packages only *.py under src/gssc by default, so the third-party
 # license NOTICE for the vendored improved-diffusion fork would be dropped
 # from the wheel. Force-include it to keep the attribution shipping.
-force-include = { "src/gssc/_improved_diffusion/NOTICE" = "gssc/_improved_diffusion/NOTICE" }
+# THIRD_PARTY_NOTICES.md gets the same treatment: the wheel redistributes files
+# copied from MIT-licensed upstreams (pyramid_unet.py above all), and MIT
+# requires their copyright + permission notices to travel with every copy.
+# The root LICENSE already ships via hatchling's default license-file globs
+# (LICEN[CS]E*, COPYING*, NOTICE*, AUTHORS*) into dist-info/licenses/. The repo
+# deliberately has no root NOTICE -- that is an Apache-2.0 s4(d) obligation and
+# this project is MIT -- so third-party attribution lives in
+# THIRD_PARTY_NOTICES.md, which matches none of those globs and therefore needs
+# the explicit entry below.
+force-include = { "src/gssc/_improved_diffusion/NOTICE" = "gssc/_improved_diffusion/NOTICE", "THIRD_PARTY_NOTICES.md" = "gssc/THIRD_PARTY_NOTICES.md" }
 
 [tool.ruff]
 line-length = 100
@@ -107,7 +120,6 @@ extend-exclude = [
     "src/gssc/_improved_diffusion",            # OpenAI improved-diffusion fork
     "src/gssc/models/scene_unet*.py",           # legacy scene-UNet variants used by trainer
     "src/gssc/models/bev_*.py",                 # vendored BEV second-task pipeline
-    "src/gssc/models/conditioning.py",          # vendored conditioning helpers
     "src/gssc/data/semantic_kitti_utils.py",    # vendored split + label utility
     "src/gssc/data/lidar_simulation.py",        # legacy ray-tracer (HDL-64E + Bresenham3D)
     "src/gssc/training/train_pyramid_*.py",     # legacy pyramid training scripts

@@ -15,7 +15,41 @@ Weight loading reshapes kernel dimensions to match, preserving flat element orde
 The upstream SCPNet network code is not vendored in this release. Clone it from
 https://github.com/SCPNet/Codes-for-SCPNet and point this script at the checkout
 either with the --scpnet-repo flag or the $SCPNET_REPO environment variable. The
-default location is the repo-relative path 'external/Codes-for-SCPNet'.
+default location is the repo-relative path 'external/Codes-for-SCPNet' (resolved
+against this file, not against the current working directory).
+
+--scpnet-repo has to be read BEFORE the module-level `from network... import`
+below, which runs at import time, long before main() parses anything -- until
+2026-08-22 the flag was parsed only in main(), so it could set the checkpoint and
+config paths but could never relocate the import it was advertised as fixing, and
+a checkout anywhere else died with ModuleNotFoundError. It is now pre-parsed off
+sys.argv at import time (see _preparse_scpnet_repo), so the flag and the
+environment variable are equivalent; the flag wins when both are given.
+
+Reverse patches (recompiling against spconv 1.0 on a legacy CUDA toolchain)
+--------------------------------------------------------------------------
+Patch 4 below aligns six layer constructors so that every layer sharing an
+``indice_key`` uses the kernel of the FIRST layer to run, reproducing spconv v1's
+shared-pair-data behaviour on spconv v2. On a genuine spconv 1.0 build that
+alignment is unnecessary and WRONG: v1 already reuses the first layer's pair data,
+so the upstream constructors must be restored. To revert, delete the four
+``_patched_*_init`` assignments below (and Patches 1-3, which exist only to make
+spconv v2 accept v1-era call patterns) and let the upstream definitions stand. For
+reference, each row is (block, layers, v1 kernel shape to restore, shape this file
+patches them to):
+
+    ResContextBlock  conv1_2, conv2   v1 (3,1,3) conv3x1     -> patched (1,3,3) conv1x3
+    ResBlock         conv1_2, conv2   v1 (1,3,3) conv1x3     -> patched (3,1,3) conv3x1
+    UpBlock          conv2            v1 (3,1,3) conv3x1     -> patched (1,3,3) conv1x3
+    UpBlock          conv3            v1 (3,3,3) conv3x3     -> patched (1,3,3) conv1x3
+    ReconBlock       conv1_2          v1 (1,3,1) conv1x3x1   -> patched (3,1,1) conv3x1x1
+    ReconBlock       conv1_3          v1 (1,1,3) conv1x1x3   -> patched (3,1,1) conv3x1x1
+
+Shapes are (k_x, k_y, k_z); the constructor names are the upstream helpers in
+``network/segmentator_3d_asymm_spconv.py``. ``reshape_kernel_weight`` and
+``load_scpnet_checkpoint`` below are also v2-only bookkeeping: they reshape a stored
+kernel to the patched shape while preserving flat element ordering, so under
+spconv 1.0 the upstream weights load directly and no reshape is wanted.
 
 Usage:
     python -m gssc.inference.run_scpnet --sequences 08 --eval --max_frames 10
@@ -61,12 +95,43 @@ sys.modules['spconv'] = _spconv_pytorch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Path to the upstream SCPNet checkout (https://github.com/SCPNet/Codes-for-SCPNet).
-# Configurable via $SCPNET_REPO; defaults to the repo-relative 'external/Codes-for-SCPNet'.
-# The --scpnet-repo CLI flag (see main()) overrides this at runtime.
-SCPNET_ROOT = os.environ.get('SCPNET_REPO', 'external/Codes-for-SCPNet')
-sys.path.insert(0, SCPNET_ROOT)
-
+# Configurable via $SCPNET_REPO; defaults to 'external/Codes-for-SCPNet' resolved
+# against the REPO ROOT (this file is <repo>/src/gssc/inference/run_scpnet.py), not
+# against the current working directory -- a cwd-relative default made the import
+# below fail with `ModuleNotFoundError: No module named 'network'` from anywhere but
+# the repo root, even with the checkout correctly placed.
+# The --scpnet-repo CLI flag is pre-parsed here, NOT in main(): main() runs after
+# the `from network...` imports below, so a value read there arrives too late to
+# affect them.
 import argparse
+
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))))
+
+
+def _preparse_scpnet_repo(argv: list[str] | None = None) -> str | None:
+    """Return the ``--scpnet-repo`` value from ``argv`` without consuming anything else.
+
+    A throwaway parser rather than a hand-rolled scan, so the flag keeps argparse's
+    own semantics (``--scpnet-repo=X``, the space-separated form, and unambiguous
+    prefixes) instead of a second, subtly different spelling rule. Unknown
+    arguments are ignored: this is a peek, and ``main()`` still does the real parse.
+    """
+    pre = argparse.ArgumentParser(add_help=False)
+    pre.add_argument('--scpnet-repo', type=str, default=None)
+    try:
+        known, _ = pre.parse_known_args(argv)
+    except SystemExit:
+        # e.g. `--scpnet-repo` with no value. Let main()'s parser produce the
+        # user-facing error instead of aborting during an import.
+        return None
+    return known.scpnet_repo
+
+
+SCPNET_ROOT = (_preparse_scpnet_repo()
+               or os.environ.get('SCPNET_REPO')
+               or os.path.join(_REPO_ROOT, 'external', 'Codes-for-SCPNet'))
+sys.path.insert(0, SCPNET_ROOT)
 
 import numpy as np
 import torch
@@ -397,7 +462,7 @@ def main():
     parser.add_argument('--scpnet-repo', type=str, default=None,
                         help='Path to the upstream SCPNet checkout '
                              '(https://github.com/SCPNet/Codes-for-SCPNet). '
-                             'Overrides $SCPNET_REPO; default: external/Codes-for-SCPNet')
+                             'Overrides $SCPNET_REPO; default: <repo>/external/Codes-for-SCPNet')
     parser.add_argument('--checkpoint', type=str, default=None,
                         help='SCPNet checkpoint (.pth); '
                              'default: <scpnet-repo>/model_load_dir/pretrained.pth')
@@ -418,10 +483,14 @@ def main():
                         help='Regenerate even if predictions exist')
     args = parser.parse_args()
 
-    # Resolve the SCPNet checkout root: CLI flag > $SCPNET_REPO (already captured in
-    # the module-level default) > repo-relative 'external/Codes-for-SCPNet'.
+    # Resolve the SCPNet checkout root: CLI flag > $SCPNET_REPO > repo-relative
+    # 'external/Codes-for-SCPNet'. The same precedence already ran at import time
+    # (_preparse_scpnet_repo), which is what makes the flag able to relocate the
+    # `from network...` imports; this repeat only keeps SCPNET_ROOT authoritative
+    # for the checkpoint / config / label-mapping paths derived below when main()
+    # is called programmatically with an explicit argv.
     global SCPNET_ROOT
-    if args.scpnet_repo is not None:
+    if args.scpnet_repo is not None and args.scpnet_repo != SCPNET_ROOT:
         SCPNET_ROOT = args.scpnet_repo
         sys.path.insert(0, SCPNET_ROOT)
     if args.checkpoint is None:

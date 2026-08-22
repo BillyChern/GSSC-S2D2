@@ -5,11 +5,11 @@ THE DEFECT THIS GATE EXISTS FOR
 -------------------------------
 Two artefacts describe the same hosting, and they disagree about every field of it.
 
-  scripts/download_assets.py:29-30      HF_REPO_MODELS = "BillyChern/GSSC-S2D2-checkpoints"
-                                        HF_REPO_DATA   = "BillyChern/GSSC-S2D2-datasets"
+  scripts/download_assets.py            HF_REPO_MODELS = "BillyChern/GSSC-S2D2-checkpoints"
+  (the HF_REPO_* constants)             HF_REPO_DATA   = "BillyChern/GSSC-S2D2-datasets"
                                         -> TWO repos, namespace `BillyChern`.
 
-  /workspace/GSSC-S2D2-assets/README.md "## Upload procedure"
+  <asset bundle>/README.md              "## Upload procedure"
                                         huggingface-cli upload gssc-s2d2/checkpoints ...
                                         huggingface-cli upload gssc-s2d2/scpnet_predictions ...
                                         huggingface-cli upload gssc-s2d2/js3cnet_predictions ...
@@ -59,20 +59,104 @@ Undetermined by this gate, deliberately. Either artefact may be the one that mov
 author knows which namespace will exist. The gate reports the disagreement and the exact
 file:line of both sides, and does not pretend to know which is canonical.
 
-STATUS ON 2026-08-20: FAILS, by design. 5 of 9 checks fail on the shipped artefacts.
+STATUS
+------
+2026-08-20: FAILED, by design -- 5 of 9 checks red on the shipped artefacts.
+2026-08-22: PASSES 9/9. Both artefacts now name `BillyChern/GSSC-S2D2-checkpoints` and
+            `BillyChern/GSSC-S2D2-datasets`, and the dataset folders are uploaded under the
+            prefixes `allow_patterns` filters on. Re-measure before quoting this line: a
+            frozen self-measurement rots, which is why both dates are kept rather than the
+            first being overwritten.
+2026-08-22: the parse went BLIND for an hour and nobody noticed from the output. The
+            downloader moved `allow_patterns=["<prefix>/*"]` to `allow_patterns=_patterns(
+            "<prefix>")`; the AST read no literals, and the gate reported "downloader filters
+            on []" -- a confident finding about the artefact that was really a finding about
+            the parser. Second time this exact thing has happened here (the first was the
+            `_fetch(snapshot_download, ...)` wrapper). `_pattern_strings()` now reads all
+            three shapes, and an UNREADABLE allow_patterns is reported as PARSE DRIFT
+            instead of as an empty filter set, because those two look identical in the data
+            and mean opposite things.
+2026-08-22: `parse_uploads` put a VALUE-TAKING FLAG'S VALUE in the positional list. The shipped
+            checkpoints command carries fourteen `--exclude "<name>.pt"` pairs, so its
+            `path_in_repo` parsed as "bev_direct_l3_deeper.pt" instead of "" -- and the ""
+            default is called "the load-bearing modelling decision in this gate" in
+            `parse_uploads`' own docstring. VALUE_FLAGS now consumes the argument. Third time
+            a parser here has gone quietly wrong about the artefact it reads.
+2026-08-22: `excludes_keep_every_checksummed_file` added -- the assets runbook's `--exclude`
+            pre-flight, moved into the harness. NOTHING in .release_checks/ applied the
+            exclusion patterns to the payload before comparing it with checksums.txt, so an
+            upload could ship a tree that fails `sha256sum -c` on every excluded line. The
+            trap is real and recorded in the runbook: `--exclude "*.pt"` also matches the
+            BASENAME, so it drops `bev/bev_s2d2_scpnet/model.pt` at depth 3. Measured while
+            writing it: with `*.pt` substituted back in, `legacy_pt_excluded_by_command` stays
+            GREEN and only the new arm fires.
+2026-08-22: the pointer at the top of this docstring read `scripts/download_assets.py:29-30`
+            and had been wrong for some time -- the two constants it names had moved down the
+            file, so a reader following the pointer landed in the middle of the argument
+            parser. Line numbers in prose are derivatives of a file this gate does not
+            control and they rot with the first insertion above them; the symbol name does
+            not. EVERY pointer in this file now names an IDENTIFIER (`HF_REPO_MODELS`,
+            `_patterns`, `allow_patterns`, `_fetch`) that `grep -n` resolves. The `:29-30`
+            above is quoted as HISTORY, not used as a pointer; it is the only line number
+            in this file that refers to another file. Keep it that way.
+
+SCOPE -- WHAT A 9/9 HERE DOES *NOT* MEAN
+----------------------------------------
+This gate is PURELY LOCAL. It proves the downloader and the upload procedure AGREE; it says
+nothing about whether the repos they agree on EXIST. A repo id that is consistent across the
+whole tree and absent from the world passes 9/9, and that is not a hole to be plugged by
+adding a name to a list -- consistency and existence are different questions.
+
+Existence cannot be read off the obvious probe either. `https://huggingface.co/api/models/
+<ns>/<name>` returns **401 for private AND for absent repos**, byte-identically; a wholly
+fabricated namespace returns the same 401 as a real private one. So a 401 carries zero bits
+about existence, and "401, therefore it exists but is private" is an inference, not a
+measurement. Measured 2026-08-22: both ids the downloader names return 401, and
+`https://huggingface.co/BillyChern` -- the account page -- returns 404 anonymously, while
+other real accounts return 200. That is not proof the account is absent (HF may 404 a
+profile holding only private repos), but nothing anonymous supports "it exists", and the one
+independent signal available points the other way.
+
+`--probe-hf` (or `GSSC_PROBE_HF=1`) runs the anonymous check against the ids the AST
+actually found, and requires 200 from a LOGGED-OUT session -- not from the owner's browser,
+where a private repo looks identical to a public one. It ABSTAINS by default, and abstains
+rather than fails when the network is unreachable: an outage is not evidence about a repo.
+
+POSITIVE CONTROL for the probe, run 2026-08-22 so its PASS branch is not a branch that has
+never fired: `models/bert-base-uncased` -> 200, `models/<the shipped checkpoints id>` -> 401,
+`models/nosuchuser-9f8a7b6c5d/nosuchrepo` (fabricated) -> 401. The 200 arm works; the two
+401s are indistinguishable, which is the whole point above.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_ASSETS      the asset staging bundle               default: <repo>/../GSSC-S2D2-assets
+
+THE ASSET STAGING BUNDLE IS NOT PART OF THE PUBLIC RELEASE.
+It is a maintainer working tree; a clone of this repository does not contain it, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 
 from __future__ import annotations
 
 import ast
+import os
 import re
 import shlex
 import sys
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
-ASSETS = Path("/workspace/GSSC-S2D2-assets")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+ASSETS = Path(os.environ.get("GSSC_ASSETS") or REPO.parent / "GSSC-S2D2-assets")
 DOWNLOADER = REPO / "scripts" / "download_assets.py"
 ASSETS_README = ASSETS / "README.md"
 
@@ -101,6 +185,12 @@ class Fetch(NamedTuple):
     var: Optional[str]          # the constant's name, for the failure message
     prefixes: Tuple[str, ...]   # allow_patterns folder prefixes, e.g. ("scpnet_predictions",)
     line: int
+    #: `allow_patterns=` was present at this call site but yielded no string the parse could
+    #: read.  Kept separate from "no allow_patterns at all": the two look identical in the
+    #: prefix set and mean opposite things -- one is a whole-repo fetch, the other is the
+    #: gate having gone blind.  Twice now a shape change here produced a confident
+    #: "filters on []" that was a parser failure, not an artefact defect.
+    patterns_unreadable: bool = False
 
 
 class Upload(NamedTuple):
@@ -114,6 +204,36 @@ class Upload(NamedTuple):
 
 
 # --------------------------------------------------------------------------- parsing
+
+
+def _pattern_strings(node: ast.AST, consts: Dict[str, Constant]) -> List[str]:
+    """String literals reachable from an `allow_patterns=` expression.
+
+    Handles the three shapes this argument has actually taken, because it has changed
+    twice and each change silently blinded the gate:
+
+        allow_patterns=["scpnet_predictions/*"]          a list literal
+        allow_patterns=SOME_CONST                        a module constant
+        allow_patterns=_patterns("scpnet_predictions")   a helper that anchors --include
+
+    For a CALL the literal arguments are read, not the function body: the helper's job is
+    to anchor patterns under the prefix it is handed, so the prefix IS the argument. This
+    is deliberately shallow -- a helper that computed its prefix would yield nothing here,
+    and yielding nothing is reported as a parse failure rather than as "the downloader
+    filters on nothing", which is the misreading this gate produced the last two times.
+    """
+    out: List[str] = []
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        out.append(node.value)
+    elif isinstance(node, (ast.List, ast.Tuple)):
+        for elt in node.elts:
+            out.extend(_pattern_strings(elt, consts))
+    elif isinstance(node, ast.Name) and node.id in consts:
+        out.append(consts[node.id].value)
+    elif isinstance(node, ast.Call):
+        for a in list(node.args) + [k.value for k in node.keywords]:
+            out.extend(_pattern_strings(a, consts))
+    return [o for o in out if o]
 
 
 def parse_downloader(src: str) -> Tuple[List[Constant], List[Fetch]]:
@@ -153,6 +273,7 @@ def parse_downloader(src: str) -> Tuple[List[Constant], List[Fetch]]:
             continue
         rid = var = None
         prefixes: List[str] = []
+        unreadable = False
         # A wrapper takes the repo id positionally; scan the positional args too.
         for a in node.args:
             if isinstance(a, ast.Name) and a.id in consts and rid is None:
@@ -166,13 +287,27 @@ def parse_downloader(src: str) -> Tuple[List[Constant], List[Fetch]]:
                     var, rid = kw.value.id, consts[kw.value.id].value
                 elif isinstance(kw.value, ast.Constant):
                     rid = str(kw.value.value)
-            elif kw.arg == "allow_patterns" and isinstance(kw.value, (ast.List, ast.Tuple)):
-                for elt in kw.value.elts:
-                    if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
-                        # "scpnet_predictions/*" -> "scpnet_predictions"
-                        prefixes.append(elt.value.split("/", 1)[0])
-        fetches.append(Fetch(rid, var, tuple(prefixes), node.lineno))
+            elif kw.arg == "allow_patterns":
+                lits = _pattern_strings(kw.value, consts)
+                if not lits:
+                    unreadable = True
+                for lit in lits:                # "scpnet_predictions/*" -> "scpnet_predictions"
+                    prefixes.append(lit.split("/", 1)[0])
+        fetches.append(Fetch(rid, var, tuple(prefixes), node.lineno, unreadable))
     return sorted(consts.values()), fetches
+
+
+#: `huggingface-cli` flags that take a SEPARATE value token. Anything here written as
+#: `--flag VALUE` is normalised to `--flag=VALUE` so the value never lands in the positional
+#: list. Measured need: the shipped checkpoints upload carries fourteen `--exclude "<name>"`
+#: pairs, and without this the first of those values was read as `path_in_repo`.
+VALUE_FLAGS = frozenset({"--exclude", "--include", "--repo-type", "--path-in-repo",
+                         "--commit-message", "--commit-description", "--revision", "--token"})
+
+
+def exclude_values(up: "Upload") -> List[str]:
+    """The `--exclude` PATTERNS of one upload command, normalised out of its flags."""
+    return [f[len("--exclude="):] for f in up.flags if f.startswith("--exclude=")]
 
 
 def parse_uploads(readme: str) -> List[Upload]:
@@ -192,8 +327,27 @@ def parse_uploads(readme: str) -> List[Upload]:
             toks = shlex.split(line)
         except ValueError:
             continue
-        positional = [t for t in toks[2:] if not t.startswith("-")]
-        flags = tuple(t for t in toks[2:] if t.startswith("-"))
+        # VALUE-TAKING FLAGS CONSUME THEIR ARGUMENT. Splitting on "starts with -" alone put
+        # `--exclude`'s VALUE in the positional list, so the shipped checkpoints command --
+        # `... checkpoints/ --repo-type=model --exclude "bev_direct_l3_deeper.pt" ...` -- parsed
+        # with path_in_repo="bev_direct_l3_deeper.pt" instead of "" (the repo root). The
+        # path_in_repo default is called "the load-bearing modelling decision in this gate" two
+        # paragraphs up, and this silently broke it for the one command that carries flags.
+        positional: List[str] = []
+        flags: List[str] = []
+        it = iter(range(2, len(toks)))
+        for i in it:
+            t = toks[i]
+            if not t.startswith("-"):
+                positional.append(t)
+                continue
+            bare = t.split("=", 1)[0]
+            if "=" not in t and bare in VALUE_FLAGS and i + 1 < len(toks):
+                flags.append(f"{bare}={toks[i + 1]}")     # normalise `--x V` to `--x=V`
+                next(it, None)                            # ...and swallow the value
+            else:
+                flags.append(t)
+        flags = tuple(flags)
         if not positional:
             continue
         rtype = ""
@@ -310,10 +464,19 @@ def evaluate(dl_src: str, readme: str, assets_root: Path) -> "Dict[str, Verdict]
     # -- 4. the folder NAMES agree, independently of which repo holds them -----------------
     want = {p for f in fetches for p in f.prefixes}
     got = {Path(u.local_path.rstrip("/")).name for u in uploads if u.repo_type == "dataset"}
+    blind = [f for f in fetches if f.patterns_unreadable]
+    if blind:
+        detail = (f"PARSE DRIFT, not an artefact defect: {dlf}:"
+                  f"{','.join(str(f.line) for f in blind)} passes allow_patterns in a shape "
+                  f"this gate cannot read, so it filters on an UNKNOWN set, not on nothing. "
+                  f"Teach _pattern_strings() the new shape before reading anything below as "
+                  f"a finding about the downloader")
+    else:
+        detail = (f"downloader filters on {sorted(want - got)} which the upload procedure "
+                  f"never uploads (it uploads {sorted(got)}) -- {dlf} vs {rmf}")
     res["filter_names_match_uploaded_dirs"] = (
-        bool(want) and want <= got,
-        f"downloader filters on {sorted(want - got)} which the upload procedure never uploads "
-        f"(it uploads {sorted(got)}) -- {dlf} vs {rmf}",
+        not blind and bool(want) and want <= got,
+        detail,
     )
 
     # -- 5. tether the parse to the real tree ----------------------------------------------
@@ -344,13 +507,72 @@ def evaluate(dl_src: str, readme: str, assets_root: Path) -> "Dict[str, Verdict]
                   f"{len(legacy)} legacy files the README calls 'not part of the public "
                   f"release' ({', '.join(legacy[:3])}, ...) ship anyway" for u in leaky),
     )
+
+    # -- 8. the --exclude flags must not drop a file checksums.txt requires ----------------
+    # THE TRAP THIS CLOSES, and it is not hypothetical -- the assets runbook records it: the
+    # checkpoint upload carries fourteen `--exclude "<name>.pt"` flags to keep the flat legacy
+    # aliases out, and an earlier revision used `--exclude "*.pt"` instead. huggingface-cli
+    # matches those patterns against the BASENAME as well as the path, so `*.pt` also dropped
+    # `bev/bev_s2d2_scpnet/model.pt` at depth 3 -- a released checkpoint. Nothing in
+    # .release_checks/ applied the exclusion list to the payload before comparing it with
+    # checksums.txt, so the upload could silently ship a payload that fails `sha256sum -c` on
+    # every excluded line. The runbook grew a runnable pre-flight for it; this is that
+    # pre-flight, moved into the harness so it runs whether or not anyone reads the runbook.
+    res["excludes_keep_every_checksummed_file"] = _exclusions_keep_checksummed(
+        uploads, assets_root, rmf)
     return res
+
+
+def _exclusions_keep_checksummed(uploads: Sequence[Upload], assets_root: Path,
+                                 rmf: str) -> "Verdict":
+    """Apply each upload's own --exclude patterns to its tree; nothing checksums.txt names may go.
+
+    `filter_repo_objects` is imported FROM huggingface_hub rather than reimplemented with
+    fnmatch: the question is what the real client does, and a local reimplementation would be a
+    model of the client that can drift away from it -- which is exactly how the `*.pt` trap got
+    through in the first place. If the import is unavailable the check reports UNMEASURABLE and
+    FAILS; "the library is not installed" is not evidence that the patterns are safe.
+    """
+    try:
+        from huggingface_hub.utils import filter_repo_objects
+    except ImportError:
+        return (False, "huggingface_hub is not importable, so the --exclude patterns were "
+                       "NOT applied to the payload -- UNMEASURABLE, not passed")
+    problems: List[str] = []
+    checked = 0
+    for u in uploads:
+        src = assets_root / u.local_path.rstrip("/")
+        ck = src / "checksums.txt"
+        if not src.is_dir() or not ck.is_file():
+            continue                    # no checksums file for this tree: nothing to protect
+        pats = exclude_values(u)
+        items = [str(q.relative_to(src)) for q in src.rglob("*") if q.is_file()]
+        kept = set(filter_repo_objects(items, ignore_patterns=pats)) if pats else set(items)
+        need = [l.split(None, 1)[1].strip()
+                for l in ck.read_text(encoding="utf-8", errors="replace").splitlines()
+                if l.strip() and len(l.split(None, 1)) > 1]
+        dropped = [n for n in need if n not in kept]
+        checked += 1
+        if dropped:
+            problems.append(
+                f"{rmf}:{u.line} uploads {u.local_path!r} with {len(pats)} --exclude "
+                f"pattern(s) that drop {len(dropped)} file(s) checksums.txt requires "
+                f"(e.g. {', '.join(dropped[:3])}) -- `sha256sum -c` fails on every one of "
+                f"those lines at the download root")
+    if not checked:
+        return (False, "no upload command names a tree containing a checksums.txt, so the "
+                       "exclusion patterns were compared against nothing")
+    return (not problems,
+            "; ".join(problems) if problems else
+            f"{checked} upload tree(s) pre-flighted; every checksums.txt entry survives the "
+            f"--exclude patterns")
 
 
 ORDER = ("constants_parsed", "uploads_parsed", "namespace_parity",
          "download_target_is_uploaded", "prefix_uploaded_into_named_repo",
          "filter_names_match_uploaded_dirs", "upload_sources_exist",
-         "placeholder_targets_are_uploaded", "legacy_pt_excluded_by_command")
+         "placeholder_targets_are_uploaded", "legacy_pt_excluded_by_command",
+         "excludes_keep_every_checksummed_file")
 
 
 def report(res: "Dict[str, Verdict]") -> int:
@@ -385,8 +607,15 @@ def _repaired(dl_src: str, readme: str) -> Tuple[str, str]:
     for c in consts:
         pres = sorted(set(by_repo.get(c.value, [])))
         if not pres:                                     # the models repo: whole tree, no filter
+            # The exclusion list is the EXPLICIT legacy filenames read off the real bundle, not
+            # `--exclude "*.pt"`. `*.pt` is the TRAP the runbook records: huggingface-cli matches
+            # the pattern against the BASENAME too, so it also drops released files like
+            # `bev/bev_s2d2_scpnet/model.pt` at depth 3. A fixture that used the trap form would
+            # make excludes_keep_every_checksummed_file red on the BASELINE, i.e. it would assert
+            # today's defect instead of a healthy world.
+            excl = " ".join(f'--exclude "{n}"' for n in legacy_pt_files(ASSETS))
             lines.append(f"huggingface-cli upload {c.value} checkpoints/ "
-                         f'--exclude "*.pt" --repo-type=model')
+                         f'{excl} --exclude "*_superseded_*" --repo-type=model')
         for p in pres:
             lines.append(f"huggingface-cli upload {c.value} datasets/{p}/ {p} "
                          f"--repo-type=dataset")
@@ -475,8 +704,15 @@ def selftest() -> int:
         "placeholder_targets_are_uploaded":
             lambda d, r: (d, _mutate(r, r"^\| `\[HF_REPO_CHECKPOINTS\]`\s*\|\s*`[^`]+`",
                                      "| `[HF_REPO_CHECKPOINTS]` | `nobody/nothing`", "ph")),
+        # ALL of them: one surviving --exclude keeps `excludes_legacy` true.
         "legacy_pt_excluded_by_command":
-            lambda d, r: (d, _mutate(r, r' --exclude "\*\.pt"', "", "excl")),
+            lambda d, r: (d, _mutate_all(r, r' --exclude "[^"]+"', "", "excl")),
+        # THE `*.pt` TRAP, replayed: a pattern that looks like it only drops the flat legacy
+        # aliases, and also drops a released checkpoint three directories down. The arm above
+        # stays GREEN on this fault -- measured -- which is why this one exists.
+        "excludes_keep_every_checksummed_file":
+            lambda d, r: (d, _mutate_all(r, r' --exclude "[^"]+\.pt"', ' --exclude "*.pt"',
+                                         "startpt")),
     }
 
     missed = 0
@@ -492,6 +728,78 @@ def selftest() -> int:
     return 1 if missed else 0
 
 
+# ------------------------------------------------------------------- live existence probe
+
+
+HF_API = "https://huggingface.co/api"
+HF_PROBE_TIMEOUT = 12
+
+
+def _http_status(url: str) -> Optional[int]:
+    """HTTP status for an ANONYMOUS GET, or None if the host could not be reached."""
+    import urllib.error
+    import urllib.request
+    req = urllib.request.Request(url, method="GET",
+                                 headers={"User-Agent": "gssc-release-check"})
+    try:
+        with urllib.request.urlopen(req, timeout=HF_PROBE_TIMEOUT) as r:
+            return int(r.status)
+    except urllib.error.HTTPError as e:      # 401/404 arrive here; they are ANSWERS
+        return int(e.code)
+    except Exception:                        # DNS, TLS, timeout: NOT an answer
+        return None
+
+
+def probe_hf_repo_ids(dl_src: str) -> int:
+    """Require an anonymous 200 for every repo id the downloader fetches from.
+
+    Opt-in.  Off by default because a release gate that reaches the network is flaky by
+    construction, and because the answer is only interesting on flip day.  The ids come from
+    the SAME AST parse the rest of the gate uses -- never from a literal here -- so renaming
+    a constant cannot leave this probe checking a name nobody uses any more, which is the
+    exact defect that produced this check: the audit's fact list probed `BillyChern/GSSC-S2D2`
+    while the shipped downloader fetches `BillyChern/GSSC-S2D2-checkpoints`.
+    """
+    want = ("--probe-hf" in sys.argv) or os.environ.get("GSSC_PROBE_HF", "") not in ("", "0")
+    _consts, fetches = parse_downloader(dl_src)
+    ids = sorted({f.repo_id for f in fetches if f.repo_id})
+    if not want:
+        print(f"  note  hf_repo_ids_resolve_anonymously ABSTAINED -- this gate is local-only "
+              f"and cannot see whether {', '.join(ids) or 'the named repos'} exist. Re-run "
+              f"with --probe-hf (or GSSC_PROBE_HF=1) before publication; a 401 means private "
+              f"OR ABSENT and settles nothing.")
+        return 0
+    if not ids:
+        print("  FAIL  hf_repo_ids_resolve_anonymously   (the parse found no repo id to "
+              "probe -- the AST has drifted; not evidence that anything resolves)")
+        return 1
+    bad, unreachable = [], []
+    for rid in ids:
+        seen = {}
+        for kind in ("models", "datasets"):
+            seen[kind] = _http_status(f"{HF_API}/{kind}/{rid}")
+        if 200 in seen.values():
+            continue
+        if set(seen.values()) == {None}:
+            unreachable.append(rid)
+        else:
+            bad.append(f"{rid} -> models:{seen['models']} datasets:{seen['datasets']}")
+    if unreachable and not bad:
+        print(f"  note  hf_repo_ids_resolve_anonymously ABSTAINED -- host unreachable for "
+              f"{', '.join(unreachable)}; a network outage is not evidence about a repo")
+        return 0
+    if bad:
+        print(f"  FAIL  hf_repo_ids_resolve_anonymously   ({'; '.join(bad)} -- no anonymous "
+              f"200. 401 is returned for private AND for absent repos, so this does not say "
+              f"which; confirm the account page returns 200 logged out, then make the repos "
+              f"public. Shipped links that name them: README.md, docs/MODEL_ZOO.md, "
+              f"docs/DATASET.md, scripts/download_assets.py)")
+        return 1
+    print(f"  PASS  hf_repo_ids_resolve_anonymously   ({len(ids)} repo id(s) return 200 "
+          f"logged out)")
+    return 0
+
+
 def main() -> int:
     for p in (DOWNLOADER, ASSETS_README):
         if not p.is_file():
@@ -500,8 +808,9 @@ def main() -> int:
             return 1
     if "--selftest" in sys.argv:
         return selftest()
-    return report(evaluate(DOWNLOADER.read_text(encoding="utf-8"),
-                           ASSETS_README.read_text(encoding="utf-8"), ASSETS))
+    dl_src = DOWNLOADER.read_text(encoding="utf-8")
+    rc = report(evaluate(dl_src, ASSETS_README.read_text(encoding="utf-8"), ASSETS))
+    return max(rc, probe_hf_repo_ids(dl_src))
 
 
 if __name__ == "__main__":

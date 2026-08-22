@@ -58,6 +58,11 @@ coverage.xml
 
 # Local-only retrain / debug scratch (never publish)
 run_*.sh
+# ...but the release gate runner is a SHIPPED entry point, not a scratch launcher.
+# CONTRIBUTING.md and CHANGELOG.md both name `.release_checks/run_all.sh` as the way to
+# run the suite, and `run_*.sh` above was silently excluding it: a public clone would have
+# arrived with 16 gate scripts and no way to run them.
+!.release_checks/run_all.sh
 last_*lines.txt
 log_*.txt
 NOISE_ANALYSIS_*.txt

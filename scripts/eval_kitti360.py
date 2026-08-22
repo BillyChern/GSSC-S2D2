@@ -40,10 +40,11 @@ Requires the SSCBench-KITTI360 release on disk (see
 ``datacfg`` (the SSCBench ``dataset/configs/kitti360.yaml``) shipped at
 ``external/semantic_kitti_api/config/kitti360.yaml``.
 
-The SCPNet zero-shot stage shells out to a SCPNet runner whose location is
-configurable via the ``$SCPNET_RUNNER`` environment variable (it is not bundled
-with this repo because it carries spconv-v1->v2 monkey-patches; see the
-SemanticKITTI base-prediction docs).
+The SCPNet zero-shot stage shells out to the bundled SCPNet runner,
+``src/gssc/inference/run_scpnet.py`` (kept a separate process because it installs
+spconv-v1->v2 monkey-patches at import time). Point ``$SCPNET_RUNNER`` at a different
+runner to override it. The runner needs an upstream SCPNet checkout; see its module
+docstring for ``--scpnet-repo`` / ``$SCPNET_REPO``.
 """
 from __future__ import annotations
 
@@ -96,8 +97,9 @@ def seq_to_int_dir(drive_name: str) -> str:
 
 # SCPNet inference requires spconv-v1->v2 monkey-patches, so we shell out to a
 # thin SCPNet runner instead of importing it (keeping those patches isolated).
-# Configure its location with $SCPNET_RUNNER; it is not bundled with this repo.
-SCPNET_RUNNER = Path(os.environ.get("SCPNET_RUNNER", "tools/run_scpnet_inference.py"))
+# The runner ships with this repo; $SCPNET_RUNNER overrides it.
+SCPNET_RUNNER = Path(os.environ.get(
+    "SCPNET_RUNNER", str(REPO_ROOT / "src" / "gssc" / "inference" / "run_scpnet.py")))
 
 
 def unpack_bits(compressed: np.ndarray) -> np.ndarray:
@@ -148,10 +150,12 @@ def run_scpnet_zeroshot(dataset: Kitti360SSCDataset, out_dir: Path, gpu: int) ->
             f"  mkdir -p $STAGE/sequences/06\n"
             f"  ln -sfn <K360>/data_3d_raw/<drive>/velodyne_points/data $STAGE/sequences/06/velodyne\n"
             f"  ln -sfn <K360>/data_2d_raw/<drive>/voxels               $STAGE/sequences/06/voxels\n"
-            f"  SCPNET_RUNNER=<path-to>/run_scpnet_inference.py\n"
-            f"  python $SCPNET_RUNNER \\\n"
-            f"    --checkpoint <scpnet-repo>/model_load_dir/pretrained.pth \\\n"
-            f"    --config <scpnet-repo>/config/semantickitti-multiscan.yaml \\\n"
+            f"  git clone --depth 1 https://github.com/SCPNet/Codes-for-SCPNet "
+            f"external/Codes-for-SCPNet\n"
+            f"  python {SCPNET_RUNNER} \\\n"
+            f"    --scpnet-repo external/Codes-for-SCPNet \\\n"
+            f"    --checkpoint external/Codes-for-SCPNet/model_load_dir/pretrained.pth \\\n"
+            f"    --config external/Codes-for-SCPNet/config/semantickitti-multiscan.yaml \\\n"
             f"    --data_root $STAGE --sequences 06 \\\n"
             f"    --output_dir {out_dir} --gpu {gpu}\n"
             "(SCPNet's prepare_input voxelizer is grid-identical to KITTI-360; "

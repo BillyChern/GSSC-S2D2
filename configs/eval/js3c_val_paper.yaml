@@ -1,15 +1,22 @@
-_paper_table: "supplementary tab:supp_b6_val (the JS3C-Net + S2D2 cross-base block); the main-paper cross-base entry is tab:portable_s2d2"
+_paper_table: "supplementary tab:supp_b6_val, the GT-BEV oracle row (61.8) — reachable only with the separately trained train/js3c_real_gtbev.yaml checkpoint. No main-paper row."
 _description: |
-  JS3C-Net cross-base eval reproducing the paper's supplementary tab:supp_b6_val
-  protocol exactly: N=1 Algo2 sampling with GT-BEV conditioning (loaded from
-  preprocessed `<voxel_root>/<seq>/<frame>_bev.npy`). This is the
-  GT-BEV-conditioned upper bound; the realistic deployment number (BEV derived
-  from JS3C-Net's 3D prediction) is reported in `js3c_val_realistic.yaml`.
+  JS3C-Net cross-base eval with GT-BEV conditioning: N=1 Algo2 sampling, BEV loaded
+  from the preprocessed `<voxel_root>/<seq>/<frame>_bev.npy` instead of derived from
+  the base 3D prediction.
 
-  Expected mIoU under this protocol: ~26.7 % (paper claims 26.72% via the
-  internal SSCMetrics evaluator; official semantic-kitti-api on the GT-BEV
-  predictions reads slightly higher — the +0.31 pp internal/official gap is
-  documented in supplementary tab:supp_b6_val).
+  This is a DIAGNOSTIC, not the paper's tabulated cross-base protocol. The Tab. III
+  JS3C-Net + S2D2 headline (24.3 % official, +1.6 pp) and its internal-evaluator
+  reading (26.7 %) are the SAME run under DERIVED BEV — use
+  `js3c_val_realistic.yaml` for that. The internal/official difference between 26.7
+  and 24.3 is an evaluator gap, not a BEV-source gap.
+
+  What this config does reproduce: supplementary tab:supp_b6_val's GT-BEV oracle row
+  (61.8 % mIoU / 64.4 % completion IoU under the official semantic-kitti-api), and
+  only when it is pointed at the SEPARATELY TRAINED GT-BEV checkpoint from
+  `train/js3c_real_gtbev.yaml`. That row mixes a training change with the oracle
+  leak and the paper labels it an upper bound. Pointed at the released derived-BEV
+  checkpoint (`gssc_js3c/gssc_js3c_s2d2_real`) this config is a train/eval mismatch
+  and reproduces no tabulated number.
 # Consumed by run_evaluation: split, sequences, base_pred_dir, bev_source,
 # bev_root, correction_steps, tta. base_kind / bev_from_base / cold_diffusion
 # document the hardcoded protocol (base selected via base_pred_dir; bev_from_base

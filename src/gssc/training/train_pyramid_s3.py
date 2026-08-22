@@ -574,6 +574,9 @@ class S3Trainer:
             self.diffusion.parameters(),
             lr=self.scaled_lr,
             betas=(0.9, 0.999),
+            # Torch's AdamW default, spelled out so the released recipe is readable from
+            # the code and not from a library default (paper: pyramid recipe table).
+            weight_decay=0.01,
         )
 
         self.scheduler = self._create_scheduler_with_warmup()
@@ -930,12 +933,20 @@ def main():
     parser.add_argument('--output-dir', type=str,
                         default='outputs/checkpoints/s3',
                         help='Output directory')
-    # IMPORTANT: The original S3 training used batch_size=9, lr=0.006
-    # These settings produced ~80GB GPU memory usage and 8502 iterations/epoch
-    # To resume training with same settings: --batch-size 9 --lr 0.006
+    # The released S3 generator ran at batch_size=9 per GPU (~80 GB VRAM, 8502
+    # iterations/epoch) with base_lr=0.004 -- the value recorded in the shipped
+    # checkpoint's config.json (data/checkpoints/pyramid/pyramid_s3/config.json) and
+    # tabulated in the paper's pyramid recipe, and the same LR pyramid_s2 used.
+    # Note --lr is the BASE rate. Both the world_size multiplication and the
+    # 5-epoch warmup are DDP-only: _create_scheduler_with_warmup gates on
+    # `scale_lr and world_size > 1 and warmup_epochs > 0`, so on a single GPU
+    # --lr is used as given and no warmup runs. All three released pyramid
+    # checkpoints record world_size 1, i.e. the warmup never fired for them.
+    # Pass --no-scale-lr to suppress the multiplication under DDP as well.
     parser.add_argument('--batch-size', type=int, default=9, help='Batch size per GPU (used: 9, ~80GB VRAM)')
     parser.add_argument('--epochs', type=int, default=1000, help='Max epochs')
-    parser.add_argument('--lr', type=float, default=0.006, help='Learning rate (used: 0.006)')
+    parser.add_argument('--lr', type=float, default=0.004,
+                        help='Base learning rate (released S3 checkpoint: 0.004)')
     parser.add_argument('--gpu', type=int, default=0, help='GPU device (single GPU mode)')
     parser.add_argument('--resume', type=str, default=None, help='Resume from checkpoint')
     parser.add_argument('--num-workers', type=int, default=8, help='DataLoader workers')

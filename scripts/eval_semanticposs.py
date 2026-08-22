@@ -15,8 +15,8 @@ Stages
    ray-cast mask, ``.bin`` bit-packed occupancy) — the SemanticKITTI SSC grid +
    region SCPNet/TALoS use. Idempotent (skips frames already written).
 1. **SCPNet zero-shot** on POSS raw LiDAR (40-beam Pandora, same .bin format).
-   Reuses ``tools/run_scpnet_inference.py`` (its ``prepare_input`` voxelizer +
-   the SCPNet grid/region are unchanged). Emits ``<seq>/<frame>_pred.npy`` in
+   Reuses the bundled ``src/gssc/inference/run_scpnet.py`` (its ``prepare_input``
+   voxelizer + the SCPNet grid/region are unchanged). Emits ``<seq>/<frame>_pred.npy`` in
    SemanticKITTI train space (0-19). Skipped per-frame if already present.
 2. **S²D² correction** per frame: ``MultinomialDiffusion3DV2.sample_algo2`` with
    the released ``gssc_31k_mf_step40000`` checkpoint, cold_diffusion + bev_from_base,
@@ -33,11 +33,12 @@ Separate from ``scripts/eval.py`` so the committed SemanticKITTI path (seq 08,
 SemanticKITTI learning_map) is untouched.
 
 Requires the raw SemanticPOSS release on disk (see
-``configs/eval/semanticposs_seq02.yaml`` paths). The SCPNet zero-shot stage
-shells out to a SCPNet runner whose location is configurable via the
-``$SCPNET_RUNNER`` environment variable (and ``$SCPNET_CKPT`` / ``$SCPNET_CFG``
-for its checkpoint + config); it is not bundled with this repo because it
-carries spconv-v1->v2 monkey-patches.
+``configs/eval/semanticposs_seq02.yaml`` paths). The SCPNet zero-shot stage shells
+out to the bundled runner ``src/gssc/inference/run_scpnet.py`` -- a separate process
+because it installs spconv-v1->v2 monkey-patches at import time. Override the runner,
+its checkpoint and its config with ``$SCPNET_RUNNER`` / ``$SCPNET_CKPT`` /
+``$SCPNET_CFG``. The runner also needs an upstream SCPNet checkout for the network
+definition (``--scpnet-repo`` / ``$SCPNET_REPO``).
 """
 from __future__ import annotations
 
@@ -71,11 +72,14 @@ from gssc.data.semanticposs import (
 logger = logging.getLogger("eval_semanticposs")
 
 # SCPNet inference needs the spconv v1->v2 monkey-patches in its runner, so we
-# shell out to keep them isolated. Configure these via environment variables;
-# the runner + checkpoint are not bundled with this repo.
-SCPNET_RUNNER = Path(os.environ.get("SCPNET_RUNNER", "tools/run_scpnet_inference.py"))
-SCPNET_CKPT = os.environ.get("SCPNET_CKPT", "<scpnet-repo>/model_load_dir/pretrained.pth")
-SCPNET_CFG = os.environ.get("SCPNET_CFG", "<scpnet-repo>/config/semantickitti-multiscan.yaml")
+# shell out to keep them isolated. The runner and the base weights ship with this
+# repo; the SCPNet *config* comes from the upstream checkout. Override any of the
+# three via the environment.
+SCPNET_RUNNER = Path(os.environ.get(
+    "SCPNET_RUNNER", str(REPO_ROOT / "src" / "gssc" / "inference" / "run_scpnet.py")))
+SCPNET_CKPT = os.environ.get("SCPNET_CKPT", str(REPO_ROOT / "data" / "checkpoints" / "scpnet_v2_port.pth"))
+SCPNET_CFG = os.environ.get(
+    "SCPNET_CFG", str(REPO_ROOT / "external" / "Codes-for-SCPNet" / "config" / "semantickitti-multiscan.yaml"))
 
 
 def materialise_gt(dataset: SemanticPossSSCDataset) -> None:
@@ -108,7 +112,10 @@ def run_scpnet_zeroshot(dataset: SemanticPossSSCDataset, scpnet_dir: Path,
         raise RuntimeError(
             f"{len(missing)}/{len(dataset)} SCPNet POSS predictions missing under "
             f"{scpnet_dir}. Run the SCPNet zero-shot dump first, e.g.:\n"
+            f"  git clone --depth 1 https://github.com/SCPNet/Codes-for-SCPNet "
+            f"external/Codes-for-SCPNet\n"
             f"  python {SCPNET_RUNNER} \\\n"
+            f"    --scpnet-repo external/Codes-for-SCPNet \\\n"
             f"    --checkpoint {SCPNET_CKPT} \\\n"
             f"    --config {SCPNET_CFG} \\\n"
             f"    --data_root <poss-root-with-velodyne-and-materialised-voxels> \\\n"

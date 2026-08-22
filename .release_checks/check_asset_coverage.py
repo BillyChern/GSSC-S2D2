@@ -3,6 +3,11 @@
 
 DEFECT THIS EXISTS FOR (measured 2026-08-20 against the live artefacts):
 
+  LINE NUMBERS IN THIS BLOCK ARE A DATED SNAPSHOT of the checkout named above, not
+  navigation. Several have already moved: follow the SYMBOL, the heading or the quoted
+  text, and re-derive the location with `grep -n`. Every check below RE-MEASURES the
+  live artefacts, so nothing here is load-bearing for a verdict.
+
   D1  AN UNDOCUMENTED 285 MB PICKLE SHIPS.
       checkpoints/bev/bev_s2d2_scpnet/ is the model of main-paper Sec. V-F (the
       BEV secondary task, 34.75 -> 36.09). `grep -rn bev_s2d2_scpnet` over
@@ -53,6 +58,24 @@ STATUS WHEN WRITTEN (2026-08-20 ~03:00 UTC)
         (README.md, docs/DATASET.md, scripts/download_assets.py x2); the
         release set measures 4.91 GB / 4.58 GiB, +19% over the claim under the
         charitable reading of the unit.
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_ASSETS      the asset staging bundle               default: <repo>/../GSSC-S2D2-assets
+    TMPDIR           scratch root (never /tmp on this box)  default: ~/.cache/gssc-release-checks
+
+THE ASSET STAGING BUNDLE IS NOT PART OF THE PUBLIC RELEASE.
+It is a maintainer working tree; a clone of this repository does not contain it, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 
 from __future__ import annotations
@@ -63,11 +86,14 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-ASSETS = Path("/workspace/GSSC-S2D2-assets")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+ASSETS = Path(os.environ.get("GSSC_ASSETS") or REPO.parent / "GSSC-S2D2-assets")
 CKPT = ASSETS / "checkpoints"
-REPO = Path("/workspace/GSSC-S2D2")
 
-TMPDIR = Path(os.environ.get("TMPDIR") or "/workspace/.claude/jobs/d55ebe8b/tmp")
+# Scratch.  NOT /tmp: a full /tmp has deadlocked the maintainer's box repeatedly, so the
+# default is a named cache dir and TMPDIR overrides it.
+TMPDIR = Path(os.environ.get("TMPDIR")
+              or Path.home() / ".cache" / "gssc-release-checks")
 
 # Surfaces a downloader can actually read. configs/ counts because a shipped Hydra
 # config naming a checkpoint documents it as well as prose does.

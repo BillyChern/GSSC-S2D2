@@ -12,7 +12,13 @@ two pillars are scoped as follows:
   Jensen–Shannon filter + rare-class object bank + HDL-64E ray-tracer) that
   builds the synthetic (sparse, complete) training pool. Its generator
   checkpoints ship in the model zoo (`pyramid/pyramid_s1|s2|s3`) and the
-  training commands live in `docs/TRAIN.md` ("Pyramid diffusion"). To
+  training recipe is written up in `docs/TRAIN.md` ("Pyramid diffusion").
+  **Those two commands are not runnable bare**: both stages read a pre-quantized
+  SemanticKITTI corpus that `scripts/download_assets.py` does not provision, and
+  their argparse defaults point at a `datasets/` tree this release does not
+  create, so launched without arguments they die with `num_samples=0`. `docs/TRAIN.md` gives the required layout and
+  the explicit `--data-root`/`--ssc-root`/`--quantized-root` arguments. No paper
+  number depends on retraining the pyramid: the screened pools ship as data. To
   regenerate the pool with the PS³ ray-tracer, install the `ps3` extra
   (`uv pip install numba`) so `src/gssc/data/lidar_resampler_v2.py` uses the
   Numba-accelerated fast path; without it the resampler silently falls back to
@@ -43,9 +49,9 @@ two pillars are scoped as follows:
 
 | Component | Used in paper | Minimum required |
 |---|---|---|
-| GPU | 2× NVIDIA H100 80 GB HBM3 PCIe | Same. Single-A100-40 GB has not been validated. |
+| GPU | 2× NVIDIA H100 80 GB HBM3 PCIe | **One** H100 80 GB. The released scene-completion trainer is single-process (no DataParallel/DDP), so a second card is never used by it; `--gpu 0,1` only makes the second device visible. Single-A100-40 GB has not been validated. |
 | RAM | 256 GB | ≥64 GB (for SemanticKITTI dataset caching) |
-| Disk | ~1 TB SSD | ~300 GB SSD (eval-only: 135 GB) |
+| Disk | ~1 TB SSD | ~300 GB SSD. Eval-only on val seq 08 needs **~96 GB** (measured; see the disk-space table in `docs/DATASET.md`), ~104 GB if you also want the hidden-test sequences for a submission. `--predictions` alone fetches the whole 177 GiB / 190 GB SCPNet tree; narrow it with `--include 'scpnet_predictions/08/*'` (9.07 GB, measured) to stay inside the ~96 GB figure. |
 | OS | Ubuntu 22.04 + CUDA 12.8 | Linux + CUDA 12.x |
 
 ### Disk-layout warning (Docker / overlay-fs hosts)
@@ -76,6 +82,10 @@ The exact pin set is in `uv.lock`. Reproduce with:
 uv venv --python 3.10
 uv sync
 uv pip install spconv-cu126==2.3.8
+source .venv/bin/activate
+#  ^ `uv venv` creates .venv but does not put it on PATH. Every `python …` command
+#    in this file assumes the venv is active; without this line they run the system
+#    interpreter. `uv run python …` works instead of activating, if you prefer.
 ```
 
 ### spconv v1 to v2 compatibility (SCPNet base port)
@@ -155,10 +165,12 @@ SemanticKITTI SSC reporting convention** — every method in the paper's main
 hidden-test results table (LMSCNet, SSA-SC, JS3C-Net, SCPNet, TALoS) likewise
 reports a single
 test-server entry per configuration with no variance bars, because a training
-run at 256×256×32 voxel resolution costs tens of GPU-hours — ours takes roughly
-37 on 2×H100 to reach the released step-40000 checkpoint, ~90 for the full
-100K-iteration launch — and the official scoring server returns one number per
-submission.
+run at 256×256×32 voxel resolution costs tens of GPU-hours — the paper's compute
+table prices ours at roughly 37 to reach the released step-40000 checkpoint and
+~90 for the full 100K-iteration launch — and the official scoring server returns
+one number per submission. (Read those as wall-clock on a single H100: the
+released trainer occupies one GPU, so the paper's 2×H100 configuration is not
+what this code runs.)
 
 ### Expected retrain variance
 
@@ -170,6 +182,12 @@ train/31k_mf`) lands at **38.05% val 1-step mIoU**, within this variance band
 of the released checkpoint's 38.54%.
 
 ```bash
+# Prerequisite: the preprocessed 256³ voxel cache, which download_assets.py does
+# NOT provision. Skipping it aborts the run with MissingVoxelCacheError.
+python scripts/prepare_256_data.py --semantickitti_root data/SemanticKITTI
+#   (measured on the staged cache: 92.1 GiB / 98.8 GB for the eleven annotated
+#    sequences 00-10; val seq 08 alone is 16.2 GiB / 17.3 GB. See docs/TRAIN.md.)
+
 python scripts/train.py train/31k_mf
 # step_40000.pt → 38.05% val 1-step mIoU (verified, full SemanticKITTI val seq 08).
 ```
@@ -238,9 +256,9 @@ paper.
 | **Tab. I (test mIoU, HEADLINE)** | `python scripts/infer.py infer/test_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test_n1/` then submit to SemanticKITTI Codabench | **38.8 mIoU, 58.9 IoU_cmpl** — the configuration the deployment predicate admits (one step, no TTA) |
 | Tab. I (test mIoU, D4 ensemble) | `python scripts/infer.py infer/test_d4tta --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test/` then submit to SemanticKITTI Codabench | 39.2 mIoU, 59.0 IoU_cmpl — four steps + eight-view D4, **excluded** by the predicate |
 | Tab. II (val per-class) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --metrics miou per_class` | 38.54 mIoU |
-| Tab. III (tab:portable_s2d2, cross-base JS3C, GT-BEV diagnostic) | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.05 mIoU (official semantic-kitti-api, +3.32 pp) -- the GT-BEV diagnostic, NOT the paper's headline (24.3 %, derived BEV). Internal training-time evaluator on the same protocol = 26.72 mIoU (+3.99 pp), a continuity row |
-| Tab. III (tab:portable_s2d2, cross-base JS3C, realistic deploy) | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 24.32 mIoU (derived BEV, official semantic-kitti-api, +1.59 pp) |
-| Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10). The released LMSCNet `model_ema.safetensors` ships complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint workaround is needed |
+| GT-BEV diagnostic, **no paper row** (cross-base JS3C) | `python scripts/eval.py eval/js3c_val_paper     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | 26.05 mIoU (official semantic-kitti-api, +3.32 pp) -- our own GT-BEV diagnostic. The paper prints no such row, and this is NOT the protocol behind its 26.7 continuity figure. Pointed at the released derived-BEV checkpoint, as here, it is a train/eval mismatch and reproduces no tabulated number. The config name is a retained alias; ignore it |
+| **Tab. III (tab:portable_s2d2, cross-base JS3C, HEADLINE)** | `python scripts/eval.py eval/js3c_val_realistic --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors` | **24.32 mIoU** (derived BEV, official semantic-kitti-api, +1.59 pp) -- the paper's headline for this base. The same derived-BEV setting under the paper's internal training-time evaluator reads 26.72 (paper prints 26.7, +3.99 pp), a continuity row; the evaluator is what differs, not the BEV source |
+| Tab. III (tab:portable_s2d2, cross-base LMSCNet)                | `python scripts/eval.py eval/lmscnet_val_1step  --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors` | 16.59 mIoU (derived BEV, official semantic-kitti-api; paper rounds to 16.6, +1.8 pp over the 14.76 % on-disk-rescored LMSCNet base, superseding the earlier 12.10). This is a **step-65,000** figure: the released checkpoint is the best-mIoU selection at `global_step: 65000`, not a step-100000 reading. The released LMSCNet `model_ema.safetensors` ships complete (278 tensors, 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint workaround is needed |
 | Supp. Tab. VI (step reduction) | `python scripts/eval.py eval/step_sweep --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors` | 38.54 (N=1), 38.59 (N=2), 38.65 (N=4), 38.16 (N=100) |
 | 57K-MF negative (no paper table: supp Tab. VII's 57K row is the multi-frame **38.4**, a different run — see `docs/MODEL_ZOO.md`) | `python scripts/eval.py eval/val_1step --checkpoint data/checkpoints/gssc_mf/gssc_57k_mf_step40000/model_ema.safetensors` | 37.76 mIoU (N=1) |
 | single-frame data scaling (no paper table; Tab. VII is the multi-frame sweep and ships no per-row checkpoints) | Per-row checkpoint, e.g. `python scripts/eval.py eval/data_scaling_sf --checkpoint data/checkpoints/gssc_sf/gssc_31K_sf_step72000/model_ema.safetensors` (canonical per-row config; identical N=1 protocol to `eval/val_1step`) | See MODEL_ZOO.md |
@@ -250,10 +268,16 @@ paper.
 | Supp. per-frame VRU regression (shipped base) | `python scripts/perframe_vru.py --voxels <seq08>/voxels --base data/scpnet_predictions/08 --refined <N=1 dump>/sequences/08/predictions --gate` | person 301/1,255 (24.0%), bicyclist 185/788 (23.5%), motorcyclist 32/74 (43.2%) |
 
 > **`--gate` is not optional here, and `--refined` must be a dump you generated yourself.**
-> `scripts/eval.py` always passes `--skip_existing`, so when a prediction directory already
-> exists it is reused and the `--checkpoint` you named is never loaded: the score then
-> describes whatever wrote those files, under your invocation's name. Point `--output_dir` at
-> a fresh path or delete the old one. `--gate` catches the mistake — it asserts the aggregate
+> `scripts/eval.py` passes `--skip_existing` only when you give it `--keep-predictions`; on
+> the default path it writes into a fresh temporary directory, where the hazard cannot arise.
+> But under `--keep-predictions` the prediction directory is a stable, config-derived path, so
+> a second run of the same config reuses the existing dump and never loads the `--checkpoint`
+> you named: the score then describes whatever wrote those files, under your invocation's
+> name. (`scripts/infer.py`, the documented producer of a `--refined` dump, never passes
+> `--skip_existing` under any flag.) `--keep-predictions` takes no path argument — it writes
+> to `<data-root>/predictions/<config-name>/` — so the fix is to delete that directory before
+> re-running, or to drop the flag so the eval uses a fresh temp dir.
+> `--gate` catches the mistake — it asserts the aggregate
 > reproduces base person 22.0 / bicyclist 18.0 / motorcyclist 4.1 at 36.17 % mIoU and refined
 > 23.2 / 23.2 / 12.4 at 38.54 % before reporting any per-frame statistic, and it does reject a
 > retrain-arm dump (motorcyclist 4.4, mIoU 38.05).
@@ -274,19 +298,35 @@ paper.
 > DW-IoU assumes independent frames, so it is an optimistic upper bound on the benefit of a
 > faster refresh, not a detection probability.
 
-All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`). Cross-base reproduction additionally requires `data/js3cnet_predictions/` (JS3C-Net) or `data/lmscnet_predictions/` (LMSCNet); see the dedicated sections below.
+All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`). Its `--predictions` half is the whole SCPNet predictions tree, 190 GB; narrow it to the SCPNet predictions for val seq 08 only, 9.07 GB, with `--include 'scpnet_predictions/08/*'` — that is all the eval rows above read. **Training additionally needs the preprocessed 256³ voxel cache**, which the downloader does not provision: build `data/SemanticKITTI_3D/256/` once with `python scripts/prepare_256_data.py --semantickitti_root data/SemanticKITTI` (see `docs/TRAIN.md`). Cross-base reproduction additionally requires `data/js3cnet_predictions/` (JS3C-Net) or `data/lmscnet_predictions/` (LMSCNet); see the dedicated sections below.
+
+> **A multi-frame retrain needs a second cache this release does not build.**
+> `prepare_256_data.py` produces the single-frame 256³ tree only. The `_mf`
+> recipes additionally look for `data/SemanticKITTI_3D/256_multi_frame/<seq>/<frame>.npz`,
+> and when it is absent they fall back to single-frame LiDAR **silently** rather
+> than failing — so a `train/31k_mf` retrain can run to completion on the wrong
+> input while the recipe name says multi-frame. See the box under "Headline" in
+> `docs/TRAIN.md` for the exact code path and what to check before launching.
+> This affects retrains only: the *released* checkpoints and every eval row in
+> the table above are unaffected.
 
 ## JS3C-Net cross-base reproduction (paper Tab. III / tab:portable_s2d2, cross-base rows)
 
 Stacking S²D² on the older point-voxel hybrid base JS3C-Net (Yan et al.,
 AAAI 2021) lifts val mIoU **22.7 % → 24.3 % (+1.6 pp)**, which is the paper's
-headline for this base (official `semantic-kitti-api`, derived BEV). Under the
-GT-BEV DIAGNOSTIC protocol the same run reads 22.73 → 26.05 (+3.32 pp), a figure
-the paper does not print -- "26.1" appears nowhere in it. The same protocol scored with the paper's internal
-training-time evaluator reads **26.7 % (+4.0 pp)** (a continuity row), and the
-reproducible at-deploy number under the official `semantic-kitti-api` with
-derived BEV is **24.3 % (+1.6 pp)**. See the per-table rows above and the eval notes below for the
-exact evaluator each figure uses. This row is independent of the SCPNet base
+headline for this base (official `semantic-kitti-api`, derived BEV). The **same
+derived-BEV setting** read by the paper's internal training-time evaluator is
+**26.7 % (+4.0 pp)** — the supplement's continuity row. *What separates 26.7
+from 24.3 is the evaluator, not the BEV source.* Separately, running the same
+checkpoint under a GT-BEV oracle (`eval/js3c_val_paper`, `bev_source: gt`)
+reads 22.73 → 26.05 (+3.32 pp): our own diagnostic, which the paper does not
+print — neither "26.05" nor "26.1" appears in it — and which is **not** the
+protocol behind 26.7. The paper's own GT-BEV row is a *separately trained*
+variant at 61.8 % that it labels an upper bound, not this checkpoint — its recipe
+ships as `configs/train/js3c_real_gtbev.yaml`, but no GT-BEV checkpoint is
+released, so that row is not reproducible from this release without retraining. See the
+per-table rows above and the eval notes below for the exact evaluator each
+figure uses. This row is independent of the SCPNet base
 port; the only spconv-version concern is matching JS3C-Net's own published
 recipe, which the dump script handles for you.
 
@@ -315,22 +355,31 @@ sequences 00-08, 09, 10; the hidden test 11-21 is optional.)
 ### Train and eval
 
 ```bash
-# Real-only training (~90 GPU-hours on 2× H100 for the full 100K iterations;
+# Real-only training (~90 GPU-hours for the full 100K iterations, the figure the
+# paper's compute table prices the alt-base runs at; the released
+# gssc_js3c_s2d2_real checkpoint does reach global_step 100000. The trainer is
+# single-GPU, so read GPU-hours as wall-clock on one H100 80 GB.
 # cold_diffusion=true is required)
 python scripts/train.py train/js3c_real
 
-# Paper-headline eval — GT BEV + N=1 Algo2 (paper Tab. III / tab:portable_s2d2, JS3C+S²D² row)
+# GT-BEV DIAGNOSTIC (NOT a paper row) — GT BEV + N=1 Algo2. The config's name is
+# a retained backwards-compatibility alias; ignore it. Against the released
+# derived-BEV checkpoint this is a train/eval mismatch, so treat the number as a
+# probe, not a result.
 python scripts/eval.py eval/js3c_val_paper \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
-# → expect 26.05 % val mIoU under the official semantic-kitti-api. This is the
-#   GT-BEV DIAGNOSTIC, not the paper's headline (that is 24.3 %, derived BEV, via
-#   eval/js3c_val_realistic). The paper's internal training-time evaluator on the
-#   identical protocol reads 26.72 % (+3.99 pp) — a continuity row, not the headline.
+# → expect 26.05 % val mIoU under the official semantic-kitti-api. This is our own
+#   GT-BEV diagnostic: the paper prints no such row, and it is NOT the protocol
+#   behind the 26.72 % continuity figure (that one is derived BEV — see below).
 
-# Realistic-deployment eval — derived BEV + N=1 Algo2 (honest deploy number)
+# PAPER-HEADLINE eval (paper Tab. III / tab:portable_s2d2, JS3C+S²D² row:
+# 24.3 %, +1.6 pp) — derived BEV + N=1 Algo2
 python scripts/eval.py eval/js3c_val_realistic \
     --checkpoint data/checkpoints/gssc_js3c/gssc_js3c_s2d2_real/model_ema.safetensors
-# → expect 24.32 % val mIoU under official semantic-kitti-api.
+# → expect 24.32 % val mIoU under the official semantic-kitti-api. The SAME
+#   derived-BEV setting read by the paper's internal training-time evaluator is
+#   26.72 % (paper prints 26.7, +3.99 pp) — a continuity row. The evaluator is what
+#   separates 26.7 from 24.3, not the BEV source.
 
 # Optional: D4 TTA at N=4 (derived BEV — GT BEV is incompatible with D4)
 python scripts/eval.py eval/js3c_val_d4tta \
@@ -355,9 +404,11 @@ and crashes the dumper on those frames (the paper's supplementary material
 discusses the underlying segmentation-head OOD issue). The full blacklist ships with
 the dataset as `js3cnet_predictions/synthetic_31k_bad_frames.txt`.
 
-The GT-BEV diagnostic row (26.05 % mIoU official api; 26.7 %
-internal training-time evaluator continuity row; 24.3 % at-deploy derived BEV)
-is trained on **real frames only**, so the synth gap does not affect it. The synth-augmentation row
+The released real-only checkpoint behind all three JS3C figures (24.3 % headline
+under the official api with derived BEV; 26.7 % on that same derived-BEV setting
+under the internal training-time evaluator, a continuity row; 26.05 % as a
+GT-BEV diagnostic) is trained on **real frames only**, so the synth gap does not
+affect it. The synth-augmentation row
 (reported in the paper's supplementary validation-protocol table) filters at
 dataloader time using the blacklist;
 SCPNet's synth predictions (`scpnet_predictions/synthetic/`) cover all
@@ -404,14 +455,21 @@ Real-only reproduction needs sequences 00-08, 09, 10.)
 ### Train and eval
 
 ```bash
-# Real-only training (~90 GPU-hours on 2× H100 for the full 100K iterations;
-# cold_diffusion=true is required)
+# Real-only training. ~90 GPU-hours is the BUDGET the paper's compute table
+# prices a full 100K-iteration alt-base launch at -- it is not what the released
+# LMSCNet checkpoint spent: that run stopped at step 65,000 and no measured cost
+# for it is published. The trainer is single-GPU, so read GPU-hours as wall-clock
+# on one H100 80 GB. cold_diffusion=true is required.
 python scripts/train.py train/lmscnet_real
 
 # Eval — N=1 Algo2, derived BEV (paper Tab. III / tab:portable_s2d2, LMSCNet+S²D² row)
 python scripts/eval.py eval/lmscnet_val_1step \
     --checkpoint data/checkpoints/gssc_lmsc/gssc_lmsc_s2d2_real/model_ema.safetensors
 # → expect 16.59 % val mIoU under the official semantic-kitti-api scorer.
+# NOTE: 16.59 is a STEP-65,000 figure. The released checkpoint is the best-mIoU
+# selection at global_step 65000 (recorded in its own config.json), even though
+# lmscnet_real.yaml sets num_iterations: 100000. If you retrain, compare against
+# your run's best_miou.pt, not step_100000.pt.
 # NOTE: the released LMSCNet model_ema.safetensors ships complete (278 tensors,
 # 45 BN buffers) and reproduces 16.59 directly; no full-state-checkpoint
 # workaround is needed.

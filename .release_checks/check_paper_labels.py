@@ -3,8 +3,13 @@ r"""GATE: every paper cross-reference shipped in the release must resolve agains
 
 WHY THIS EXISTS -- measured on 2026-08-20, before any release fix landed
 --------------------------------------------------------------------------------------------
+LINE NUMBERS IN THIS BLOCK ARE A DATED SNAPSHOT of the checkout named above, not
+navigation. Several have already moved: follow the SYMBOL, the heading or the quoted
+text, and re-derive the location with `grep -n`. Every check below RE-MEASURES the
+live artefacts, so nothing here is load-bearing for a verdict.
+
 54 reference sites in the release name 8 distinct labels that DO NOT EXIST in
-``/workspace/GSSC-paper/*.tex``:
+``<paper checkout>/*.tex``:
 
     tab:perclass                  11 sites (README.md:64,95,267,351, ...)  -- the paper's label
                                   is tab:perclass_delta
@@ -62,17 +67,36 @@ WHAT IT DOES NOT DO
 USAGE
     python .release_checks/check_paper_labels.py
     python .release_checks/check_paper_labels.py --selftest
+
+ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
+-------------------------------------------------
+Every root below is an environment variable with a repo-relative default, so this gate
+measures the checkout it ships in rather than one particular machine.  Absolute paths
+were hardcoded here once; a relocated clone then audited a tree it was not running in,
+and the paths themselves disclosed the maintainer's local layout to every visitor.
+
+    GSSC_REPO        the release checkout under test        default: this file's repository
+    GSSC_ASSETS      the asset staging bundle               default: <repo>/../GSSC-S2D2-assets
+    GSSC_PAPER       the manuscript checkout                default: <repo>/../GSSC-paper
+
+THE ASSET STAGING BUNDLE AND THE MANUSCRIPT CHECKOUT ARE NOT PART OF THE PUBLIC RELEASE.
+They are maintainer working trees; a clone of this repository does not contain them, and the
+released artefacts are distributed separately (docs/DATASET.md, docs/MODEL_ZOO.md).
+A gate that needs one and cannot find it FAILS rather than passing: "the artefact is
+not here" is not evidence that it is correct.  Point the variable at your own copy,
+or skip the gate.
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Sequence, Set, Tuple
 
-REPO = Path("/workspace/GSSC-S2D2")
-ASSETS = Path("/workspace/GSSC-S2D2-assets")
-PAPER = Path("/workspace/GSSC-paper")
+REPO = Path(os.environ.get("GSSC_REPO") or Path(__file__).resolve().parents[1])
+ASSETS = Path(os.environ.get("GSSC_ASSETS") or REPO.parent / "GSSC-S2D2-assets")
+PAPER = Path(os.environ.get("GSSC_PAPER") or REPO.parent / "GSSC-paper")
 PAPER_SEEDS = (PAPER / "main.tex", PAPER / "supplementary.tex")
 AUX = {"main": PAPER / "main.aux", "supplementary": PAPER / "supplementary.aux"}
 PDF = {"main": PAPER / "pdf" / "main.pdf", "supplementary": PAPER / "pdf" / "supplementary.pdf"}

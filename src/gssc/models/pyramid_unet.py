@@ -1,6 +1,20 @@
 """
 Exact Denoise class from pyramid discrete diffusion original codebase.
 Copy of pyramid-discrete-diffusion/models/conditional_diffusion/con_denoise.py
+
+THIRD-PARTY CODE -- NOT covered by this repository's MIT grant to the GSSC-S2D2
+authors. This file is a substantial copy -- 345 matched lines, 96.6% of the
+upstream file and 84.8% of this one (2026-08-22, upstream commit 964fca4) -- of:
+
+    pyramid-discrete-diffusion
+    https://github.com/yuhengliu02/pyramid-discrete-diffusion
+    MIT License, Copyright (c) 2023 Yuheng Liu
+
+MIT requires that the above copyright notice and the permission notice be
+included in all copies or substantial portions of the Software. The full
+permission notice is reproduced in THIRD_PARTY_NOTICES.md (section 1) at the
+repository root, which also ships inside the wheel at
+``gssc/THIRD_PARTY_NOTICES.md``. Do not redistribute this file without it.
 """
 import math
 
