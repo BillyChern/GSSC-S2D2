@@ -14,8 +14,9 @@ live artefacts, so nothing here is load-bearing for a verdict.
         sys.exit("... - Manual instructions: docs/DATASET.md ...")
 
 Its own docstring states the intent: "Direct visitors at the manual-download docs rather than
-failing inside huggingface_hub with a confusing 'Repository not found'." But only
-`DATAPORT_URL` is a placeholder. `HF_REPO_MODELS` and `HF_REPO_DATA` are real-LOOKING repo ids
+failing inside huggingface_hub with a confusing 'Repository not found'." At the time of the
+measurements below, only `DATAPORT_URL` was a placeholder (it is no longer one -- see STATUS).
+`HF_REPO_MODELS` and `HF_REPO_DATA` are real-LOOKING repo ids
 (`Stone-Chern/GSSC-S2D2-checkpoints`), so the guard passes them through and the five Hugging
 Face modes reach `snapshot_download`, where a repo that does not exist yet raises
 `RepositoryNotFoundError` and Python prints a bare traceback. Measured on 2026-08-20 with the
@@ -24,7 +25,7 @@ network boundary neutralised: `--checkpoints` exits 1 with
     Traceback (most recent call last): ... TypeError/RepositoryNotFoundError
 
 and the string `docs/DATASET.md` NOWHERE in the output. So the guard's stated purpose fails for
-exactly the modes a first-time user runs first, and the ONE mode it does cover
+exactly the modes a first-time user runs first, and the ONE mode it did cover
 (`--synthetic-pool`) is the one nobody starts with.
 
 Three documents promise the behaviour the code does not have:
@@ -75,6 +76,19 @@ STATUS. The fix above LANDED: `scripts/download_assets.py:_fetch` now wraps ever
 `snapshot_download` in a broad handler that `sys.exit`s with `_MANUAL_ROUTES`, so all 9
 checks pass on the shipped artefacts (re-measured 2026-08-20 after the fix). The gate is
 kept as a regression guard: it fails again the moment any mode loses that pointer.
+
+STATUS 2026-08-23 -- THE PLACEHOLDER IS GONE, AND THIS GATE IS WHAT CAUGHT IT. The synthetic
+pool's IEEE DataPort DOI was minted (10.21227/nqgf-9k39) and `DATAPORT_URL` now holds it, so
+`_ensure_url_configured` no longer trips on anything and CANNOT be what makes
+`--synthetic-pool` graceful. Swapping the string alone made that mode fall through to a
+`logger.info` block and `return`, i.e. EXIT 0 HAVING PROVISIONED NOTHING, and five arms went
+red together: `every_mode_exits_nonzero`, `every_mode_names_dataset_md` and all three
+`promise_*` arms (the last three only as collateral of the first two -- nothing was wrong with
+the promise documents, and softening them would have been the wrong repair, exactly as the
+DIRECTION OF THE FIX paragraph above warns). The repair was in the downloader: the
+`--synthetic-pool` branch now `sys.exit`s with the DOI, the archive names and `_MANUAL_ROUTES`,
+which is also the honest behaviour, because DataPort serves files only to an authenticated
+session and the mode genuinely cannot provision the asset. Nothing in this gate was relaxed.
 
 WHERE THE SELFTEST ROTTED. Until 2026-08-20 the selftest built its healthy fixture by
 APPENDING a simulated release guard (`_GUARD`) to the still-broken shipped script, and
@@ -367,8 +381,11 @@ def evaluate(modes: Sequence[Tuple[str, ...]], runs: Sequence[Run],
     no_ptr = [r.label for r in runs if POINTER not in r.out]
     res["every_mode_names_dataset_md"] = (
         not no_ptr,
-        f"{dlf}:37 _ensure_url_configured only bails on `[PLACEHOLDER]` values, so mode(s) "
-        f"{no_ptr} die without ever naming {POINTER}",
+        f"{dlf}: mode(s) {no_ptr} die without ever naming {POINTER}. Every exit path in that "
+        f"file is supposed to end in `_MANUAL_ROUTES`; find the one that returns or exits "
+        f"without it. (Historically this was `_ensure_url_configured` bailing only on "
+        f"`[PLACEHOLDER]` values -- no URL has that shape any more, so do not assume that "
+        f"cause.)",
     )
     tb = [r.label for r in runs if "Traceback (most recent call last)" in r.out]
     res["no_mode_emits_bare_traceback"] = (
@@ -511,8 +528,10 @@ def _untrapped(src: str) -> str:
         call, so the sentinel escapes `_fetch` instead of becoming a `sys.exit` pointer;
       * the APPENDED `_GUARD` wrapper is made to re-raise instead of exiting.
 
-    `--synthetic-pool` is untouched and stays graceful (it never reaches the hub), which is
-    faithful to the original defect: the modes a first-time user runs are the broken ones.
+    `--synthetic-pool` is untouched and stays graceful -- it never reaches the hub, so hoisting
+    `_fetch`'s `try:` cannot perturb it; its own branch exits with the pointer because DataPort
+    cannot be fetched from. That is faithful to the original defect: the modes a first-time user
+    runs are the broken ones.
     """
     src = _mutate(src,
                   r"^    try:\n        snapshot_download\(repo_id=repo_id, \*\*kwargs\)$",
@@ -525,8 +544,12 @@ def selftest() -> int:
     real = DOWNLOADER.read_text(encoding="utf-8")
     docs = read_docs()
 
-    # Probe only two modes in the selftest: one that reaches the hub and one short-circuited by
-    # the placeholder guard. Enough to exercise every check, ~10x cheaper than all seven.
+    # Probe only two modes in the selftest: one that reaches the hub (`--checkpoints`) and one
+    # that cannot (`--synthetic-pool`, whose archives live behind IEEE DataPort's login gate, so
+    # its branch exits with the pointer instead of fetching -- it was the placeholder guard that
+    # short-circuited it until the DOI was minted on 2026-08-23, and the mode is still the
+    # non-hub probe for the same observable reason). Enough to exercise every check, ~10x
+    # cheaper than all seven.
     all_modes = parse_modes(real)
     modes = [m for m in all_modes if m[0] == "--checkpoints"] + \
             [m for m in all_modes if len(m) > 1][:1]

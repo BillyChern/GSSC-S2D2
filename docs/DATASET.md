@@ -417,19 +417,43 @@ actual frame count is 32,039.) **Two pools are released**, `31K` and `57K`;
 the paper's data-scaling table also reports 0K / 10K / 20K rows, but those are
 *subsets drawn at train time* and no 0K / 10K / 20K pool is staged for
 download. (`0K` means real-only, so there is nothing to fetch for it at all.) The full pool is archived on IEEE DataPort rather than on the two
-Hugging Face mirrors; its DOI has not been minted yet, so `--synthetic-pool`
+Hugging Face mirrors, as **PS3-SemanticKITTI**,
+[doi:10.21227/nqgf-9k39](https://dx.doi.org/10.21227/nqgf-9k39) (deposited
+2026-08-23). The DOI is live; what it does **not** give you is a fetchable file
+URL. IEEE DataPort renders each archive as a login modal rather than a link and
+serves dataset files only to an authenticated session, and as deposited they
+require an IEEE DataPort subscription (IEEE Society membership included) — check
+the access notice on the landing page before you plan around it. So
+`--synthetic-pool` prints the DOI, the archive names and the retrieval steps and
 exits with the manual-build instructions instead of downloading (the same
-statement as under *Maintenance* below) and the manual route is the one that
-works today. What is outstanding is that one DOI, not a release embargo: the
+statement as under *Maintenance* below), and the **local PS³ rebuild described
+under *regenerate the pool yourself* below is the route that needs no IEEE
+credentials at all.** Nothing here is a release embargo: the
 paper's availability footnote states that the code, the checkpoints and
 the PS³ dataset are available at
 [github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2), and
 nothing in this datasheet is withheld pending acceptance.
 
-    # Via the download script (resolves once the DataPort DOI is configured
-    # in scripts/download_assets.py):
-    python scripts/download_assets.py --synthetic-pool 31K   # ~127 GiB / ~136 GB uncompressed (.tar.gz mirror is smaller)
-    python scripts/download_assets.py --synthetic-pool 57K   # ~229 GiB / ~246 GB uncompressed (.tar.gz mirror is smaller)
+Cite the deposit if you train on it:
+
+> Shi Chen, Weifeng Ge, "PS3-SemanticKITTI: Paired Sparse-Dense Synthetic Scenes
+> for LiDAR Semantic Scene Completion", IEEE Dataport, August 23, 2026,
+> doi:10.21227/nqgf-9k39
+
+A BibTeX entry is in the repository README's *Citation* section. This is on top
+of the two SemanticKITTI citations the source data requires (see *Licence* in
+the README).
+
+    # These PRINT the DOI and the retrieval steps; they do NOT fetch anything.
+    # Nothing can: DataPort has no direct file URL (see above).
+    python scripts/download_assets.py --synthetic-pool 31K
+    python scripts/download_assets.py --synthetic-pool 57K
+
+    # What you sign in at https://dx.doi.org/10.21227/nqgf-9k39 and download:
+    #   synthetic_pool_31K.tar.gz   2.15 GiB / 2.31 GB  -> 32,039 scenes, ~127 GiB / ~136 GB unpacked
+    #   synthetic_pool_57K.tar.gz   3.88 GiB / 4.16 GB  -> 57,650 scenes, ~229 GiB / ~246 GB unpacked
+    # 31K is a strict subset of 57K, so take one, never both. Then, locally:
+    tar -xzf synthetic_pool_31K.tar.gz -C data/
 
 You only need the synthetic pool if you want to **retrain from scratch**. The
 released checkpoint already contains the trained weights.
@@ -623,12 +647,15 @@ contents are identical; only the directory label differs.
   This is also the errata channel: file an issue if a frame, count, or shape
   here does not match what you downloaded.
 - **Version:** v2.3.8 (the submission snapshot; bump this WITH supplementary.tex's tag).
-- **Mirror:** the full synthetic pool is archived on IEEE DataPort. Its DOI has
-  not been minted yet — that, and not paper acceptance, is what is outstanding —
-  so `scripts/download_assets.py --synthetic-pool` prints the manual-download
-  instructions instead of fetching. The other assets are provisioned by the same
-  script, and the pool itself can be rebuilt locally with the PS³ ray-tracer
-  (see *Synthetic pool* above).
+- **Mirror:** the full synthetic pool is archived on IEEE DataPort as
+  PS3-SemanticKITTI, [doi:10.21227/nqgf-9k39](https://dx.doi.org/10.21227/nqgf-9k39)
+  (deposited 2026-08-23). The DOI is live and nothing about the pool is
+  outstanding, but DataPort publishes no direct file URL and releases files only
+  to an authenticated session, so `scripts/download_assets.py --synthetic-pool`
+  prints the DOI and the manual-download instructions instead of fetching. The
+  other assets are provisioned by the same script, and the pool itself can be
+  rebuilt locally with the PS³ ray-tracer — the one route that needs no IEEE
+  credentials (see *Synthetic pool* above).
 - **Errata posture:** the paper is the source of truth for every reported
   number. If a count in this datasheet disagrees with the paper, the paper
   wins and the discrepancy is an erratum to fix here.

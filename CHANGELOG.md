@@ -36,7 +36,62 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
-## [2.3.8] — 2026-08-22
+## [2.3.8] — 2026-08-23
+
+### Fixed — `--synthetic-pool` printed a `wget` command that could never have worked
+
+The synthetic pool's IEEE DataPort DOI was minted on 2026-08-23
+(**[10.21227/nqgf-9k39](https://dx.doi.org/10.21227/nqgf-9k39)**, *PS3-SemanticKITTI*), and
+`DATAPORT_URL` in `scripts/download_assets.py` now holds it instead of the
+`[SYNTHETIC_POOL_URL]` placeholder — the last `[..._URL]` token in the repository.
+
+Filling it in was not a string swap. The branch behind `--synthetic-pool` printed
+
+    Direct: wget -O <root>/synthetic_pool_31K.tar.gz <DATAPORT_URL>/synthetic_pool_31K.tar.gz && tar -xzf ...
+
+which is wrong twice over with a real DOI substituted: IEEE DataPort publishes no
+`<landing-page>/<filename>` URL — the deposit page renders each archive as a login modal, not
+an href — and it serves dataset files only to an authenticated session, so no anonymous fetch
+of any shape succeeds. That command is **removed**, not re-pointed. It is replaced by the DOI,
+the two archive names with their measured sizes (`synthetic_pool_31K.tar.gz`, 2.15 GiB /
+2.31 GB, 32,039 scenes; `synthetic_pool_57K.tar.gz`, 3.88 GiB / 4.16 GB, 57,650 scenes — 31K is
+a strict subset of 57K), the access caveat, and `tar -xzf` as a separate local step.
+
+Two behaviour defects that the live DOI would otherwise have introduced are fixed with it:
+
+- **`--synthetic-pool` would have exited 0 having provisioned nothing.** Its graceful exit came
+  from `_ensure_url_configured` recognising a `[PLACEHOLDER]`; with a real URL that guard stops
+  firing and the mode fell through to a `logger.info` block and `return`. The branch now
+  `sys.exit`s non-zero with the `docs/DATASET.md` pointer, which is also the honest verdict —
+  the mode genuinely cannot provision the asset. `.release_checks/check_download_guard.py`
+  catches this (five of its nine arms go red without the fix); no check was relaxed to
+  accommodate the change, and its narrative and selftest comments were updated where they
+  described the placeholder as the live mechanism.
+- **The mode no longer requires `huggingface_hub`.** Nothing about the pool involves Hugging
+  Face, but once the URL guard stopped firing the mode reached the hub import and told users
+  in a bare, pre-`uv sync` environment to `uv pip install huggingface-hub` for an asset the Hub
+  does not host. It is now answered before that import.
+
+`_ensure_url_configured` is kept as a regression guard, with a docstring that says so rather
+than implying it still protects `--synthetic-pool`.
+
+### Changed — docs describe the deposit as live, and how to actually get it
+
+`README.md`, `docs/DATASET.md` (both the *Synthetic pool* passage and its *Maintenance*
+duplicate) and `examples/quickstart.ipynb` no longer say the DOI "has not been minted yet" or
+that the URL is "pending". They give the DOI and the access caveat: DataPort releases files
+only to a signed-in session and, as deposited, requires an IEEE DataPort subscription, so the
+local PS³ rebuild is now presented as the route that needs no IEEE credentials rather than as
+a stopgap. The standing rule that the pool is **not** embargoed until publication is unchanged
+and still holds.
+
+### Added — the dataset's own citation
+
+The pool is a separately citable artefact now that it has a DOI. `README.md`'s *Citation*
+section and `docs/DATASET.md` carry IEEE DataPort's rendered citation and a portable `@misc`
+BibTeX entry (IEEE generates `@data{nqgf-9k39-26, ...}`; `@data` is not a standard BibTeX
+type). The SemanticKITTI citation requirements still apply on top of it.
+
 
 Re-cut on 2026-08-23 onto the rewritten history described below, so this entry now also
 covers the work that had been sitting under [Unreleased]. The rewrite removed two

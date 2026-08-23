@@ -35,11 +35,13 @@ THE RULE, AND WHY IT IS SHAPED THIS WAY
       residual <= 1                     -> OK  (the else is that one value's branch)
       dispatch falls through to a raise  -> OK  (the mode is refused, loudly)
       otherwise                         -> FAIL, naming the unhandled values
-  Options nothing dispatches on at all (e.g. --log-level, fed to getattr(logging, ...);
-  --synthetic-pool, only interpolated into a message) are consumed as VALUES, not
-  dispatched, so branch coverage is not the right question for them; they are reported
-  as such and not failed. That distinction is measured (zero dispatch sites), not
-  assumed per-option.
+  Options nothing dispatches on at all (e.g. --log-level, fed to getattr(logging, ...))
+  are consumed as VALUES, not dispatched, so branch coverage is not the right question
+  for them; they are reported as such and not failed. That distinction is measured (zero
+  dispatch sites), not assumed per-option -- which is why it tracks the code by itself:
+  --synthetic-pool was listed here as a second value-only example until 2026-08-23, when
+  the DataPort DOI landed and its branch grew a real per-variant comparison; the gate
+  moved it to "2/2 choices branch explicitly" with no edit to the rule.
 
 BLIND SPOT, DELIBERATELY MADE VISIBLE: a `choices=` expression this file cannot resolve
 statically means the gate cannot see that option at all -- so `choices_all_enumerable`

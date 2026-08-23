@@ -15,7 +15,7 @@ authors:
 url: "https://github.com/BillyChern/GSSC-S2D2"
 license: MIT
 version: 2.3.8
-date-released: 2026-08-22
+date-released: 2026-08-23
 preferred-citation:
   # type: unpublished + status: submitted, because the manuscript is under review and
   # not yet published anywhere. Both values are in the CFF 1.2.0 enums, and the
@@ -35,3 +35,23 @@ preferred-citation:
   year: 2026
   notes: "Under review."
   # DOI omitted: the paper is under review; a DOI will be added on acceptance.
+
+# The PS3 synthetic pool is a separate artefact with its own DOI, not part of this
+# software release, so it is a `references` entry rather than anything under
+# `preferred-citation`. Cite it IN ADDITION to the paper if you train on the pool.
+# Unrelated to the `# DOI omitted` note above, which is about the manuscript.
+references:
+  - type: data
+    title: "PS3-SemanticKITTI: Paired Sparse-Dense Synthetic Scenes for LiDAR Semantic Scene Completion"
+    authors:
+      - family-names: "Chen"
+        given-names: "Shi"
+      - family-names: "Ge"
+        given-names: "Weifeng"
+    publisher:
+      name: "IEEE Dataport"
+    year: 2026
+    date-released: "2026-08-23"
+    doi: "10.21227/nqgf-9k39"
+    url: "https://dx.doi.org/10.21227/nqgf-9k39"
+    notes: "Access is gated by IEEE DataPort; docs/DATASET.md documents the local PS3 rebuild, which needs no IEEE credentials."

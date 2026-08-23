@@ -343,11 +343,11 @@ The mathematical derivations are in the supplementary, App. B (`suppB:math`): `p
 | Pretrained checkpoints (18 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face [`Stone-Chern/GSSC-S2D2-checkpoints`](https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints) — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) | 4.58 GiB / 4.9 GB (the 51-file payload `checksums.txt` covers) |
 | Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face [`Stone-Chern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets) — or reproduce the JS3C-Net / LMSCNet sets locally via `scripts/dump_{js3c,lmscnet}_predictions.py`, see [docs/DATASET.md](docs/DATASET.md) | 411.0 GiB / 441.3 GB total (SCPNet 176.7 GiB / 189.7 GB + JS3C-Net 189.0 GiB / 202.9 GB + LMSCNet 45.3 GiB / 48.7 GB; [docs/DATASET.md](docs/DATASET.md) rounds each tree to whole units, which is why its three rows add to 442 rather than 441). The headline eval reads SCPNet val seq 08 alone — 8.4 GiB / 9.1 GB, fetchable on its own with `--include 'scpnet_predictions/08/*'` |
 | Object bank (57,789 instances, 8 rare classes) | Hugging Face [`Stone-Chern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets) — see [docs/DATASET.md](docs/DATASET.md) | 313 MiB / 328 MB of data |
-| Synthetic pool (**two** variants released: 31K and 57K) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 127 GiB / 136 GB (31K), 229 GiB / 246 GB (57K), uncompressed |
+| Synthetic pool (**two** variants released: 31K and 57K) | IEEE DataPort — [doi:10.21227/nqgf-9k39](https://dx.doi.org/10.21227/nqgf-9k39). *Not a click-and-download: DataPort serves dataset files only to a signed-in session, and as deposited they require an IEEE DataPort subscription. The local PS³ rebuild in [docs/DATASET.md](docs/DATASET.md) needs no IEEE credentials.* | 127 GiB / 136 GB (31K), 229 GiB / 246 GB (57K), uncompressed; the archives themselves are 2.15 GiB / 2.31 GB (`synthetic_pool_31K.tar.gz`) and 3.88 GiB / 4.16 GB (`synthetic_pool_57K.tar.gz`) |
 
 Sizes above were measured on the staged release payload with `du -Lsb` (apparent size, symlinks dereferenced) and are quoted as `GiB / GB` so the two conventions cannot be confused; [docs/DATASET.md](docs/DATASET.md) carries the same table per sequence. The 0K, 10K and 20K data-scaling rows are **retrains, not released pools** — 0K means real frames only, and the 10K / 20K subsets are not staged for release.
 
-These artefacts are released under two different terms. GSSC-authored code and the GSSC-trained model weights are MIT. The synthetic pool, the object bank and the base-model prediction dumps are derived from SemanticKITTI, which is distributed under CC-BY-NC-SA 4.0, so they inherit its non-commercial, share-alike restriction; the model weights, although MIT as our contribution, were also trained on SemanticKITTI, so downstream use of the weights still carries that non-commercial caveat. SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). `scripts/download_assets.py` populates every entry except the synthetic pool, whose IEEE DataPort DOI is not minted yet; for that one it exits with the manual-build instructions in `docs/DATASET.md`, which also documents manual provisioning for the rest.
+These artefacts are released under two different terms. GSSC-authored code and the GSSC-trained model weights are MIT. The synthetic pool, the object bank and the base-model prediction dumps are derived from SemanticKITTI, which is distributed under CC-BY-NC-SA 4.0, so they inherit its non-commercial, share-alike restriction; the model weights, although MIT as our contribution, were also trained on SemanticKITTI, so downstream use of the weights still carries that non-commercial caveat. SemanticKITTI raw data follows its own license (see [semantic-kitti.org](http://www.semantic-kitti.org/)). `scripts/download_assets.py` populates every entry except the synthetic pool: its DOI is minted and live, but IEEE DataPort publishes no direct file URL and releases files only to an authenticated session, so no script can fetch it. For that one the download command exits with the DOI, the archive names and the manual-build instructions in `docs/DATASET.md`, which also documents manual provisioning for the rest.
 
 ---
 
@@ -404,6 +404,24 @@ A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `as
 
 (Machine-readable: [`CITATION.cff`](CITATION.cff))
 
+If you train on the PS³ synthetic pool, cite the deposit as well — it carries its own DOI and is a separate artefact from the paper:
+
+> Shi Chen, Weifeng Ge, "PS3-SemanticKITTI: Paired Sparse-Dense Synthetic Scenes for LiDAR Semantic Scene Completion", IEEE Dataport, August 23, 2026, doi:10.21227/nqgf-9k39
+
+```bibtex
+@misc{chen2026ps3semantickitti,
+  title        = {PS3-SemanticKITTI: Paired Sparse-Dense Synthetic Scenes for LiDAR Semantic Scene Completion},
+  author       = {Chen, Shi and Ge, Weifeng},
+  year         = {2026},
+  publisher    = {IEEE Dataport},
+  doi          = {10.21227/nqgf-9k39},
+  url          = {https://dx.doi.org/10.21227/nqgf-9k39},
+  note         = {Dataset}
+}
+```
+
+IEEE DataPort's own generated entry uses `@data{nqgf-9k39-26, ...}`; `@data` is not a standard BibTeX type, so the portable `@misc` form is given here. Both resolve to the same deposit. The pool is derived from SemanticKITTI, so its citation requirements (below) apply on top of this one.
+
 The submission snapshot referenced in the paper supplementary is the **v2.3.8** release; its Hydra configs hold the same hyperparameters listed in the paper's reproducibility appendix. Keep this tag in step with the one named in the paper's reproducibility appendix — the paper cites the tag by name, so bumping one without the other strands the reference.
 
 ---
@@ -414,7 +432,7 @@ Every upstream licence this project redistributes or derives from, with the copy
 
 * **Code, configs, documentation:** [MIT License](LICENSE).
 * **Released model weights:** the GSSC-authored code and weights are licensed MIT. The weights were trained on SemanticKITTI, which is distributed under CC-BY-NC-SA 4.0 (non-commercial); downstream use of the weights therefore inherits that dataset's non-commercial restriction, so the MIT grant on our contribution does not by itself authorise commercial use of the trained weights.
-* **Synthetic pool + object bank:** derived from SemanticKITTI and therefore distributed under the same CC-BY-NC-SA 4.0 (non-commercial, share-alike) terms; see [semantic-kitti.org/dataset.html](http://www.semantic-kitti.org/dataset.html).
+* **Synthetic pool + object bank:** derived from SemanticKITTI and therefore distributed under the same CC-BY-NC-SA 4.0 (non-commercial, share-alike) terms; see [semantic-kitti.org/dataset.html](http://www.semantic-kitti.org/dataset.html). The pool is deposited on IEEE DataPort as [doi:10.21227/nqgf-9k39](https://dx.doi.org/10.21227/nqgf-9k39) and has its own citation (see [Citation](#citation) above).
 * **Base-model prediction dumps (`scpnet_predictions/`, `js3cnet_predictions/`, `lmscnet_predictions/`)** — the largest published artefact at 411 GiB / 441 GB: model output computed over SemanticKITTI, so CC-BY-NC-SA 4.0 applies to them as well. Each additionally carries its producing model's attribution — SCPNet (no upstream licence; weights redistributed with the authors' permission), JS3C-Net (MIT, © 2020 Xu Yan), LMSCNet (Apache-2.0, © 2020 Inria and AKKA Technologies) — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) §8–§11.
 * **SemanticKITTI raw data:** governed by its own license — see [semantic-kitti.org](http://www.semantic-kitti.org/). Its terms require citing both J. Behley, M. Garbade, A. Milioto, J. Quenzel, S. Behnke, C. Stachniss and J. Gall, *"SemanticKITTI: A Dataset for Semantic Scene Understanding of LiDAR Sequences"*, ICCV 2019, and A. Geiger, P. Lenz and R. Urtasun, *"Are We Ready for Autonomous Driving? The KITTI Vision Benchmark Suite"*, CVPR 2012, pp. 3354–3361. Anything we publish that is derived from it (the pools, the bank, the prediction dumps) carries the same obligation.
 * **SSCBench-KITTI360 (evaluation-only):** governed by its own terms; see the [SSCBench repository](https://github.com/ai4ce/SSCBench).
