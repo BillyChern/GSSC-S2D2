@@ -56,10 +56,11 @@ GSSC-S2D2 loads pickle checkpoints (`.pt` / `.pth`) with
 execution. The call sites are `src/gssc/inference/generate_predictions.py:174`
 (reached by `scripts/eval.py` and `scripts/infer.py` when you hand them a `.pt`),
 `src/gssc/inference/evaluate_bev.py:182` (the `eval/bev_secondary` path) and
-`src/gssc/inference/run_scpnet.py:253` (regenerating the SCPNet base
-predictions). Of the 51 released files, 30 are `.safetensors` — a format that
-cannot carry an executable payload — and exactly **two are pickles**
-(`grep -cE '\.(pt|pth)$' data/checkpoints/checksums.txt` → 2):
+`load_scpnet_checkpoint` in `src/gssc/inference/run_scpnet.py` (regenerating the SCPNet base
+predictions). Of the 51 files `checksums.txt` covers, 30 are `.safetensors` — a
+format that cannot carry an executable payload — and exactly **two are pickles**
+(`grep -cE '\.(pt|pth)$' data/checkpoints/checksums.txt` → 2). The upload ships a
+52nd file, `checksums.txt` itself, which cannot list its own digest:
 
 * `scpnet_v2_port.pth`, the third-party SCPNet base. Its loader is
   `gssc.inference.run_scpnet`, driven by `scripts/eval_semanticposs.py` — **not**
@@ -227,7 +228,8 @@ are derived BEV:
 
 - **24.32 % (+1.59 pp)** — the **paper headline** for this base, and the
   reproducible at-deploy figure: **derived BEV** under the **official
-  `semantic-kitti-api`**, protocol-matched to the 22.7 % base and to the
+  `semantic-kitti-api`**, protocol-matched to the 22.73 % base (the paper rounds the
+  pair to 22.7 → 24.3, +1.6) and to the
   released checkpoint's own training distribution. This is what
   `scripts/reproduce_table.py` yields end-to-end.
 - **26.72 % (+3.99 pp)** — the **same derived-BEV setting**, scored with the

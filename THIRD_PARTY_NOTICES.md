@@ -23,9 +23,12 @@ this file is the attribution record, and `pyproject.toml` force-includes it into
 the wheel. Each vendored subtree carries its own notice *beside the code it
 covers* (`external/multinomial_diffusion/NOTICE`,
 `src/gssc/_improved_diffusion/NOTICE`), which is also how
-`.release_checks/check_strict_load.py` tells vendored code from ours — a NOTICE
-at the repository root would sit above every file and mark the whole tree as
-third-party, so do not add one.
+`.release_checks/check_strict_load.py` tells vendored code from ours. A root
+NOTICE once broke that: it sat above every file and marked the whole tree
+vendored, silently taking the gate from 23 enforced files to 0 while it still
+printed OK. `_vendored()` now stops at the repository root before testing and
+`_selftest_root_notice()` pins that — but MIT carries no NOTICE obligation, so
+do not add one.
 
 **Contents**
 
@@ -174,8 +177,7 @@ What we redistribute or derive:
   Diffusion (§1).
   This one **is** live: it is imported by the pyramid training entry points
   (`src/gssc/training/train_pyramid_s2.py`, `train_pyramid_s3.py`,
-  `pyramid_pipeline.py`), by `src/gssc/data/synthetic_generator.py`, and
-  exercised by `tests/test_smoke.py`.
+  `pyramid_pipeline.py`) and exercised by `tests/test_smoke.py`.
 
 If you intend to redistribute this material yourself, seek an explicit grant
 from the upstream authors rather than relying on the classifier.
@@ -304,7 +306,7 @@ SOFTWARE.
   `external/semantic_kitti_api/LICENSE` — byte-identical to upstream, verified
   2026-08-22 by diff against a fresh clone (commit `a9c749e`).
 
-Vendored at `external/semantic_kitti_api/` (44 tracked files) and used as the
+Vendored at `external/semantic_kitti_api/` (43 tracked files) and used as the
 official evaluator for every score this project reports under the "official
 `semantic-kitti-api`" protocol. It is pinned in-tree so that a reported number
 reflects one fixed scoring implementation.
@@ -318,18 +320,21 @@ blob hash of each of our 44 files against every one of the upstream repository's
   no upstream file at that commit is missing;
 * `evaluate_completion.py`, the scorer itself, differs by **one line**:
   `np.ones_like(labels, dtype=np.bool)` became `dtype=bool`, `np.bool` being an
-  alias NumPy removed in 1.24. Nothing else in it changed, and it imports only
-  `argparse`, `numpy`, `scipy.io`, `yaml`, `os` and `time` — no other vendored
-  file is on the scoring path;
+  alias NumPy removed in 1.24. Nothing else in it changed. Its module-level
+  imports are `argparse`, `numpy`, `scipy.io`, `yaml`, `os` and `time`, and it
+  pulls in exactly one other vendored file: `auxiliary/np_ioueval.py`, via a
+  function-local `from auxiliary.np_ioueval import iouEval` at its line 129 —
+  the IoU accumulator itself. That file is byte-identical to the pin (blob
+  `d31b631e5eb1d3e5577a91ae8626566b7e66e36d`) and imports only `sys` and
+  `numpy`, so no modified file is on the scoring path;
 * `auxiliary/laserscan.py` adds a spatial crop before range projection and
   `visualize_voxels.py` adds commented-out debug lines; neither is imported by
   `evaluate_completion.py` or by any scoring path in this repository;
-* four files are **added by this project**, not upstream:
+* three files are **added by this project**, not upstream:
   `config/semantic-kitti_my.yaml` and `config/kitti360.yaml`, both derived from
   upstream's own `config/semantic-kitti.yaml` (95.8 % and 60.1 % of their lines
-  match it); `config/semantic-poss.yaml`, a completion-scorer datacfg whose
-  label maps mirror JS3C-Net's `SemanticPOSS.yaml` (§9); and `fix_pip_paths.sh`,
-  a stray local-environment script unrelated to the evaluator. The three configs
+  match it); and `config/semantic-poss.yaml`, a completion-scorer datacfg whose
+  label maps mirror JS3C-Net's `SemanticPOSS.yaml` (§9). The three configs
   carry upstream's own "covered by the LICENSE file in the root of this project"
   header, which here resolves to `external/semantic_kitti_api/LICENSE`.
 

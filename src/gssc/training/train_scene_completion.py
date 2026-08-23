@@ -1515,14 +1515,17 @@ class SceneCompletionTrainer:
                 "If the cache is present, check `data_root`, `train_sequences`/`val_sequences` "
                 "and the base-prediction directory in the config: frames without a matching "
                 "<frame>_pred.npy under `scpnet_pred_dir`/`base_pred_dir` are also dropped.\n"
-                "In s3_mode 'intermediate'/'student' a frame is ALSO dropped when it has no "
+                "In s3_mode 'intermediate' a frame is ALSO dropped when it has no "
                 f"multi-frame voxel file under "
                 f"{Path(config['data_root']) / 'SemanticKITTI_3D' / '256_multi_frame'}/<seq>/; "
                 "build that tree with\n"
                 "    python scripts/prepare_multi_frame_data.py "
                 "--semantickitti_root data/SemanticKITTI\n"
                 "(In 'teacher' mode, the shipped default, a missing multi-frame file is a "
-                "single-frame fallback with a warning, not a dropped sample.)"
+                "single-frame fallback with a warning ONLY when a base-prediction dir is "
+                "set; without one the frame is dropped. In 'student' mode a missing "
+                "multi-frame file is never fatal, but a missing <frame>_bev.npy under "
+                "`pred_bev_dir` is.)"
             )
 
         # S4: MIMO Training Mode - wrap dataset with MIMODatasetWrapper

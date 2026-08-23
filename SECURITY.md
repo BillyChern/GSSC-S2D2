@@ -51,9 +51,11 @@ because the saved state carries optimizer + EMA buffers that are not
 representable in `weights_only=True` mode. **Only load checkpoints from
 sources you trust** -- running an attacker-supplied `.pt` / `.pth` file is
 equivalent to running attacker-supplied code. The released weights are
-`model.safetensors`, a format that cannot carry executable payloads; the one
-pickle in the release is the third-party `scpnet_v2_port.pth` base, and it is
-covered by the same digest below.
+`model.safetensors`, a format that cannot carry executable payloads; the two
+pickles in the release are the third-party `scpnet_v2_port.pth` base and
+`bev/bev_s2d2_scpnet/model.pt` (the pre-conversion copy of the BEV weights --
+the `.safetensors` beside it is what the documented BEV eval command loads),
+and both are covered by the digests below.
 
 ### Verifying what you downloaded
 

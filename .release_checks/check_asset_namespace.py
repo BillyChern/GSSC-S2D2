@@ -7,7 +7,7 @@ Two artefacts describe the same hosting, and they disagree about every field of 
 
   scripts/download_assets.py            HF_REPO_MODELS = "Stone-Chern/GSSC-S2D2-checkpoints"
   (the HF_REPO_* constants)             HF_REPO_DATA   = "Stone-Chern/GSSC-S2D2-datasets"
-                                        -> TWO repos, namespace `BillyChern`.
+                                        -> TWO repos, namespace `Stone-Chern`.
 
   <asset bundle>/README.md              "## Upload procedure"
                                         huggingface-cli upload gssc-s2d2/checkpoints ...
@@ -19,7 +19,7 @@ Two artefacts describe the same hosting, and they disagree about every field of 
 
 They cannot both be right. Whichever one the author follows on release day, the other ships
 broken: run the upload procedure and every `download_assets.py` invocation 404s; create the two
-`BillyChern/` repos instead and the README's procedure is fiction and the placeholder table
+`Stone-Chern/` repos instead and the README's procedure is fiction and the placeholder table
 below it resolves to URLs nobody minted. This survives publication because nothing executes
 either artefact -- the README is prose and the downloader dies at the network boundary.
 
@@ -32,7 +32,7 @@ THE THIRD DISAGREEMENT, WHICH IS THE ONE THAT SURVIVES A NAIVE FIX
 That only resolves if all four dataset folders live INSIDE ONE repo under those prefixes. The
 README uploads each folder to its OWN repo, at the repo ROOT (`huggingface-cli upload <repo>
 <local_path>` with no `path_in_repo` puts a directory's contents at the root). So even after
-someone "fixes the namespace" by sed-ing `BillyChern` to `gssc-s2d2`, `allow_patterns` matches
+someone "fixes the namespace" by sed-ing `Stone-Chern` to `gssc-s2d2`, `allow_patterns` matches
 zero files in `gssc-s2d2/scpnet_predictions` and the download silently yields an empty tree --
 a worse failure than the 404, because it exits 0. Check `prefix_uploaded_into_named_repo`
 exists for exactly that half-fix, and it is why this gate compares (repo, prefix) PAIRS rather
@@ -111,11 +111,12 @@ Existence cannot be read off the obvious probe either. `https://huggingface.co/a
 <ns>/<name>` returns **401 for private AND for absent repos**, byte-identically; a wholly
 fabricated namespace returns the same 401 as a real private one. So a 401 carries zero bits
 about existence, and "401, therefore it exists but is private" is an inference, not a
-measurement. Measured 2026-08-22: both ids the downloader names return 401, and
-`https://huggingface.co/BillyChern` -- the account page -- returns 404 anonymously, while
-other real accounts return 200. That is not proof the account is absent (HF may 404 a
-profile holding only private repos), but nothing anonymous supports "it exists", and the one
-independent signal available points the other way.
+measurement. Measured 2026-08-22, when the downloader still named the `BillyChern` namespace:
+both ids it then named returned 401, and `https://huggingface.co/BillyChern` -- the account
+page -- returned 404 anonymously while other real accounts return 200. That 404 is why the
+shipped ids moved to `Stone-Chern` on 2026-08-23. Re-measured 2026-08-23 against the ids the
+downloader names now: `huggingface.co/Stone-Chern` -> 200, so the ACCOUNT exists; both repo
+ids still -> 401, which as above says nothing about whether the repos do.
 
 `--probe-hf` (or `GSSC_PROBE_HF=1`) runs the anonymous check against the ids the AST
 actually found, and requires 200 from a LOGGED-OUT session -- not from the owner's browser,
@@ -299,8 +300,9 @@ def parse_downloader(src: str) -> Tuple[List[Constant], List[Fetch]]:
 
 #: `huggingface-cli` flags that take a SEPARATE value token. Anything here written as
 #: `--flag VALUE` is normalised to `--flag=VALUE` so the value never lands in the positional
-#: list. Measured need: the shipped checkpoints upload carries fourteen `--exclude "<name>"`
-#: pairs, and without this the first of those values was read as `path_in_repo`.
+#: list. Measured need: the shipped checkpoints upload carries fifteen `--exclude "<pattern>"`
+#: pairs (fourteen `.pt` basenames plus `*_superseded_*`), and without this the first of those
+#: values was read as `path_in_repo`.
 VALUE_FLAGS = frozenset({"--exclude", "--include", "--repo-type", "--path-in-repo",
                          "--commit-message", "--commit-description", "--revision", "--token"})
 

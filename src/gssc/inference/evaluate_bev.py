@@ -99,7 +99,7 @@ def evaluate_bev(
         gpu: CUDA device id.
         max_frames: Optional cap for quick smoke runs. Takes the FIRST n frames in sorted
             order. This is NOT the protocol the published BEV numbers were measured under --
-            see the note below -- so a ``--max-frames 100`` result does not reproduce them.
+            see the note below -- so a ``max_frames=100`` result does not reproduce them.
 
     Returns:
         Dict with ``"mIoU"`` (mean over 19 valid classes) and

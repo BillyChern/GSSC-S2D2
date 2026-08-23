@@ -84,8 +84,8 @@ internal-evaluator continuity row; see the three-number box below.
   > - **22.7 → 24.3 % (+1.6 pp)** — the **paper headline** for this base
   >   (main Tab. III, `tab:portable_s2d2`): **derived BEV**, scored by the
   >   **official `semantic-kitti-api`**, the same evaluator that scores the
-  >   22.7 % base, so the delta is protocol-consistent. Precise output
-  >   **24.32 % (+1.59 pp)**. Reproduced by `eval/js3c_val_realistic`.
+  >   22.7 % base, so the delta is protocol-consistent. Precise outputs
+  >   **22.73 % → 24.32 % (+1.59 pp)**. Reproduced by `eval/js3c_val_realistic`.
   > - **26.7 % (+4.0 pp)** — the **same derived-BEV setting** scored with the
   >   paper's **internal training-time evaluator** (`SSCMetrics`); precise
   >   internal output **26.72 %**. This is the row the supplementary

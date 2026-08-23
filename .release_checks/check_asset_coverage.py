@@ -212,7 +212,7 @@ def manifest_listed(w: World) -> Tuple[Set[str], Optional[Path]]:
 def doc_referenced_paths(w: World) -> List[Tuple[str, str]]:
     """[('fam/name', 'file:line')] for checkpoint paths the docs spell out."""
     out: List[Tuple[str, str]] = []
-    rx = re.compile(r"(?:data/|assets/)?checkpoints/([A-Za-z0-9_]+/[A-Za-z0-9_.-]+)")
+    rx = re.compile(r"(?<![\w./-])(?:data/|assets/)?checkpoints/([A-Za-z0-9_]+/[A-Za-z0-9_.-]*[A-Za-z0-9_-])")
     for f in w.doc_files():
         for i, line in enumerate(w.read_text(f).splitlines(), 1):
             for m in rx.finditer(line):

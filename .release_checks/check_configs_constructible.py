@@ -46,7 +46,7 @@ WHAT THIS GATE DOES
                                       range bound inside the diffusion module. This is the
                                       one static check here, and it is load-bearing: fixing
                                       only the logger.debug turns the dynamic checks green
-                                      while sample_algo2:1167 still hardcodes 99. The
+                                      while sample_algo2 hardcoded 99 in its schedule. The
                                       forbidden values are DERIVED from the class signature,
                                       not written down here.
 
@@ -57,9 +57,10 @@ train config declares. (Symbols, not line numbers: all three of the pointers tha
 had rotted.)
 So V2 is the default here and V1 is used only if a config explicitly says v1.
 
-EXPECTED TODAY: FAIL on configs/train/T10.yaml and configs/train/T50.yaml, and on
-no_hardcoded_schedule_literals. If those go green without multinomial.py changing,
-this gate has been broken, not the defect fixed.
+EXPECTED TODAY: all green. This block failed on configs/train/T10.yaml,
+configs/train/T50.yaml and no_hardcoded_schedule_literals until multinomial.py derived
+`t_last = num_timesteps - 1`; re-measured 2026-08-23, all three PASS and the gate exits 0.
+If they go RED again without multinomial.py changing, this gate has been broken.
 
 ROOTS, AND WHAT IS NOT PART OF THE PUBLIC RELEASE
 -------------------------------------------------

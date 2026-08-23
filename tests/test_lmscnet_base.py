@@ -1,4 +1,4 @@
-"""Tests for LMSCNet cross-base support (paper Tab. III row 90).
+"""Tests for LMSCNet cross-base support (paper Tab. III, `tab:portable_s2d2`, the LMSCNet base / +S2D2 pair).
 
 Mirrors :mod:`tests.test_js3c_base`. Coverage:
 1. LMSCNet predictions reader: shape, dtype, value-range validation.

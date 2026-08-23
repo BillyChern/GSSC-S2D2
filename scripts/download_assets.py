@@ -125,7 +125,7 @@ def main() -> None:
     parser.add_argument("--predictions", action="store_true", help="Download SCPNet predictions (177 GiB / 190 GB unique, real + synth)")
     parser.add_argument("--js3c-predictions", action="store_true", help="Download JS3C-Net predictions (189 GiB / 203 GB, cross-base eval)")
     parser.add_argument("--lmscnet-predictions", action="store_true", help="Download LMSCNet predictions (45 GiB / 49 GB, cross-base eval)")
-    parser.add_argument("--object-bank", action="store_true", help="Download rare-class object bank (313 MiB / 328 MB of data; 448 MB of disk blocks)")
+    parser.add_argument("--object-bank", action="store_true", help="Download rare-class object bank (313 MiB / 328 MB of data; 448 MiB / 470 MB of disk blocks)")
     # Only 31K and 57K are staged for release. 0K means real-only, so no tarball can
     # ever exist for it; 10K and 20K exist locally but are not part of the release
     # surface. Offering a choice with nothing behind it is a promise the script

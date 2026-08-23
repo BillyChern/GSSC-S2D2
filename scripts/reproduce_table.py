@@ -63,7 +63,7 @@ TABLE_MAP: dict[str, dict[str, Any]] = {
     "data_scaling_sf":      {"config": "eval/data_scaling_sf", "checkpoint": "[gssc_sf/gssc_{0K,10K,20K,31K,57K}_sf_step{93000,87000,85000,72000,69000}]", "metrics": "miou"},
     "cross_base_js3c":      {
         # JS3C-Net cross-base. The PAPER'S headline for this base is 24.32
-        # (derived BEV, official semantic-kitti-api, +1.59 pp over the 22.7 base),
+        # (derived BEV, official semantic-kitti-api, +1.59 pp over the 22.73 base),
         # which eval/js3c_val_realistic reproduces. The supplement's 26.72 (printed
         # 26.7, +3.99 pp) is the SAME derived-BEV run scored with the paper's
         # internal training-time SSCMetrics -- the EVALUATOR is what separates 26.7

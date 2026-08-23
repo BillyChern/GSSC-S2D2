@@ -144,7 +144,9 @@ PAPER_PDFS = (
 #: MEASURED 2026-08-22 by pointing doc_sources() at each file alone and running main():
 DOC_SOURCE_EXCLUSIONS: Tuple[Tuple[str, str], ...] = (
     ("CHANGELOG.md",
-     "20 findings, and every one sampled is the release note QUOTING the string it removed -- "
+     "17 findings (measured 2026-08-23 with this gate's own instrument: 9 paper-values-in-pdf, "
+     "4 signed-deltas-in-pdf, 1 delta-arithmetic, 3 scope-localised), and every one sampled is "
+     "the release note QUOTING the string it removed -- "
      "e.g. a '### Fixed -- SemanticPOSS zero-shot read 6.6 where the paper prints 6.5' section "
      "whose body lists `docs/TRAIN.md:67 \"**26.05 %** (paper ... headline)\"` as the residue "
      "that was deleted. A changelog's job is to quote the wrong value; a gate that fails on "
@@ -152,7 +154,7 @@ DOC_SOURCE_EXCLUSIONS: Tuple[Tuple[str, str], ...] = (
      "a quoted fragment under a Fixed/Removed heading is a record, not a claim), which does not "
      "exist yet. Until it does, the file is unjudged and this line says so."),
     ("hf_cards/THIRD_PARTY_NOTICES.md",
-     "8+ findings, all of them SOURCE-OVERLAP RATIOS ('165 matched lines (52.5 % of our file)') "
+     "8+ findings, all of them SOURCE-OVERLAP RATIOS ('170 matched lines (54.1 % of our file)') "
      "anchored only by that document's own internal section-sign cross-references, which "
      "PAPER_ANCHOR reads as paper pointers. Measured before excluding: `grep -nE "
      "'mIoU|IoU|paper (prints|reports|headline)'` over the file returns ONE line, and it makes "

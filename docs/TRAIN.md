@@ -53,26 +53,31 @@ python scripts/train.py train/31k_mf --gpu 0
 > here; every recipe below therefore uses `--gpu 0`. (The *pyramid* trainers,
 > a separate entry point, do implement DDP.)
 
-> **The `_mf` in `31k_mf` needs a second cache this release does not build, and
-> its absence is silent.** `s3_mode: teacher` makes the loader look for
-> preprocessed multi-frame LiDAR at
-> `data/SemanticKITTI_3D/256_multi_frame/<seq>/<frame>.npz`
-> (`SemanticKITTIDataset`'s `multi_frame_dir` default,
-> `src/gssc/data/semantickitti.py:60`). **No script in this release produces that
-> tree** — `grep -rln 256_multi_frame scripts/ src/` returns only its two
-> consumers, and `scripts/prepare_256_data.py` builds the single-frame 256³ cache
-> only. When the `.npz` is missing *and* `scpnet_pred_dir` is set (as it is in
-> every shipped `_mf` config), the frame is kept rather than skipped
-> (`semantickitti.py:199-202`, "Cold diffusion doesn't need multi-frame") and
-> `__getitem__` falls back to the single-frame voxels
-> (`semantickitti.py:419-422`) **with no warning on that branch**. So the command
-> above will train to completion on single-frame LiDAR while the recipe name and
-> the trainer banner say multi-frame. If you are reproducing the multi-frame
-> headline, stage `256_multi_frame/` yourself (per frame: an `.npz` holding a
-> `coords` array of occupied `(x, y, z)` voxel indices in the 256×256×32 grid,
-> accumulated over the neighbouring sweeps) and check that
-> `data/SemanticKITTI_3D/256_multi_frame/08/000000.npz` exists before you launch.
-> The single-frame `_sf` recipes below are unaffected.
+> **The `_mf` in `31k_mf` needs a second cache, built by its own script.**
+> `s3_mode: teacher` makes the loader look for preprocessed multi-frame LiDAR at
+> `data/SemanticKITTI_3D/256_multi_frame/<seq>/<frame>.npz` (`S3DSKDDataset`'s
+> `multi_frame_dir` default, `src/gssc/data/semantickitti.py:63`).
+> `scripts/prepare_256_data.py` builds the single-frame 256³ cache only; the
+> multi-frame tree has its own producer:
+>
+> ```bash
+> python scripts/prepare_multi_frame_data.py --semantickitti_root data/SemanticKITTI
+> ```
+>
+> It fuses five ego-motion-compensated scans per frame and needs
+> `sequences/<seq>/calib.txt`, which ships in the KITTI odometry *calibration*
+> archive rather than the SSC tree — pass `--calib_root` if your SemanticKITTI
+> tree was assembled without it. Cost: 23,201 frames / 2.2 GiB / 2.4 GB for the
+> eleven annotated sequences (val seq 08 alone: 4,071 frames / 0.42 GB).
+>
+> Skipping it is **not** an error. When the `.npz` is missing *and*
+> `scpnet_pred_dir` is set (as it is in every shipped `_mf` config), the frame is
+> kept rather than skipped (`semantickitti.py:206-212`) and `__getitem__` falls
+> back to the single-frame voxels (`semantickitti.py:446`), so the run trains to
+> completion on single-frame LiDAR. The loader says so: one `WARNING` per dataset
+> naming the missing-frame count, the tree and that command
+> (`semantickitti.py:272-286`). A run made that way is a single-frame run and
+> should be reported as one. The single-frame `_sf` recipes below are unaffected.
 
 Cost: the paper's compute table prices this run at ~37 GPU-hours **to reach
 step 40000** — the released checkpoint (`gssc_31k_mf_step40000`) and the figure
@@ -222,22 +227,25 @@ Read each figure as a **lower bound on the run's elapsed wall-clock** and an
   converted to GPU-hours. They are elapsed calendar time on a machine whose
   other tenants, if any, went unrecorded — which is why they bound GPU-time from
   *above*, not below.
-* S3 dominates the total (≈29× S1). Its rate is steady rather than bursty — the
-  epoch-100 markers land 216.8 h, 189.3 h, 189.3 h and 189.4 h apart, i.e.
-  ≈1.9 h/epoch throughout — but the span still includes whatever idle time a
+* S3 dominates the total (≈29× S1). Its rate is broadly steady but not flat — the
+  six epoch-100 markers land 216.8, 189.3, 189.3, 189.4, 208.5 and 326.2 h apart,
+  i.e. 1.9–2.2 h/epoch through epoch 500, 2.1 h/epoch across the 500→600 interval
+  that contains the released best, then 3.3 h/epoch — but the span still includes
+  whatever idle time a
   recorded resume left behind (`s3_v2_lr004/training_resumed.log`), and the run
-  kept going past the released best to ≈epoch 733 before it stopped.
+  kept going past the released best to epoch 741 before it stopped (`best_val_0733.pt`
+  is the last epoch at which validation *improved*, not the last epoch trained).
 
 Do not read the S3 figure off the research tree's sibling `s3/` directory
 (2025-12-06 → 12-21, ≈355 h). That is the superseded lr-0.006 run which the released
 `pyramid/pyramid_s3/config.json` explicitly disowns in its `restaged_reason`;
 the released weights come from `s3_v2_lr004/`.
 
-The resolution is fixed per stage (S2 = 64³, S3 = 256³) inside each module, so
+The resolution is fixed per stage (S2 = 64²×8, S3 = 256²×32) inside each module, so
 no `--resolution` flag is exposed; both accept only
 `--data-root`/`--output-dir`/`--batch-size`/`--epochs`/`--lr`/`--gpu`/`--resume`/`--num-workers`/`--no-scale-lr`/`--warmup-epochs`
 (S3 uses `--ssc-root`/`--quantized-root` in place of `--data-root`). Stage 1
-(32³) is fast and can be merged into the S2 launcher. Unlike the
+(32²×4) is fast and can be merged into the S2 launcher. Unlike the
 scene-completion trainer, these two entry points *do* implement DDP.
 
 ## JS3C-Net cross-base (paper tab:portable_s2d2; v1.1.0)

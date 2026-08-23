@@ -61,12 +61,20 @@ from the base's own 3D prediction. The two exceptions are the GT-BEV diagnostics
 cache — so running those needs seq 08's slice of it (16.2 GiB / 17.3 GB) on top
 of the eval-only totals in the disk-space table below.
 
-> **A multi-frame retrain needs a second cache that no script here builds.** The
+> **A multi-frame retrain needs a second cache, built by its own script.** The
 > `_mf` recipes look for `data/SemanticKITTI_3D/256_multi_frame/<seq>/<frame>.npz`,
 > which `prepare_256_data.py` does not produce and no released asset supplies.
-> Its absence is **silent** — the loader falls back to single-frame LiDAR instead
-> of failing. `docs/TRAIN.md` (box under "Headline") has the code path and the
-> pre-launch check. Evaluation of the released checkpoints is unaffected.
+> Build it once with
+> `python scripts/prepare_multi_frame_data.py --semantickitti_root data/SemanticKITTI`
+> (23,201 frames / 2.2 GiB / 2.4 GB for the eleven annotated sequences). It fuses
+> five ego-motion-compensated scans per frame and needs `sequences/<seq>/calib.txt`,
+> which ships in the KITTI odometry *calibration* archive rather than the SSC tree —
+> pass `--calib_root` if your SemanticKITTI tree was assembled without it. Skipping
+> it is **not** an error: the loader falls back to single-frame LiDAR and emits one
+> `WARNING` naming the missing-frame count and that command, so an `_mf` run without
+> the tree is a single-frame run and should be reported as one. `docs/TRAIN.md` (box
+> under "Headline") has the code path. Evaluation of the released checkpoints is
+> unaffected.
 
 ## SCPNet predictions (required, ~177 GiB / ~190 GB real + synth)
 
@@ -522,16 +530,17 @@ carry.
 | SemanticKITTI raw | `data/SemanticKITTI/` | 80 GB (upstream figure) |
 | Voxel labels | (inside `data/SemanticKITTI/`) | 1.6 GB (upstream figure) |
 | SCPNet predictions, whole tree | `data/scpnet_predictions/` | 177 GiB / 190 GB (real seqs 00-21 = 56 GiB, `synthetic/` = 120 GiB) |
-| — val seq 08 only (the headline eval) | `data/scpnet_predictions/08/` | **8.5 GiB / 9.1 GB** |
+| — val seq 08 only (the headline eval) | `data/scpnet_predictions/08/` | **8.4 GiB / 9.1 GB** |
 | — val 08 + hidden test 11-21 (for a submission) | | **16.6 GiB / 17.8 GB** |
 | JS3C-Net predictions (v1.1.0) | `data/js3cnet_predictions/` | 189 GiB / 203 GB (real + synth) |
 | LMSCNet predictions (v2.1.0) | `data/lmscnet_predictions/` | 45 GiB / 49 GB (train+val08) |
-| Object bank | `data/object_bank/` | 313 MiB / 328 MB of data across 57,789 instance files (`du -Lsh` reports 448 MB — block usage, inflated by many tiny files) |
+| Object bank | `data/object_bank/` | 313 MiB / 328 MB of data — 99 MB across 57,789 instance files plus a 229 MB `object_bank_3d.pkl` index (`du -Lsh` reports 448 MB — block usage, inflated by the tiny instance files) |
 | Synthetic pool 31K | `data/synthetic_pool_31K/` | 127 GiB / 136 GB uncompressed |
 | Synthetic pool 57K (`tab:data_scaling` 57K row) | `data/synthetic_pool_57K/` | 229 GiB / 246 GB uncompressed |
 | Pretrained checkpoints | `data/checkpoints/` | 4.58 GiB / 4.9 GB (the 51-file payload `checksums.txt` covers) |
 | Preprocessed 256³ voxel cache (**training only**, built locally) | `data/SemanticKITTI_3D/256/{00..10}/` | 92.1 GiB / 98.8 GB (val seq 08 alone: 16.2 GiB / 17.3 GB) |
 | — its `synthetic/` branch | `data/SemanticKITTI_3D/256/synthetic/` | the *same bytes* as the 31K pool row above, not a second copy |
+| Multi-frame voxel cache (`_mf` retrains only, built locally) | `data/SemanticKITTI_3D/256_multi_frame/{00..10}/` | 2.2 GiB / 2.4 GB (23,201 frames; val seq 08 alone: 4,071 frames / 0.42 GB) |
 | **Total (eval-only, SCPNet headline on val seq 08)** | | **~96 GB** (80 raw + 1.6 voxels + 4.9 checkpoints + 9.1 SCPNet seq 08) |
 | **Total (eval-only + hidden-test submission)** | | **~104 GB** (the row above + 8.7 SCPNet seqs 11-21) |
 | **Total (eval-only, +cross-base JS3C)** | | **~299 GB** (~96 GB eval-only + 203 GB JS3C-Net real + synth) |

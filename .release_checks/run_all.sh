@@ -102,7 +102,7 @@ PYPROBE
 if [[ -n "$_missing" ]]; then
   printf '%s\n' "   !! this interpreter cannot import: ${_missing//,/, }"
   printf '%s\n' "      Gates that need them will report failures that are NOT defects."
-  printf '%s\n' "      Use the project venv, or: GSSC_PY=/path/to/python $0 $*"
+  printf '%s\n' "      Use the project venv, or: GSSC_PY=<interpreter> $0 $*"
 fi
 printf '%s\n\n' "────────────────────────────────────────────────────────────────────────"
 

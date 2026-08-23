@@ -1,4 +1,4 @@
-"""Tests for JS3C-Net cross-base support (paper Tab. III rows 90-91).
+"""Tests for JS3C-Net cross-base support (paper Tab. III, `tab:portable_s2d2`, the JS3C-Net base / +S2D2 pair).
 
 Coverage:
 1. JS3C predictions reader: shape, dtype, value-range validation.

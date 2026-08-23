@@ -69,8 +69,11 @@ completion IoU**.
 
 > **`scripts/reproduce_table.py tab:main_results` runs the D4 TTA flow, not
 > this one.** The driver maps the paper's main-results label to
-> `infer/test_d4tta`, so it regenerates the 39.2 row. To regenerate the 38.8
-> headline row, run the `infer/test_1step` command above by hand.
+> `infer/test_d4tta`, so it regenerates the 39.2 row. The 38.8 headline row now
+> has its own key: `python scripts/reproduce_table.py main_results_n1` (or run the
+> `infer/test_1step` command above by hand). The two keys write to separate
+> directories under `outputs/test_submission/` and each prints which row it
+> regenerates.
 
 ## Custom data
 

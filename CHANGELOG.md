@@ -38,10 +38,119 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [2.3.8] — 2026-08-22
 
-Re-cut on 2026-08-22 onto the rewritten history described below, so this entry now also
+Re-cut on 2026-08-23 onto the rewritten history described below, so this entry now also
 covers the work that had been sitting under [Unreleased]. The rewrite removed two
 undisclosed author addresses from the commit metadata before the repository is made
 public; it changed every commit id and left every tree hash identical.
+
+### Fixed — the published Hugging Face repo ids named an account that does not exist
+
+Every Hugging Face reference read `BillyChern/GSSC-S2D2-{checkpoints,datasets}`, which 404s on the
+Hub; the account is **`Stone-Chern`**. `HF_REPO_MODELS` and `HF_REPO_DATA` in
+`scripts/download_assets.py`, the asset table in `README.md`, and the download lines in
+`docs/MODEL_ZOO.md` and `docs/DATASET.md` now name `Stone-Chern/GSSC-S2D2-checkpoints` and
+`Stone-Chern/GSSC-S2D2-datasets`. Measured 2026-08-23: `huggingface.co/Stone-Chern` returns 200,
+`huggingface.co/BillyChern` returns 404. The `github.com/BillyChern` references are untouched —
+that namespace is correct and the paper cites it.
+
+### Fixed — three documents said the multi-frame cache has no builder, and it does
+
+`docs/DATASET.md`, `docs/TRAIN.md` and `docs/REPRODUCIBILITY.md` each carried a box asserting that
+the `_mf` recipes need a cache "this release does not build" whose absence is "silent". Both halves
+were false: `scripts/prepare_multi_frame_data.py` builds it (23,201 frames / 2.2 GiB / 2.4 GB for
+the eleven annotated sequences; val seq 08 alone 4,071 frames / 0.42 GB), and the loader emits one
+`WARNING` per dataset naming the missing-frame count and that exact command. `docs/TRAIN.md`'s box
+also cited a class that is not in the file it named (`SemanticKITTIDataset`, which lives in
+`kitti_dataset.py`; the class there is `S3DSKDDataset`) and four line pointers that had all rotted;
+every pointer in the replacement was re-measured. `docs/DATASET.md`'s disk-space table gained the
+multi-frame row it was the only locally built tree missing from.
+
+### Fixed — `SECURITY.md` undercounted the pickle attack surface
+
+It named one pickle in the release; there are two (`awk '{print $2}' checksums.txt | grep -cE
+'\.(pt|pth)$'` -> 2). The second is `bev/bev_s2d2_scpnet/model.pt`, the pre-conversion copy of the
+BEV weights. `docs/MODEL_ZOO.md` had already been corrected to "exactly **two are pickles**", so
+the security document was contradicting the model zoo.
+
+### Fixed — an attribution claim produced by a top-of-file grep
+
+`THIRD_PARTY_NOTICES.md` and `external/README.md` both said `evaluate_completion.py` "imports
+nothing from the rest of the directory". It imports `auxiliary/np_ioueval.py` — the IoU accumulator
+itself — through a function-local import at its line 129. The conclusion survives and is now
+stated with its evidence: that file is byte-identical to the pin (blob `d31b631e…`) and imports
+only `sys` and `numpy`, so no modified file is on the scoring path. `docs/REPRODUCIBILITY.md`
+gained the disclosure that the "official `semantic-kitti-api`" it names 18 times is the vendored
+copy at pin `4398778`, which no `docs/` file had said.
+
+### Fixed — the six dataset LICENSE files required one attribution of the two
+
+The terms that travel with the data named only SemanticKITTI. All six now name both papers
+semantic-kitti.org requires (Behley et al., ICCV 2019 and Geiger et al., CVPR 2012), as every
+other surface already did.
+
+### Fixed — "a port of the third-party SCPNet release" read as a modified weight file
+
+`README.md`, `hf_cards/LICENSE`, `hf_cards/model_card.md` and `assets/README.md` now say what
+`THIRD_PARTY_NOTICES.md` §8 measured: it is SCPNet's own released checkpoint carried unmodified,
+and the "port" in the filename is spconv-2.3 kernel-shape patching applied at load time.
+
+### Removed — a stray local-environment script from the vendored evaluator
+
+`external/semantic_kitti_api/fix_pip_paths.sh` hardcoded one machine's conda prefix and ran a
+destructive `sed` over the pip shebang of every environment under it. It was unreferenced by any
+code and unrelated to the evaluator. The counts that cite it moved with it: 44 tracked files -> 43,
+and "four files are added by this project" -> three. The vendored-upstream count is unchanged at
+40, because the file removed was one of the four added.
+
+### Fixed — claims printed by the gates themselves
+
+`check_paper_numbers` printed "20 findings" for its `CHANGELOG.md` exclusion; the gate's own
+instrument returns **17** (9 paper-values-in-pdf, 4 signed-deltas-in-pdf, 1 delta-arithmetic,
+3 scope-localised), and its illustrative quote named a ratio that appears in no file.
+`check_configs_constructible` told the next maintainer to read its own correct green as breakage.
+`check_history_clean` quoted a command/number pair that has never reproduced — the three spellings
+of that object walk answer 532, 366 and 365, none of them the 358 it claimed. `run_all.sh`'s new
+interpreter probe introduced a `/path/to/python` placeholder that `check_history_clean` correctly
+rejects as an absolute maintainer path. `check_asset_coverage`'s path regex had no start anchor, so
+research-tree provenance paths matched as release payload paths; the tightened form yields an
+identical result set on the live corpus (42 matches, 7 distinct, none lost or gained).
+`check_paper_labels` now also reads `src/gssc/**.py`, which was unwatched — `tests/` is deliberately
+excluded, because `test_config_loader.py` writes a synthetic table label into a temp YAML,
+which the gate would read as an unresolvable paper pointer.
+
+### Fixed — two test docstrings cited LaTeX line numbers as table rows
+
+`tests/test_js3c_base.py` and `tests/test_lmscnet_base.py` cited "Tab. III rows 90-91" and "row 90".
+Those were line numbers in `4_experiments.tex`; the table has six data rows. Both now name
+`tab:portable_s2d2` and the base/+S2D2 pair they exercise.
+
+### Fixed — arithmetic that does not close on the page
+
+`24.32 − 22.7 = 1.62`, not the `+1.59` printed beside it; the delta is against the 22.73 % base
+`docs/BASELINES.md` records. Corrected in `docs/MODEL_ZOO.md`, `docs/BASELINES.md`,
+`src/gssc/models/js3c_base.py` and `scripts/reproduce_table.py`. Separately, `configs/train/31k_mf.yaml`
+and `scripts/train.py` called the run "the headline" while naming only 39.2, the excluded D4-TTA row;
+both now lead with the paper's 38.8 at N=1.
+
+### Fixed — a warning that reassured the user of something untrue
+
+`scripts/train.py` told anyone passing `--seed` to a pyramid recipe that "the pyramid stages seed
+inside their own trainers". They do not: `grep -in seed` over the three pyramid trainers returns
+zero hits. It now says the runs are unseeded. `train_scene_completion.py`'s
+`MissingVoxelCacheError` also misdescribed the enumeration code it exists to diagnose — `student`
+mode drops on a missing predicted BEV, never on a missing multi-frame file, and `teacher` mode
+*does* drop when no base-prediction dir is set.
+
+### Added — `.release_checks/run_all.sh` says when the interpreter is the problem
+
+The runner now probes for `fitz`, `huggingface_hub`, `safetensors`, `torch` and `yaml` before any
+gate runs and names the ones it cannot import. Measured 2026-08-23: a bare system `python` turned
+a 16/16 board into "7 failing" with nothing on screen connecting that to the interpreter.
+
+### Removed — a `.gitignore` rule naming a file that exists in no reachable tree
+
+`.migration_audit*` ignored nothing and only kept the purged name visible in the file a cloner is
+most likely to open.
 
 ### Changed — the project is now MIT-licensed
 
@@ -62,9 +171,11 @@ deliberately **no root `NOTICE`**: MIT imposes no NOTICE-file obligation (that i
 §4(d)), and one briefly added during this sweep was measured to make
 `.release_checks/check_strict_load.py` treat the whole tree as vendored and enforce nothing while
 still printing OK. That gate's `_vendored()` now stops at the repository root before testing, and
-`_selftest_root_notice()` pins the behaviour. Measured today with no root `NOTICE` present:
-`corpus()` returns 99 files, **23 enforced** and 76 advisory; the 23 → 0 collapse is recorded in
-that gate's own source comment at `check_strict_load.py:95-101`.
+`_selftest_root_notice()` pins the behaviour. The collapse it prevents is recorded in that gate's
+own source comment at `check_strict_load.py:101-107`: on 2026-08-22, the day a root `NOTICE` was
+briefly added, enforced files went 23 → 0 of the 99 then in the corpus while the gate still
+printed "OK: 0 failing check(s)". That corpus grows whenever a release script is added, so the
+pair is a dated record, not a standing count.
 
 `README.md` now also records the SCPNet base weights (`scpnet_v2_port.pth`) as redistributed
 with the SCPNet authors' permission under this repository's MIT licence, the upstream project
@@ -72,7 +183,8 @@ remaining governed by its own terms, and adds the licence bullet the ~441 GB of 
 prediction dumps never had: SemanticKITTI-derived, so CC-BY-NC-SA 4.0, each carrying its
 producing model's attribution as well. Beside the SemanticKITTI licence line it now names the
 two citations semantic-kitti.org requires (Behley et al., ICCV 2019; Geiger, Lenz and Urtasun,
-CVPR 2012) — neither appeared anywhere in the repository before.
+CVPR 2012) — neither appeared in any file this project authors before; both were already in the
+vendored `external/semantic_kitti_api/README.md`.
 
 ### Changed — the three README figures are the paper's current figures, and the captions describe them
 
@@ -109,11 +221,10 @@ evaluator is what separates the two; the BEV source does not. GT-BEV conditionin
 diagnostic (the repo measures **26.05 %** for it under the official api) and is not the protocol
 behind 26.7. Every line calling 26.05 a "paper headline", and every line pairing 26.05 with
 26.72 as one protocol under two evaluators, is corrected in place **across `README.md`, `docs/*.md`
-and this file**. Read that as scoped to those files, not to the tree: at the time of writing,
-`src/gssc/models/js3c_base.py` and `scripts/reproduce_table.py` still carry the old pairing in
-comments, and are handed to the lane that owns them. The claim is stated with its scope because a
-previous sweep of exactly this defect reported "clean" over a source list that silently excluded
-the files where the defect survived.
+and this file**, and in the two code comments that had carried it —
+`src/gssc/models/js3c_base.py` and `scripts/reproduce_table.py`. The scope is stated explicitly
+because a previous sweep of exactly this defect reported "clean" over a source list that silently
+excluded the files where the defect survived.
 
 Measured, not asserted: running `eval/js3c_val_realistic` (derived BEV, *N* = 1, no TTA) on the
 released `gssc_js3c_s2d2_real` checkpoint over all 4,071 val frames of seq 08 returns **24.32 %**
@@ -200,8 +311,8 @@ that takes only that, instead of the whole prefix. The eval-only stack is ~96 GB
 
 The synthetic-pool row advertised **five** variants (0K / 10K / 20K / 31K / 57K); two are
 released. 0K means real frames only, so no 0K tarball can exist, and the 10K / 20K subsets are not
-staged. `scripts/download_assets.py` still offers all five as `--choices` and still quotes the old
-sizes in its `--help`; that file belongs to another lane and is handed off.
+staged, so `scripts/download_assets.py`'s `--synthetic-pool` choices are cut to `["31K", "57K"]`
+and every size in its `--help` is the measured `GiB / GB` pair.
 
 ### Fixed — the retraining recipe promised two GPUs to a single-GPU trainer
 
@@ -226,9 +337,11 @@ dependency of this project (`grep -ci hydra uv.lock` → 0) and the configs are 
 ### Fixed — `CITATION.cff` carried the one unrestricted SOTA claim left in the repo
 
 Its `abstract:` read "State-of-the-art LiDAR semantic scene completion on SemanticKITTI" — an
-unrestricted superlative in the file written for machine reuse, and one no gate can see: the only
-gate that opens `CITATION.cff` for content is `check_docs_freshness`, and it reads the `version:`
-and `date-released:` lines alone. The paper's superlative is restricted to *causal, single-sweep,
+unrestricted superlative in the file written for machine reuse, and one no gate could see until
+this release: the only gate that opened `CITATION.cff` for content was `check_docs_freshness`,
+which reads the `version:` and `date-released:` lines alone. `check_paper_numbers.py`'s
+`doc_sources()` was widened in the same sweep and now judges `CITATION.cff`, `CONTRIBUTING.md`,
+`SECURITY.md` and `.github/**`. The paper's superlative is restricted to *causal, single-sweep,
 single-sample*, and Tab. I carries rows above ours outside that predicate. The abstract now
 states both of our own scores with the predicate attached: 38.8 % at one step with no TTA, best
 under that restriction to our knowledge; 39.2 % with four steps and an eight-view
@@ -446,8 +559,8 @@ with a claim-shaped pattern until it returned clean **over the sources the sweep
 `docs/`, `src/`, `scripts/` and the asset manifests.
 
 > **Scope correction, recorded later.** That sweep did not read `CHANGELOG.md`, and neither does
-> `.release_checks/check_paper_numbers.py`, whose source list is README + `docs/*.md` + the two
-> asset manifests. Four claim-shaped lines therefore survived inside the dated entries below
+> `.release_checks/check_paper_numbers.py`, which names the file as a deliberate, printed
+> exclusion in its `DOC_SOURCE_EXCLUSIONS` (a changelog's job is to quote the value it removed). Four claim-shaped lines therefore survived inside the dated entries below
 > (2.2.0, 2.0.0 and 1.1.0) calling 26.05 the paper headline. They are corrected in place, each
 > under its own note. Read "returned clean" as scoped to the sources listed above, not to this file.
 

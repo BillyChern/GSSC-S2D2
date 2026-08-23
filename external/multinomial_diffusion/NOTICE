@@ -3,8 +3,9 @@ Third-Party Code Notice
 
 This directory (`external/multinomial_diffusion/`) contains vendored
 third-party code that is NOT part of the GSSC-S2D2 project itself. It is
-redistributed on its own upstream terms, separate from the MIT license that
-governs the rest of this repository (see the root LICENSE).
+redistributed on whatever terms upstream publishes, which is not this
+repository's MIT grant (see the root LICENSE) -- and see below: upstream
+publishes none.
 
 Upstream project
 ----------------

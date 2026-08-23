@@ -194,10 +194,12 @@ PATH_MARKERS: Dict[str, str] = {
     #   'h','.release_checks/check_history_clean.py');m=importlib.util.module_from_spec(s);
     #   s.loader.exec_module(m);b=m.walk_history(pathlib.Path('.'));
     #   ps=sorted({p for x in b for p in x.paths});print(len(ps))"
-    # (A raw `git rev-list --objects --all | cut -d' ' -f2- | sort -u` answers 358 instead: it
-    # counts TREE paths too, which this marker never sees. An earlier revision of this comment
-    # quoted 359, a figure NEITHER instrument returns -- the frozen self-measurement this file's
-    # own docstring warns about.) "sweep" was REJECTED from the word list -- also 0 hits on the
+    # (Raw object walks answer a LARGER number, because they count TREE paths too, which this
+    # marker never sees. Measured 2026-08-23 in this repo, three spellings, three answers:
+    # `cut -d' ' -f2-` -> 532 (it echoes pathless commit lines as their own shas),
+    # `cut -d' ' -s -f2-` -> 366, and `awk 'NF>1{$1="";print substr($0,2)}'` -> 365. Quote the
+    # walk WITH its spelling or the pair does not reproduce -- an earlier revision of this
+    # comment quoted 358 against a command that has never returned it.) "sweep" was REJECTED from the word list -- also 0 hits on the
     # same walk, but "parameter_sweep.md" is an ordinary research doc and this gate must not
     # train people to ignore it.
     "working-doc-by-name": r"(?:^|/)\.?[^/]*(?:audit|triage|handover|handoff|strip[-_]list)"

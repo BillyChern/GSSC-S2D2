@@ -125,9 +125,9 @@ source .venv/bin/activate
 
 # 2. Pull pretrained checkpoint + SCPNet predictions
 python scripts/download_assets.py --checkpoints --predictions
-# → data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors           (~140 MB; full subdir ~265 MB — see docs/MODEL_ZOO.md)
+# → data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors           (~140 MB; full subdir 265 MiB / 278 MB — see docs/MODEL_ZOO.md)
 # → data/scpnet_predictions/   (whole tree 177 GiB / 190 GB, real + synth — see docs/DATASET.md)
-#    Step 3 reads val seq 08 only (8.5 GiB / 9.1 GB). To fetch just that:
+#    Step 3 reads val seq 08 only (8.4 GiB / 9.1 GB). To fetch just that:
 #      python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'
 #    (--include narrows the prediction/object-bank groups; --checkpoints is always a whole-repo snapshot)
 
@@ -267,7 +267,7 @@ GSSC-S2D2/
 ├── CONTRIBUTING.md                 # code-quality standards
 ├── CHANGELOG.md                    # release history
 ├── SECURITY.md                     # security policy
-├── .pre-commit-config.yaml         # pre-commit hooks (ruff, mypy)
+├── .pre-commit-config.yaml         # pre-commit hooks (ruff, ruff-format, pytest smoke)
 ├── pyproject.toml                  # uv-managed Python project
 ├── uv.lock                         # pinned dependency lockfile
 ├── THIRD_PARTY_NOTICES.md          # upstream licences + the attributions our artefacts carry
@@ -341,7 +341,7 @@ The mathematical derivations are in the supplementary, App. B (`suppB:math`): `p
 | What | Where | Size |
 |---|---|---|
 | Pretrained checkpoints (18 subdirs in `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`, `gssc_lmsc/`, `gssc_timesteps/`, `pyramid/`, `bev/`) | Hugging Face [`Stone-Chern/GSSC-S2D2-checkpoints`](https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints) — see [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md) | 4.58 GiB / 4.9 GB (the 51-file payload `checksums.txt` covers) |
-| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face [`Stone-Chern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets) — or reproduce the JS3C-Net / LMSCNet sets locally via `scripts/dump_{js3c,lmscnet}_predictions.py`, see [docs/DATASET.md](docs/DATASET.md) | 411.0 GiB / 441.3 GB total (SCPNet 176.7 GiB / 189.7 GB + JS3C-Net 189.0 GiB / 202.9 GB + LMSCNet 45.3 GiB / 48.7 GB; [docs/DATASET.md](docs/DATASET.md) rounds each tree to whole units, which is why its three rows add to 442 rather than 441). The headline eval reads SCPNet val seq 08 alone — 8.5 GiB / 9.1 GB, fetchable on its own with `--include 'scpnet_predictions/08/*'` |
+| Base-model predictions (SCPNet, JS3C-Net, LMSCNet) for val + test | Hugging Face [`Stone-Chern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets) — or reproduce the JS3C-Net / LMSCNet sets locally via `scripts/dump_{js3c,lmscnet}_predictions.py`, see [docs/DATASET.md](docs/DATASET.md) | 411.0 GiB / 441.3 GB total (SCPNet 176.7 GiB / 189.7 GB + JS3C-Net 189.0 GiB / 202.9 GB + LMSCNet 45.3 GiB / 48.7 GB; [docs/DATASET.md](docs/DATASET.md) rounds each tree to whole units, which is why its three rows add to 442 rather than 441). The headline eval reads SCPNet val seq 08 alone — 8.4 GiB / 9.1 GB, fetchable on its own with `--include 'scpnet_predictions/08/*'` |
 | Object bank (57,789 instances, 8 rare classes) | Hugging Face [`Stone-Chern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets) — see [docs/DATASET.md](docs/DATASET.md) | 313 MiB / 328 MB of data |
 | Synthetic pool (**two** variants released: 31K and 57K) | IEEE DataPort *(URL pending — see [docs/DATASET.md](docs/DATASET.md))* | 127 GiB / 136 GB (31K), 229 GiB / 246 GB (57K), uncompressed |
 
@@ -419,7 +419,7 @@ Every upstream licence this project redistributes or derives from, with the copy
 * **SemanticKITTI raw data:** governed by its own license — see [semantic-kitti.org](http://www.semantic-kitti.org/). Its terms require citing both J. Behley, M. Garbade, A. Milioto, J. Quenzel, S. Behnke, C. Stachniss and J. Gall, *"SemanticKITTI: A Dataset for Semantic Scene Understanding of LiDAR Sequences"*, ICCV 2019, and A. Geiger, P. Lenz and R. Urtasun, *"Are We Ready for Autonomous Driving? The KITTI Vision Benchmark Suite"*, CVPR 2012, pp. 3354–3361. Anything we publish that is derived from it (the pools, the bank, the prediction dumps) carries the same obligation.
 * **SSCBench-KITTI360 (evaluation-only):** governed by its own terms; see the [SSCBench repository](https://github.com/ai4ce/SSCBench).
 * **SemanticPOSS (evaluation-only):** governed by its own terms; see the [SemanticPOSS dataset page](http://www.poss.pku.edu.cn/semanticposs.html).
-* **SCPNet base weights (`scpnet_v2_port.pth`):** a port of the third-party SCPNet release, redistributed here with the SCPNet authors' permission and shipped under this repository's MIT licence; the upstream SCPNet code and weights remain governed by their own terms.
+* **SCPNet base weights (`scpnet_v2_port.pth`):** SCPNet's own released checkpoint, carried unmodified and redistributed here with the SCPNet authors' permission under this repository's MIT licence — the "port" in the filename refers to the spconv-2.3 kernel-shape patches `gssc.inference.run_scpnet` applies at load time, not to a modified file; the upstream SCPNet code and weights remain governed by their own terms (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) §8).
 * **Third-party code:** not confined to `external/`. Alongside the vendored trees there, parts of the package itself are third-party in origin — notably `src/gssc/models/pyramid_unet.py` (a substantial copy from Pyramid Discrete Diffusion) and the `src/gssc/_improved_diffusion/` fork. Each retains its original licence and carries an attribution header; the full inventory, file by file, is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---

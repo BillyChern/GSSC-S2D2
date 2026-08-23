@@ -25,12 +25,14 @@ upstream commits puts the pin at `4398778` (2022-11-24): 37 of the 40
 upstream-derived files are byte-identical to it, `evaluate_completion.py` differs
 by one line (`np.bool` → `bool`, an alias NumPy removed in 1.24),
 `auxiliary/laserscan.py` adds a spatial crop before range projection, and
-`visualize_voxels.py` adds commented-out debug lines. Four further files are ours
-rather than upstream's: `config/semantic-kitti_my.yaml`, `config/kitti360.yaml`,
-`config/semantic-poss.yaml` and `fix_pip_paths.sh`. The `LICENSE` is
-byte-identical both to that commit and to today's upstream HEAD. Only
-`evaluate_completion.py` is on the scoring path, and it imports nothing from the
-rest of the directory.
+`visualize_voxels.py` adds commented-out debug lines. Three further files are ours
+rather than upstream's: `config/semantic-kitti_my.yaml`, `config/kitti360.yaml`
+and `config/semantic-poss.yaml`. The `LICENSE` is
+byte-identical both to that commit and to today's upstream HEAD. The scoring
+path is `evaluate_completion.py` plus the one vendored file it imports —
+`auxiliary/np_ioueval.py`, through a function-local import at its line 129 —
+and both are byte-identical to the pin, so none of the three local
+modifications affects a score.
 
 `multinomial_diffusion/` holds 46 tracked files — 45 from upstream (HEAD
 `9d907a6`) plus the `NOTICE` this project added; the 9 upstream files not

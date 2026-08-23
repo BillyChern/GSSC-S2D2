@@ -251,6 +251,15 @@ paper.
 
 ## Per-table reproduction
 
+Every "official `semantic-kitti-api`" score below is produced by the copy vendored
+at `external/semantic_kitti_api/`, pinned at upstream commit `4398778`. That copy is
+not byte-identical to upstream: `evaluate_completion.py` differs by one line
+(`np.bool` → `bool`, an alias NumPy removed in 1.24), and two non-scoring files carry
+local changes. The scoring path is `evaluate_completion.py` plus the one vendored
+file it imports, `auxiliary/np_ioueval.py` (a function-local import at line 129, the
+IoU accumulator itself); that file is byte-identical to the pin, so no modified file
+affects a score. `THIRD_PARTY_NOTICES.md` carries the full delta.
+
 | Table / Figure | Command | Expected |
 |---|---|---|
 | **Tab. I (test mIoU, HEADLINE)** | `python scripts/infer.py infer/test_1step --checkpoint data/checkpoints/gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors --output preds/test_n1/` then submit to SemanticKITTI Codabench | **38.8 mIoU, 58.9 IoU_cmpl** — the configuration the deployment predicate admits (one step, no TTA) |
@@ -300,15 +309,17 @@ paper.
 
 All commands assume `data/checkpoints/` and `data/scpnet_predictions/` already exist (run `scripts/download_assets.py --checkpoints --predictions`). Its `--predictions` half is the whole SCPNet predictions tree, 190 GB; narrow it to the SCPNet predictions for val seq 08 only, 9.07 GB, with `--include 'scpnet_predictions/08/*'` — that is all the eval rows above read. **Training additionally needs the preprocessed 256³ voxel cache**, which the downloader does not provision: build `data/SemanticKITTI_3D/256/` once with `python scripts/prepare_256_data.py --semantickitti_root data/SemanticKITTI` (see `docs/TRAIN.md`). Cross-base reproduction additionally requires `data/js3cnet_predictions/` (JS3C-Net) or `data/lmscnet_predictions/` (LMSCNet); see the dedicated sections below.
 
-> **A multi-frame retrain needs a second cache this release does not build.**
+> **A multi-frame retrain needs a second cache, built by its own script.**
 > `prepare_256_data.py` produces the single-frame 256³ tree only. The `_mf`
 > recipes additionally look for `data/SemanticKITTI_3D/256_multi_frame/<seq>/<frame>.npz`,
-> and when it is absent they fall back to single-frame LiDAR **silently** rather
-> than failing — so a `train/31k_mf` retrain can run to completion on the wrong
-> input while the recipe name says multi-frame. See the box under "Headline" in
-> `docs/TRAIN.md` for the exact code path and what to check before launching.
-> This affects retrains only: the *released* checkpoints and every eval row in
-> the table above are unaffected.
+> which `python scripts/prepare_multi_frame_data.py --semantickitti_root data/SemanticKITTI`
+> builds (23,201 frames / 2.2 GiB / 2.4 GB; it also needs `sequences/<seq>/calib.txt`
+> from the KITTI odometry calibration archive, hence its `--calib_root` flag).
+> Skipping it does not fail the run: the loader falls back to single-frame LiDAR
+> and emits one `WARNING` naming the count and that command, so a `train/31k_mf`
+> retrain without the tree is a single-frame run. See the box under "Headline" in
+> `docs/TRAIN.md` for the exact code path. This affects retrains only: the
+> *released* checkpoints and every eval row in the table above are unaffected.
 
 ## JS3C-Net cross-base reproduction (paper Tab. III / tab:portable_s2d2, cross-base rows)
 

@@ -116,6 +116,12 @@ def ref_sources() -> List[Path]:
     out += sorted((REPO / "docs").glob("*.md"))
     out += sorted(REPO.glob("configs/*/*.yaml"))
     out += sorted((REPO / "scripts").glob("*.py"))
+    # src/ carries paper pointers too and was unwatched. tests/ is deliberately NOT added:
+    # test_config_loader.py writes a synthetic `_paper_table: tab:foo` into a temp YAML, so
+    # the fixture would read as an unresolvable pointer. (Two test docstrings did carry a real
+    # defect -- "Tab. III rows 90-91", which were LaTeX LINE numbers, not row indices -- and
+    # they were corrected by hand; the gate still cannot see that directory.)
+    out += sorted((REPO / "src" / "gssc").rglob("*.py"))
     out += sorted((REPO / "examples").glob("*.ipynb"))
     out += [ASSETS / "MANIFEST.txt", ASSETS / "README.md", ASSETS / "checkpoints" / "MANIFEST.txt"]
     return [p for p in out if p.is_file()]

@@ -45,34 +45,38 @@ TWO ARMS ADDED 2026-08-22, EACH FOR A DEFECT THAT SHIPPED GREEN
       DOWNLOADER puts it, and must exit 0. Measured while writing it: rewriting
       `cd data/checkpoints &&` to `cd data &&` leaves the string arm green and fails this one.
 
-AND THE FILE THAT DOES SHIP IS THE WRONG ONE
---------------------------------------------
-The assets tree carries FOUR manifest/checksum files, and the one that would actually reach a
-user is the one that covers nothing they downloaded:
+AND FOR A WHILE THE FILE THAT SHIPPED WAS THE WRONG ONE
+-------------------------------------------------------
+The defect this section was written for: the assets tree once carried FOUR manifest/checksum
+files, and the one that actually reached a user covered nothing they downloaded:
 
-  GSSC-S2D2-assets/checksums.txt              62 lines, covers every released leaf --
-                                              but it sits at the assets ROOT, and the upload
-                                              procedure only uploads `checkpoints/`, so it never
-                                              ships.
-  GSSC-S2D2-assets/checkpoints/checksums.txt  14 lines, and every one of them is a flat legacy
-                                              `.pt` file that the assets README explicitly calls
-                                              "not part of the public release". This file IS
-                                              inside the upload payload. `sha256sum -c
-                                              checksums.txt` at the download root therefore
-                                              fails on 14/14 lines and verifies 0 released files.
+  GSSC-S2D2-assets/checksums.txt              62 lines, covering every released leaf -- but it
+                                              sat at the assets ROOT, and the upload procedure
+                                              uploads `checkpoints/` only, so it never shipped.
+  GSSC-S2D2-assets/checkpoints/checksums.txt  14 lines, every one a flat legacy `.pt` the assets
+                                              README calls "not part of the public release".
+                                              THIS one was inside the payload, so `sha256sum -c`
+                                              at the download root failed 14/14 and verified
+                                              nothing.
 
-Two further measured facts, each its own check:
+Two further facts measured at the time, each of which became its own check:
 
-  * `checkpoints/bev/bev_s2d2_scpnet/{config.json,model.pt,model.safetensors}` exists in the
-    payload and appears in NEITHER checksums file, in NEITHER MANIFEST, and in no doc. An
-    unlisted `.pt` inside a release payload is precisely the artefact the trust model is about.
+  * `checkpoints/bev/bev_s2d2_scpnet/{config.json,model.pt,model.safetensors}` was in the payload
+    and in NEITHER checksums file, NEITHER MANIFEST, and no doc. An unlisted `.pt` inside a
+    release payload is precisely the artefact the trust model is about.
     THE ASSETS TREE IS LIVE: `checkpoints/pyramid/_superseded_20260820/` and three rewritten
     pyramid `config.json` files appeared DURING the writing of this gate, and the uncovered
     count moved from 2 to 9 between two runs an hour apart. That is the argument for deriving
     the released set from the tree instead of listing it.
-  * `checksums.txt`'s entry for `checkpoints/MANIFEST.txt` is STALE: recorded
+  * the root `checksums.txt` entry for `checkpoints/MANIFEST.txt` was STALE: recorded
     de582887..., actual 9b7d57ba.... A checksums file that is wrong about a file it does list is
     a worse instrument than one that omits it, because `-c` failures get dismissed as noise.
+
+RE-MEASURED 2026-08-23, all four resolved: the two root files are retired under
+`_superseded_20260820/` (as `*.root-copy`) and no longer exist at the assets root;
+`checkpoints/checksums.txt` is the single authority at 51 rows with ZERO flat `.pt` entries; and
+`bev/bev_s2d2_scpnet/` now has all three of its files listed there. This block is kept in the
+past tense rather than deleted because the checks below are what hold that state.
 
 HOW THIS IS MEASURED
 --------------------

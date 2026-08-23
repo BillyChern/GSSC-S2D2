@@ -34,8 +34,14 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-        # Format only the public-API files; legacy modules are excluded
-        # via pyproject.toml's [tool.ruff] extend-exclude.
+        # Legacy modules are excluded via pyproject.toml's [tool.ruff]
+        # extend-exclude, but that exclusion does NOT bound the blast radius:
+        # the tree that remains has never been formatted. Measured 2026-08-23
+        # with ruff 0.15.13, `ruff format --check src/ tests/ scripts/` reports
+        # 63 of 74 files would be reformatted. On a normal commit the hook only
+        # touches the files you changed, which is the intent; the documented
+        # `pre-commit run --all-files`, however, will rewrite most of the repo.
+        # Run that deliberately, in its own formatting commit.
 
   - repo: local
     hooks:

@@ -17,8 +17,9 @@ Examples
 The config name is a positional argument (the on-disk YAML stem under
 ``configs/``, e.g. ``train/31k_mf`` -> ``configs/train/31k_mf.yaml``).
 
-Reproduce the headline 31K-MF run that yields 38.54% val mIoU and 39.2% test
-mIoU (with D4 TTA at inference)::
+Reproduce the headline 31K-MF run that yields 38.54% val mIoU and, on the hidden
+test set, 38.8% mIoU at N=1 with no TTA (the paper's headline row) / 39.2% with
+four correction steps and 8-view D4 TTA::
 
     python scripts/train.py train/31k_mf
 
@@ -157,10 +158,18 @@ def main() -> None:
     if args.config.startswith("train/bev_"):
         entry = "gssc.training.train_bev_secondary"
     elif args.config.startswith("train/pyramid_"):
+        # Explicit names, not an else: the release ships no train_pyramid_s1 module, and
+        # an open else would silently launch the S3 trainer for any future pyramid_s1 or
+        # pyramid_s4 config (the paper's tab:supp_pyramid_hyperparams does print an S1 row).
         if "_s2" in args.config or args.config.endswith("/s2"):
             entry = "gssc.training.train_pyramid_s2"
-        else:
+        elif "_s3" in args.config or args.config.endswith("/s3"):
             entry = "gssc.training.train_pyramid_s3"
+        else:
+            raise SystemExit(
+                f"No pyramid trainer for {args.config}: this release ships only "
+                "train_pyramid_s2 and train_pyramid_s3."
+            )
     else:
         entry = "gssc.training.train_scene_completion"
 
@@ -196,7 +205,8 @@ def main() -> None:
     if "--seed" not in forwarded and _seed_was_explicit():
         print(
             f"WARNING: --seed {args.seed} was given, but {entry} accepts no --seed, so this run "
-            f"is NOT seeded by it. The pyramid stages seed inside their own trainers; the "
+            f"is NOT seeded by it. The pyramid trainers set no seed at all, so those runs "
+            f"are unseeded; the "
             f"released checkpoints are reproducible from their recorded epoch and step "
             f"(data/checkpoints/pyramid/*/config.json), not from a seed passed here.",
             file=sys.stderr,
