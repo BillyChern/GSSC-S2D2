@@ -40,6 +40,10 @@ preferred-citation:
 # software release, so it is a `references` entry rather than anything under
 # `preferred-citation`. Cite it IN ADDITION to the paper if you train on the pool.
 # Unrelated to the `# DOI omitted` note above, which is about the manuscript.
+# `doi`/`url` name the IEEE DataPort deposit because that is the CITABLE identifier of
+# record; `repository-artifact` names the free Hugging Face mirror, which is where the
+# same (byte-identical) archives are actually downloaded from. Cite the DOI, download
+# from either -- the mirror is not a second citation and must not be given as one.
 references:
   - type: data
     title: "PS3-SemanticKITTI: Paired Sparse-Dense Synthetic Scenes for LiDAR Semantic Scene Completion"
@@ -54,4 +58,5 @@ references:
     date-released: "2026-08-23"
     doi: "10.21227/nqgf-9k39"
     url: "https://dx.doi.org/10.21227/nqgf-9k39"
-    notes: "Access is gated by IEEE DataPort; docs/DATASET.md documents the local PS3 rebuild, which needs no IEEE credentials."
+    repository-artifact: "https://huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI"
+    notes: "Cite the DOI; download from either host. The IEEE DataPort deposit at the DOI is subscription-gated and serves files only to a signed-in session; the byte-identical Hugging Face mirror at repository-artifact needs no IEEE subscription and is what scripts/download_assets.py --synthetic-pool fetches. docs/DATASET.md also documents the local PS3 rebuild, which needs no account on either host."

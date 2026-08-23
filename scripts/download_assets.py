@@ -7,7 +7,7 @@ Usage::
     python scripts/download_assets.py --js3c-predictions     # 189 GiB / 203 GB JS3C-Net cross-base predictions
     python scripts/download_assets.py --lmscnet-predictions  # 45 GiB / 49 GB LMSCNet cross-base predictions
     python scripts/download_assets.py --object-bank          # 313 MiB / 328 MB rare-class object bank
-    python scripts/download_assets.py --synthetic-pool 31K   # PRINTS how to get the 127 GiB / 136 GB headline synth pool; cannot fetch it
+    python scripts/download_assets.py --synthetic-pool 31K   # 2.15 GiB / 2.31 GB archive -> the 127 GiB / 136 GB headline synth pool
     python scripts/download_assets.py --all                  # everything EXCEPT the synthetic pool (4.9 GB models + ~442 GB predictions [SCPNet 190 + JS3C 203 + LMSCNet 49] + 0.33 GB object bank; see docs/DATASET.md)
 
 Every size here is the `GiB / GB` pair measured on the staged release payload and
@@ -33,21 +33,26 @@ docs/DATASET.md documents::
     python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/000000_*'
 
 ``--include`` applies only to the prediction / object-bank groups (the checkpoint
-group is a whole-repo snapshot); it is ignored with ``--all``, which is by definition
-the complete fetch. The raw SemanticKITTI voxels the notebook also needs are NOT
+group is a whole-repo snapshot, and ``--synthetic-pool`` is a single named archive);
+it is ignored with ``--all``, which is by definition the complete fetch. The raw SemanticKITTI voxels the notebook also needs are NOT
 hosted here -- they require registration at semantic-kitti.org (docs/DATASET.md).
 
 Checkpoints, base-model predictions and the object bank resolve against the two
-Hugging Face mirrors below. The synthetic pool is archived separately on IEEE
-DataPort under doi:10.21227/nqgf-9k39. That DOI is minted and resolves, but a live
-DOI does not make the archives fetchable: DataPort serves dataset files only to an
-authenticated session and publishes no direct file URL, so this script cannot
-retrieve the pool. ``--synthetic-pool`` therefore prints the DOI, the archive names
-and the manual retrieval steps, then exits non-zero with the manual-build
-instructions in docs/DATASET.md / docs/REPRODUCIBILITY.md. Nothing here waits on
-paper acceptance: the paper's availability footnote already sends readers to
-github.com/BillyChern/GSSC-S2D2 for the code, the pre-trained models and the
-PS3 dataset.
+Hugging Face mirrors below. The synthetic pool is a separately citable artefact with
+its own DOI, and the two are different questions: CITE doi:10.21227/nqgf-9k39
+(IEEE DataPort, *PS3-SemanticKITTI*), DOWNLOAD from either host. ``--synthetic-pool``
+fetches the requested archive from the free Hugging Face mirror
+``Stone-Chern/PS3-SemanticKITTI``, whose tarballs are byte-identical to the DataPort
+deposit and carry the same CC-BY-NC-SA 4.0 LICENSE, so no IEEE subscription is needed.
+The DataPort record remains the alternative for anyone who prefers the archival
+deposit, but it is not the free route and this script cannot fetch from it: it is
+marked "Subscription Required", serves dataset files only to a signed-in session and
+publishes no direct file URL. The mirror is private until the release repos are
+flipped public together, so until then an anonymous fetch fails -- into the same
+docs/DATASET.md pointer every other unreachable repo produces, never a traceback.
+Nothing here waits on paper acceptance: the paper's availability footnote already
+sends readers to github.com/BillyChern/GSSC-S2D2 for the code, the pre-trained models
+and the PS3 dataset.
 """
 from __future__ import annotations
 
@@ -60,23 +65,32 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 HF_REPO_MODELS = "Stone-Chern/GSSC-S2D2-checkpoints"
 HF_REPO_DATA = "Stone-Chern/GSSC-S2D2-datasets"
-# The synthetic pool (127 GiB / 136 GB for 31K, 229 GiB / 246 GB for 57K) is archived
-# on IEEE DataPort rather than the two Hugging Face mirrors above. The DOI was minted on
-# 2026-08-23 and resolves, so this is no longer a [PLACEHOLDER] -- but filling it in did NOT
-# make the pool downloadable, and the reason `--synthetic-pool` still refuses has simply
-# changed. IEEE DataPort serves dataset files only to an authenticated session: the landing
-# page renders both archives as login modals rather than as hrefs, so there is no file URL to
-# fetch and no anonymous request of any shape succeeds. The graceful exit that used to come
-# from _ensure_url_configured spotting a placeholder now lives in the `--synthetic-pool`
-# branch of main(), which owns that mode unconditionally.
+# THE SYNTHETIC POOL'S FREE ROUTE. The pool (127 GiB / 136 GB for 31K, 229 GiB / 246 GB for
+# 57K, uncompressed) is deposited on IEEE DataPort under the DOI below, and that DOI is what
+# you CITE. It is not a download: the record is marked "Subscription Required -- This dataset
+# requires an IEEE DataPort Subscription to access", it serves files only to a signed-in
+# session, and its landing page renders each archive as a login modal rather than an href, so
+# no anonymous request of any shape succeeds and no script can retrieve it from there.
+# The same two archives -- BYTE-IDENTICAL to the deposit, shipping the same CC-BY-NC-SA 4.0
+# LICENSE, which is what permits the redistribution -- are mirrored on the Hugging Face
+# dataset repo below, which needs no IEEE subscription. That is what `--synthetic-pool`
+# downloads. Cite the DOI; take the bytes from whichever host suits you.
+# The mirror is PRIVATE today and flips public with the other release repos, so an anonymous
+# fetch fails until then; `_fetch` turns that into the documented docs/DATASET.md pointer.
 # The pool is NOT embargoed until publication, so do NOT describe it that way in the docs:
-# what stands between a reader and the archive is IEEE's access gate, not our release date.
+# what stood between a reader and the archive was IEEE's access gate, not our release date.
+HF_REPO_SYNTH = "Stone-Chern/PS3-SemanticKITTI"
+#: The pool's CITABLE IDENTIFIER OF RECORD, and the alternative download route for anyone who
+#: prefers the archival deposit. Minted 2026-08-23; resolves 200. A live DOI is not a fetchable
+#: file URL -- see HF_REPO_SYNTH above for why the download goes to the mirror instead.
 DATAPORT_URL = "https://dx.doi.org/10.21227/nqgf-9k39"
 
-#: The two released archives on the deposit. Sizes are the `GiB / GB` pair this repo quotes
-#: everywhere; note that DataPort's own file list labels them "2.15 GB" and "3.88 GB", which
-#: are the GiB figures under a GB label. 31K is a STRICT SUBSET of 57K -- nobody needs both.
-DATAPORT_ARCHIVES = {
+#: The two released archives, identical on BOTH hosts. Sizes are the `GiB / GB` pair this repo
+#: quotes everywhere; note that DataPort's own file list labels them "2.15 GB" and "3.88 GB",
+#: which are the GiB figures under a GB label. 31K is a STRICT SUBSET of 57K -- nobody needs
+#: both, which is also why `--synthetic-pool` filters the mirror down to one archive instead of
+#: snapshotting the whole repo (6.03 GiB / 6.47 GB) to deliver half of it.
+POOL_ARCHIVES = {
     "31K": ("synthetic_pool_31K.tar.gz", "2.15 GiB / 2.31 GB", "32,039"),
     "57K": ("synthetic_pool_57K.tar.gz", "3.88 GiB / 4.16 GB", "57,650"),
 }
@@ -102,10 +116,11 @@ def _ensure_url_configured(url: str, label: str) -> None:
     THIS IS NOW A REGRESSION GUARD, NOT THE LIVE MECHANISM FOR ANY MODE. Until the
     DataPort DOI was minted, `DATAPORT_URL` was the one placeholder in the file and this
     function was what made `--synthetic-pool` exit gracefully. It no longer is: every URL
-    here is real, so no call below can currently trip, and the graceful exit for
-    `--synthetic-pool` is the explicit `sys.exit` in that mode's own branch. The function
-    is kept because it is cheap and because the failure it catches -- a URL edited back
-    into a placeholder, or a new asset group added with its host still to be decided --
+    here is real, so no call below can currently trip, and `--synthetic-pool` now resolves
+    against the Hugging Face mirror like every other group, failing through `_fetch` when the
+    repo cannot be reached. The function is kept, and every asset group including the pool
+    still calls it, because it is cheap and because the failure it catches -- a URL edited
+    back into a placeholder, or a new asset group added with its host still to be decided --
     is one a reader would otherwise meet as a huggingface_hub traceback.
     """
     if url.startswith("[") and url.endswith("]"):
@@ -115,41 +130,47 @@ def _ensure_url_configured(url: str, label: str) -> None:
         )
 
 
-def _synthetic_pool_notice(root: Path, variant: str) -> str:
-    """What `--synthetic-pool` exits with. It cannot fetch, so it must instruct.
+def _synthetic_pool_note(root: Path, variant: str) -> str:
+    """What `--synthetic-pool` prints AFTER the fetch: how to cite it, how to unpack it.
 
-    DELIBERATELY NOT A COPY-PASTEABLE FETCH. This branch used to print
+    THE DOI IS THE CITATION, THE MIRROR IS THE DOWNLOAD, AND THIS MESSAGE MUST KEEP THEM
+    APART. The pool is deposited on IEEE DataPort under doi:10.21227/nqgf-9k39, which is its
+    citable identifier of record and belongs here whichever host the bytes came from; the
+    Hugging Face mirror is the route that needs no IEEE subscription and is never presented
+    as the thing to cite. DataPort is named as the alternative, never as freely downloadable.
+
+    NO COPY-PASTEABLE DATAPORT FETCH, DELIBERATELY. This branch used to print
 
         wget -O <root>/synthetic_pool_31K.tar.gz <DATAPORT_URL>/synthetic_pool_31K.tar.gz
 
-    which was wrong twice over even once a real DOI was substituted for the placeholder.
-    IEEE DataPort publishes no ``<landing-page>/<filename>`` URL -- the deposit page renders
-    each archive as a login modal, never as an href -- and it serves files only to an
-    authenticated session, so no anonymous request of any shape can succeed. A command that
-    404s is worse than no command: it reads as a supported path and fails only after the
-    reader has trusted it. Hence prose steps, with ``tar -xzf`` given separately because
-    extraction is the one half the user actually runs locally.
+    which was wrong even with a real DOI substituted for the placeholder: IEEE DataPort
+    publishes no ``<landing-page>/<filename>`` URL -- the deposit page renders each archive as
+    a login modal, never as an href -- and it serves files only to a signed-in, subscribed
+    session, so no anonymous request of any shape can succeed. A command that 404s is worse
+    than no command: it reads as a supported path and fails only after the reader has trusted
+    it. ``tar -xzf`` is spelled out because extraction is the half the user still runs locally.
     """
-    name, size, scenes = DATAPORT_ARCHIVES[variant]
+    name, size, scenes = POOL_ARCHIVES[variant]
     other = "57K" if variant == "31K" else "31K"
     return (
-        f"\nSynthetic pool '{variant}' is archived on IEEE DataPort, which this script "
-        f"cannot download from.\n"
-        f"  DOI:      doi:10.21227/nqgf-9k39\n"
-        f"  Landing:  {DATAPORT_URL}\n"
-        f"  Archive:  {name}  ({size} compressed, {scenes} scenes)\n\n"
-        "IEEE DataPort serves dataset files only to a signed-in session, and it exposes no "
-        "direct file URL to fetch. As deposited, downloading the archives requires an IEEE "
-        "DataPort subscription (IEEE Society membership included); check the access notice "
-        "on the landing page before planning around it. Retrieve it by hand:\n"
-        f"  1. Open {DATAPORT_URL} in a browser and sign in.\n"
-        f"  2. Download {name} from the dataset's file list.\n"
-        "  3. Extract it where this script would have put it:\n"
-        f"       tar -xzf {name} -C {root}/\n\n"
+        f"\nSynthetic pool '{variant}' fetched from the free Hugging Face mirror.\n"
+        f"  Archive:  {root}/{name}  ({size} compressed, {scenes} scenes)\n"
+        f"  Mirror:   https://huggingface.co/datasets/{HF_REPO_SYNTH}  "
+        f"(no IEEE subscription needed)\n"
+        f"  Cite as:  Shi Chen, Weifeng Ge, \"PS3-SemanticKITTI: Paired Sparse-Dense "
+        f"Synthetic Scenes\n"
+        f"            for LiDAR Semantic Scene Completion\", IEEE Dataport, August 23, 2026,\n"
+        f"            doi:10.21227/nqgf-9k39  ({DATAPORT_URL})\n\n"
+        "Unpack it where the rest of the data lives:\n"
+        f"    tar -xzf {root}/{name} -C {root}/\n\n"
         f"The {other} pool is the other released variant, and 31K is a strict subset of 57K "
         "-- take one, never both.\n"
-        "No IEEE credentials? Rebuilding the pool locally with the PS3 ray-tracer needs none, "
-        "and is documented with everything else here:\n" + _MANUAL_ROUTES
+        f"Prefer the archival deposit? The same two archives, byte-identical, are on IEEE "
+        f"DataPort at {DATAPORT_URL} -- but that record requires an IEEE DataPort "
+        "subscription (IEEE Society membership included) and releases files only to a "
+        "signed-in session, so it has to be fetched by hand from a browser.\n"
+        "Neither host? Rebuilding the pool locally with the PS3 ray-tracer needs no account "
+        "at all, and is documented with everything else here:\n" + _MANUAL_ROUTES
     )
 
 
@@ -195,8 +216,11 @@ def main() -> None:
     # cannot keep, so the choices are the two that ship.
     parser.add_argument("--synthetic-pool", choices=["31K", "57K"],
                         default=None,
-                        help="Download a released synthetic pool variant "
-                             "(31K = 127 GiB / 136 GB, 57K = 229 GiB / 246 GB)")
+                        help="Download a released synthetic pool variant from the free "
+                             "Hugging Face mirror; cite it by its IEEE DataPort DOI "
+                             "(10.21227/nqgf-9k39). 31K = 2.15 GiB / 2.31 GB compressed "
+                             "-> 127 GiB / 136 GB unpacked, 57K = 3.88 GiB / 4.16 GB "
+                             "-> 229 GiB / 246 GB unpacked")
     parser.add_argument("--all", action="store_true", help="Download everything EXCEPT the synthetic pool (4.9 GB models + ~442 GB predictions [SCPNet 190 + JS3C 203 + LMSCNet 49] + 0.33 GB object bank; see docs/DATASET.md disk-space table). The synthetic pool is opt-in via --synthetic-pool because it is only needed to retrain from scratch.")
     parser.add_argument("--root", default=str(REPO_ROOT / "data"), help="Where to store downloads")
     parser.add_argument(
@@ -237,19 +261,18 @@ def main() -> None:
     if args.object_bank or args.all:
         _ensure_url_configured(HF_REPO_DATA, "Datasets (object bank)")
     if args.synthetic_pool:
-        _ensure_url_configured(DATAPORT_URL, "Synthetic pool (IEEE DataPort)")
+        _ensure_url_configured(HF_REPO_SYNTH, "Synthetic pool (Hugging Face mirror)")
+        _ensure_url_configured(DATAPORT_URL, "Synthetic pool citation (IEEE DataPort DOI)")
 
-    # The pool is the one group nothing on Hugging Face can serve, so its mode must not be
-    # made to depend on huggingface_hub. Answering it BEFORE the import below keeps
-    # `--synthetic-pool` working in a bare (pre-`uv sync`) environment -- exactly the
-    # property the comment above says the early URL validation exists to preserve. Without
-    # this, a reader with no huggingface_hub installed was told to `uv pip install
-    # huggingface-hub` for an asset that Hugging Face does not host. Requested alongside a
-    # Hugging Face group, it falls through and is reported after those downloads instead.
-    if args.synthetic_pool and not any([args.checkpoints, args.predictions,
-                                        args.js3c_predictions, args.lmscnet_predictions,
-                                        args.object_bank, args.all]):
-        sys.exit(_synthetic_pool_notice(Path(args.root), args.synthetic_pool))
+    # `--synthetic-pool` USED TO BE ANSWERED HERE, before the import, because nothing on
+    # Hugging Face served the pool and it would otherwise have told a reader in a bare
+    # (pre-`uv sync`) environment to install huggingface-hub for an asset the Hub did not
+    # host. The free mirror removed that asymmetry: the pool is now fetched by the same
+    # machinery as every other group, so it needs huggingface_hub exactly as they do and is
+    # dispatched with them below. The early exit is gone rather than kept as a special case;
+    # what it protected -- a bare environment getting a useful message -- is now served by
+    # the ImportError branch immediately below, which is the same message every other mode
+    # gets.
 
     try:
         from huggingface_hub import snapshot_download
@@ -311,11 +334,28 @@ def main() -> None:
         _fetch(snapshot_download, "Datasets (object bank)", HF_REPO_DATA,
                repo_type="dataset", allow_patterns=_patterns("object_bank"),
                local_dir=root)
-    # Reached only when the pool was requested ALONGSIDE a Hugging Face group (the
-    # pool-only case exited above, before the import). Those groups are done; the pool
-    # still cannot be provisioned, so the run is not a success and must not exit 0.
+    # The synthetic pool: one archive out of its own mirror, then the DOI to cite it by.
     if args.synthetic_pool:
-        sys.exit(_synthetic_pool_notice(root, args.synthetic_pool))
+        _name, size, scenes = POOL_ARCHIVES[args.synthetic_pool]
+        logger.info("Downloading synthetic pool %s (%s compressed, %s scenes) from %s ...",
+                    args.synthetic_pool, size, scenes, HF_REPO_SYNTH)
+        # ONE ARCHIVE PER VARIANT, AND THE FILENAME IS SPELLED OUT AT EACH CALL SITE.
+        # `allow_patterns` has to be a literal here, not `_name`:
+        # .release_checks/check_asset_namespace.py reads these call sites with `ast` to prove
+        # that the file this script asks the mirror for is the file the upload procedure puts
+        # into that repo, and a variable makes it report PARSE DRIFT instead of a filter set
+        # (its `_pattern_strings` docstring records two occasions when exactly that misread
+        # shipped as a confident finding). Two branches also keep the mode's dispatch
+        # explicit, which is what check_cli_surface.py measures.
+        if args.synthetic_pool == "31K":
+            _fetch(snapshot_download, "Synthetic pool 31K", HF_REPO_SYNTH,
+                   repo_type="dataset", allow_patterns=["synthetic_pool_31K.tar.gz"],
+                   local_dir=root)
+        else:
+            _fetch(snapshot_download, "Synthetic pool 57K", HF_REPO_SYNTH,
+                   repo_type="dataset", allow_patterns=["synthetic_pool_57K.tar.gz"],
+                   local_dir=root)
+        logger.info("%s", _synthetic_pool_note(root, args.synthetic_pool))
 
     logger.info("Done.")
 

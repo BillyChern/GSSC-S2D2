@@ -90,6 +90,22 @@ DIRECTION OF THE FIX paragraph above warns). The repair was in the downloader: t
 which is also the honest behaviour, because DataPort serves files only to an authenticated
 session and the mode genuinely cannot provision the asset. Nothing in this gate was relaxed.
 
+STATUS 2026-08-23 (LATER THE SAME DAY) -- THE POOL NOW HAS A FREE MIRROR, AND
+`--synthetic-pool` DOWNLOADS AGAIN. The two archives were mirrored, byte-identical, on the
+Hugging Face dataset repo `Stone-Chern/PS3-SemanticKITTI`, so the sentence above -- "the mode
+genuinely cannot provision the asset" -- stopped being true. It is kept as the record of why
+the mode exited, not as a description of what it does: `--synthetic-pool` now resolves through
+`_fetch(snapshot_download, ..., HF_REPO_SYNTH, allow_patterns=["synthetic_pool_<v>.tar.gz"])`
+like every other group, and the DataPort DOI stays in the output as the CITATION rather than
+as the retrieval route. Nothing in this gate changed, and nothing needed to: the arms measure
+"exits non-zero into the documented pointer WHEN THE HUB IS UNREACHABLE", which is exactly
+what the mode still does under the raise-mode patch -- and it is now measured on the same code
+path as the other five modes instead of on a hand-written `sys.exit`. Two consequences worth
+naming, both narrative rather than verdict: the mode is no longer answerable before the
+`huggingface_hub` import (it needs the hub, so it gets the same ImportError message everyone
+else gets), and it is no longer the selftest's "never reaches the hub" probe -- see
+`_untrapped` and `selftest` below, whose comments were corrected with this change.
+
 WHERE THE SELFTEST ROTTED. Until 2026-08-20 the selftest built its healthy fixture by
 APPENDING a simulated release guard (`_GUARD`) to the still-broken shipped script, and
 injected its faults into that appended block -- and, for the three promise checks, used
@@ -528,10 +544,14 @@ def _untrapped(src: str) -> str:
         call, so the sentinel escapes `_fetch` instead of becoming a `sys.exit` pointer;
       * the APPENDED `_GUARD` wrapper is made to re-raise instead of exiting.
 
-    `--synthetic-pool` is untouched and stays graceful -- it never reaches the hub, so hoisting
-    `_fetch`'s `try:` cannot perturb it; its own branch exits with the pointer because DataPort
-    cannot be fetched from. That is faithful to the original defect: the modes a first-time user
-    runs are the broken ones.
+    UNTIL 2026-08-23 `--synthetic-pool` was untouched by both mutations and stayed graceful:
+    it never reached the hub, so hoisting `_fetch`'s `try:` could not perturb it, and its own
+    branch exited with the pointer because DataPort cannot be fetched from. That is no longer
+    so -- the pool has a free Hugging Face mirror and the mode goes through `_fetch` with
+    everything else, so BOTH probed modes are now perturbed by `tb-inner`. Nothing here needed
+    changing (the assert below only requires that some mode go non-graceful, and the fixture is
+    strictly more faulted than before), but the reason the fixture works is no longer the one
+    this docstring used to give.
     """
     src = _mutate(src,
                   r"^    try:\n        snapshot_download\(repo_id=repo_id, \*\*kwargs\)$",
@@ -544,12 +564,15 @@ def selftest() -> int:
     real = DOWNLOADER.read_text(encoding="utf-8")
     docs = read_docs()
 
-    # Probe only two modes in the selftest: one that reaches the hub (`--checkpoints`) and one
-    # that cannot (`--synthetic-pool`, whose archives live behind IEEE DataPort's login gate, so
-    # its branch exits with the pointer instead of fetching -- it was the placeholder guard that
-    # short-circuited it until the DOI was minted on 2026-08-23, and the mode is still the
-    # non-hub probe for the same observable reason). Enough to exercise every check, ~10x
-    # cheaper than all seven.
+    # Probe two modes in the selftest: `--checkpoints` (a whole-repo snapshot) and the one
+    # mode with a `choices` value (`--synthetic-pool`, a filtered fetch of a single archive out
+    # of the pool's Hugging Face mirror). Enough to exercise every check, ~10x cheaper than all
+    # seven. THE SECOND MODE IS NO LONGER A NON-HUB PROBE: until 2026-08-23 the pool was only on
+    # IEEE DataPort, could not be fetched at all, and exited through its own `sys.exit` -- which
+    # is why it was picked. The free mirror moved it onto `_fetch` with the rest, so both modes
+    # now exercise the same guard. That costs the selftest nothing (every arm still trips, and
+    # the promise fixture is faulted on both modes rather than one), but a reader should not
+    # take the pair as covering two different exit paths any more.
     all_modes = parse_modes(real)
     modes = [m for m in all_modes if m[0] == "--checkpoints"] + \
             [m for m in all_modes if len(m) > 1][:1]

@@ -416,25 +416,31 @@ historical config-dir label `synthetic_pool_31K` / `--synthetic-pool 31K`; the
 actual frame count is 32,039.) **Two pools are released**, `31K` and `57K`;
 the paper's data-scaling table also reports 0K / 10K / 20K rows, but those are
 *subsets drawn at train time* and no 0K / 10K / 20K pool is staged for
-download. (`0K` means real-only, so there is nothing to fetch for it at all.) The full pool is archived on IEEE DataPort rather than on the two
-Hugging Face mirrors, as **PS3-SemanticKITTI**,
+download. (`0K` means real-only, so there is nothing to fetch for it at all.)
+
+**Cite the DOI; download from either host.** The pool is deposited on IEEE
+DataPort as **PS3-SemanticKITTI**,
 [doi:10.21227/nqgf-9k39](https://dx.doi.org/10.21227/nqgf-9k39) (deposited
-2026-08-23). The DOI is live; what it does **not** give you is a fetchable file
-URL. IEEE DataPort renders each archive as a login modal rather than a link and
-serves dataset files only to an authenticated session, and as deposited they
-require an IEEE DataPort subscription (IEEE Society membership included) — check
-the access notice on the landing page before you plan around it. So
-`--synthetic-pool` prints the DOI, the archive names and the retrieval steps and
-exits with the manual-build instructions instead of downloading (the same
-statement as under *Maintenance* below), and the **local PS³ rebuild described
-under *regenerate the pool yourself* below is the route that needs no IEEE
-credentials at all.** Nothing here is a release embargo: the
+2026-08-23) — that DOI is the citable identifier of record. It is not a download
+route: IEEE DataPort renders each archive as a login modal rather than a link,
+serves dataset files only to an authenticated session, and as deposited requires
+an IEEE DataPort subscription (IEEE Society membership included), so no script
+can fetch from it. The **same two archives, byte-identical and carrying the same
+CC-BY-NC-SA 4.0 LICENSE, are mirrored on the Hugging Face dataset repo
+[`Stone-Chern/PS3-SemanticKITTI`](https://huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI),
+which needs no IEEE subscription** — that mirror is what `--synthetic-pool`
+downloads, and it is published alongside the other release repos rather than
+being reachable ahead of them. The DataPort record stays the alternative for
+anyone who prefers the archival deposit, retrieved by hand from a signed-in
+browser session (the same statement as under *Maintenance* below). Either way the
+**local PS³ rebuild described under *regenerate the pool yourself* below needs no
+account on either host.** Nothing here is a release embargo: the
 paper's availability footnote states that the code, the checkpoints and
 the PS³ dataset are available at
 [github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2), and
 nothing in this datasheet is withheld pending acceptance.
 
-Cite the deposit if you train on it:
+Cite the deposit if you train on it, whichever host you took the bytes from:
 
 > Shi Chen, Weifeng Ge, "PS3-SemanticKITTI: Paired Sparse-Dense Synthetic Scenes
 > for LiDAR Semantic Scene Completion", IEEE Dataport, August 23, 2026,
@@ -444,16 +450,19 @@ A BibTeX entry is in the repository README's *Citation* section. This is on top
 of the two SemanticKITTI citations the source data requires (see *Licence* in
 the README).
 
-    # These PRINT the DOI and the retrieval steps; they do NOT fetch anything.
-    # Nothing can: DataPort has no direct file URL (see above).
+    # These FETCH one archive from the free Hugging Face mirror, then print the DOI
+    # to cite it by. They do not touch DataPort: it has no direct file URL (see above).
     python scripts/download_assets.py --synthetic-pool 31K
     python scripts/download_assets.py --synthetic-pool 57K
 
-    # What you sign in at https://dx.doi.org/10.21227/nqgf-9k39 and download:
+    # What either route gives you -- the same bytes, from
+    # huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI (free) or by signing in at
+    # https://dx.doi.org/10.21227/nqgf-9k39 (IEEE DataPort subscription):
     #   synthetic_pool_31K.tar.gz   2.15 GiB / 2.31 GB  -> 32,039 scenes, ~127 GiB / ~136 GB unpacked
     #   synthetic_pool_57K.tar.gz   3.88 GiB / 4.16 GB  -> 57,650 scenes, ~229 GiB / ~246 GB unpacked
-    # 31K is a strict subset of 57K, so take one, never both. Then, locally:
-    tar -xzf synthetic_pool_31K.tar.gz -C data/
+    # 31K is a strict subset of 57K, so take one, never both. Then, locally --
+    # the script leaves the archive under its --root, which defaults to data/:
+    tar -xzf data/synthetic_pool_31K.tar.gz -C data/
 
 You only need the synthetic pool if you want to **retrain from scratch**. The
 released checkpoint already contains the trained weights.
@@ -649,13 +658,16 @@ contents are identical; only the directory label differs.
 - **Version:** v2.3.8 (the submission snapshot; bump this WITH supplementary.tex's tag).
 - **Mirror:** the full synthetic pool is archived on IEEE DataPort as
   PS3-SemanticKITTI, [doi:10.21227/nqgf-9k39](https://dx.doi.org/10.21227/nqgf-9k39)
-  (deposited 2026-08-23). The DOI is live and nothing about the pool is
-  outstanding, but DataPort publishes no direct file URL and releases files only
-  to an authenticated session, so `scripts/download_assets.py --synthetic-pool`
-  prints the DOI and the manual-download instructions instead of fetching. The
-  other assets are provisioned by the same script, and the pool itself can be
-  rebuilt locally with the PS³ ray-tracer — the one route that needs no IEEE
-  credentials (see *Synthetic pool* above).
+  (deposited 2026-08-23), which is the identifier to cite, and mirrored
+  byte-identically on Hugging Face at
+  [`Stone-Chern/PS3-SemanticKITTI`](https://huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI),
+  which is the free download route. `scripts/download_assets.py --synthetic-pool`
+  fetches from the mirror and prints the DOI; it cannot fetch from DataPort, which
+  publishes no direct file URL, releases files only to an authenticated session and
+  as deposited requires an IEEE DataPort subscription. The other assets are
+  provisioned by the same script, and the pool itself can be rebuilt locally with
+  the PS³ ray-tracer — the route that needs no account on either host (see
+  *Synthetic pool* above).
 - **Errata posture:** the paper is the source of truth for every reported
   number. If a count in this datasheet disagrees with the paper, the paper
   wins and the discrepancy is an erratum to fix here.

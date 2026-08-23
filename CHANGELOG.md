@@ -38,6 +38,38 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [2.3.8] — 2026-08-23
 
+- **Free Hugging Face mirror for the PS³ synthetic pool**, and `--synthetic-pool` now downloads
+  from it instead of printing retrieval steps. Written up in full under
+  *[2.3.8] → Added — a free Hugging Face mirror for the synthetic pool* below.
+
+
+### Added — a free Hugging Face mirror for the synthetic pool, and `--synthetic-pool` downloads again
+
+- The two pool archives are now mirrored, **byte-identical** and under the same CC-BY-NC-SA 4.0
+  LICENSE the deposit ships, on the Hugging Face dataset repo
+  **[`Stone-Chern/PS3-SemanticKITTI`](https://huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI)**
+  (`synthetic_pool_31K.tar.gz`, 2,311,614,021 B, 32,039 scenes; `synthetic_pool_57K.tar.gz`,
+  4,161,739,608 B, 57,650 scenes), so the pool finally has a route that needs no IEEE DataPort
+  subscription — the licence's redistribution grant is what permits it. `scripts/download_assets.py
+  --synthetic-pool {31K,57K}` fetches the requested archive from that mirror through the same
+  `_fetch` / `snapshot_download` path as every other asset group and then prints
+  `doi:10.21227/nqgf-9k39` as the citation: **cite the DOI, download from either host.** The DOI
+  remains the citable identifier of record and DataPort remains the alternative for anyone who
+  prefers the archival deposit — it is still marked *Subscription Required*, still serves files
+  only to a signed-in session, and still publishes no direct file URL, so no script fetches from
+  it. This **supersedes two statements made lower down in this same entry**, which are kept as the
+  record of why the mode used to exit rather than rewritten: the mode no longer "genuinely cannot
+  provision the asset", and it depends on `huggingface_hub` again exactly as the other groups do
+  (the early answer before the hub import is gone; the shared `ImportError` message covers it).
+  `README.md`, `docs/DATASET.md`, `examples/quickstart.ipynb` and `CITATION.cff` (whose dataset
+  reference now carries the mirror as `repository-artifact` beside the DOI) name the mirror
+  wherever they name the DOI. No check was relaxed to accommodate any of this:
+  `.release_checks/check_download_guard.py` still passes 9/9 with `--synthetic-pool` now measured
+  on the same unreachable-repo path as the other five modes, and only its narrative — which
+  described the mode as unfetchable — was corrected. The mirror is private until the release
+  repos are flipped public together; until then an anonymous fetch fails into the documented
+  `docs/DATASET.md` pointer.
+
 ### Fixed — `--synthetic-pool` printed a `wget` command that could never have worked
 
 The synthetic pool's IEEE DataPort DOI was minted on 2026-08-23
