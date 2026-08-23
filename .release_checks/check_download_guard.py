@@ -16,7 +16,7 @@ live artefacts, so nothing here is load-bearing for a verdict.
 Its own docstring states the intent: "Direct visitors at the manual-download docs rather than
 failing inside huggingface_hub with a confusing 'Repository not found'." But only
 `DATAPORT_URL` is a placeholder. `HF_REPO_MODELS` and `HF_REPO_DATA` are real-LOOKING repo ids
-(`BillyChern/GSSC-S2D2-checkpoints`), so the guard passes them through and the five Hugging
+(`Stone-Chern/GSSC-S2D2-checkpoints`), so the guard passes them through and the five Hugging
 Face modes reach `snapshot_download`, where a repo that does not exist yet raises
 `RepositoryNotFoundError` and Python prints a bare traceback. Measured on 2026-08-20 with the
 network boundary neutralised: `--checkpoints` exits 1 with

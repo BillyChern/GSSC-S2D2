@@ -1,7 +1,7 @@
 # Model Zoo
 
 All checkpoints are released under the MIT licence and mirrored on the Hugging Face
-Hub at [`BillyChern/GSSC-S2D2-checkpoints`](https://huggingface.co/BillyChern/GSSC-S2D2-checkpoints).
+Hub at [`Stone-Chern/GSSC-S2D2-checkpoints`](https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints).
 Fetch them with `python scripts/download_assets.py --checkpoints` (~4.9 GB total, 4.58 GiB);
 `docs/DATASET.md` documents manual provisioning as the alternative route.
 

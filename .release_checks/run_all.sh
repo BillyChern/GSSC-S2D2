@@ -82,6 +82,28 @@ fi
 printf '\n%s\n' "── GSSC-S2D2 release gates ─────────────────────────────────────────────"
 printf '%s\n'   "   mode=$MODE  gates=${#GATES[@]}  repo=$REPO_ROOT@$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo '?')"
 printf '%s\n'   "   py=$PY  TMPDIR=$TMPDIR"
+
+# IMPORT PROBE. Printing the interpreter is not enough on its own: four gates import optional
+# extras, and without them they report FAIL or die with a ModuleNotFoundError that reads as a
+# broken gate rather than a wrong python. Measured 2026-08-23 -- a bare /usr/local/bin/python
+# turned a 16/16 board into "7 failing" with nothing on screen connecting that to the
+# interpreter. Say it before the gates run, not after.
+_missing=$("$PY" - <<'PYPROBE' 2>/dev/null
+mods = ("fitz", "huggingface_hub", "safetensors", "torch", "yaml")
+out = []
+for m in mods:
+    try:
+        __import__(m)
+    except Exception:
+        out.append(m)
+print(",".join(out))
+PYPROBE
+)
+if [[ -n "$_missing" ]]; then
+  printf '%s\n' "   !! this interpreter cannot import: ${_missing//,/, }"
+  printf '%s\n' "      Gates that need them will report failures that are NOT defects."
+  printf '%s\n' "      Use the project venv, or: GSSC_PY=/path/to/python $0 $*"
+fi
 printf '%s\n\n' "────────────────────────────────────────────────────────────────────────"
 
 GREEN=(); RED=(); BROKE=()

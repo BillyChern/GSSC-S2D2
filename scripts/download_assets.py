@@ -55,8 +55,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-HF_REPO_MODELS = "BillyChern/GSSC-S2D2-checkpoints"
-HF_REPO_DATA = "BillyChern/GSSC-S2D2-datasets"
+HF_REPO_MODELS = "Stone-Chern/GSSC-S2D2-checkpoints"
+HF_REPO_DATA = "Stone-Chern/GSSC-S2D2-datasets"
 # The synthetic pool (127 GiB / 136 GB for 31K, 229 GiB / 246 GB for 57K) is archived
 # on IEEE DataPort rather than the two
 # Hugging Face mirrors above. This stays a [PLACEHOLDER] because the archive's DOI has not

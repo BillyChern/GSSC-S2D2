@@ -5,8 +5,8 @@ THE DEFECT THIS GATE EXISTS FOR
 -------------------------------
 Two artefacts describe the same hosting, and they disagree about every field of it.
 
-  scripts/download_assets.py            HF_REPO_MODELS = "BillyChern/GSSC-S2D2-checkpoints"
-  (the HF_REPO_* constants)             HF_REPO_DATA   = "BillyChern/GSSC-S2D2-datasets"
+  scripts/download_assets.py            HF_REPO_MODELS = "Stone-Chern/GSSC-S2D2-checkpoints"
+  (the HF_REPO_* constants)             HF_REPO_DATA   = "Stone-Chern/GSSC-S2D2-datasets"
                                         -> TWO repos, namespace `BillyChern`.
 
   <asset bundle>/README.md              "## Upload procedure"
@@ -62,8 +62,8 @@ file:line of both sides, and does not pretend to know which is canonical.
 STATUS
 ------
 2026-08-20: FAILED, by design -- 5 of 9 checks red on the shipped artefacts.
-2026-08-22: PASSES 9/9. Both artefacts now name `BillyChern/GSSC-S2D2-checkpoints` and
-            `BillyChern/GSSC-S2D2-datasets`, and the dataset folders are uploaded under the
+2026-08-22: PASSES 9/9. Both artefacts now name `Stone-Chern/GSSC-S2D2-checkpoints` and
+            `Stone-Chern/GSSC-S2D2-datasets`, and the dataset folders are uploaded under the
             prefixes `allow_patterns` filters on. Re-measure before quoting this line: a
             frozen self-measurement rots, which is why both dates are kept rather than the
             first being overwritten.
@@ -758,7 +758,7 @@ def probe_hf_repo_ids(dl_src: str) -> int:
     the SAME AST parse the rest of the gate uses -- never from a literal here -- so renaming
     a constant cannot leave this probe checking a name nobody uses any more, which is the
     exact defect that produced this check: the audit's fact list probed `BillyChern/GSSC-S2D2`
-    while the shipped downloader fetches `BillyChern/GSSC-S2D2-checkpoints`.
+    while the shipped downloader fetches `Stone-Chern/GSSC-S2D2-checkpoints`.
     """
     want = ("--probe-hf" in sys.argv) or os.environ.get("GSSC_PROBE_HF", "") not in ("", "0")
     _consts, fetches = parse_downloader(dl_src)

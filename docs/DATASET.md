@@ -226,7 +226,7 @@ python scripts/dump_lmscnet_predictions.py \
 ```
 
 The same predictions are mirrored on the Hugging Face dataset repo
-[`BillyChern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/BillyChern/GSSC-S2D2-datasets)
+[`Stone-Chern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets)
 and can be fetched with:
 
 ```bash
