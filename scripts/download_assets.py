@@ -108,7 +108,7 @@ _MANUAL_ROUTES = (
 
 
 def _ensure_url_configured(url: str, label: str) -> None:
-    """Bail out early when an asset URL is still a `[PLACEHOLDER]` token.
+    """Bail out early when an asset URL is still an unfilled bracketed token.
 
     Direct visitors at the manual-download docs rather than failing inside
     huggingface_hub with a confusing 'Repository not found'.
@@ -178,7 +178,7 @@ def _fetch(snapshot_download, label: str, repo_id: str, **kwargs) -> None:
     """One snapshot_download, with every failure turned into the documented pointer.
 
     ``_ensure_url_configured`` guards exactly one shape of unavailability -- a
-    ``[PLACEHOLDER]`` URL -- and nothing in this file has that shape any more. The two
+    bracketed all-caps URL -- and nothing in this file has that shape any more. The two
     Hugging Face repo ids are real-LOOKING strings, so they sail past that guard and any
     problem reaching them (repo missing, gated, network down, no auth token, hub API change)
     surfaced as a raw ``huggingface_hub`` traceback: precisely the outcome the guard's
