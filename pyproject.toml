@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gssc"
-version = "2.4.1"
+version = "2.4.2"
 description = "Official PyTorch implementation of S2D2 (Structured Source Discrete Diffusion) -- 'Generative Semantic Scene Completion'."
 readme = "README.md"
 license = { text = "MIT" }

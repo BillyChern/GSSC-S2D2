@@ -19,7 +19,7 @@ url: "https://shichen.world/GSSC-project-page/"
 repository-code: "https://github.com/BillyChern/GSSC-S2D2"
 repository-artifact: "https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints"
 license: MIT
-version: 2.4.1
+version: 2.4.2
 date-released: 2026-08-25
 preferred-citation:
   # type: unpublished + status: submitted, because the manuscript is under review and

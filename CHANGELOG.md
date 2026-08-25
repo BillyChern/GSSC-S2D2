@@ -71,6 +71,24 @@ always a **MAJOR** bump, even if the API is identical.
 - `README.md`'s *What's new* now reaches v2.4.1, and v2.3.8 is dated 2026-08-23 to match its
   tag and its CHANGELOG entry (it read 2026-08-22).
 
+## [2.4.2] — 2026-08-25
+
+### Changed
+
+- **Every released artefact is now linked from the first screenful of `README.md`.** The nav
+  row said the project page was "public on acceptance" after it was already public, and
+  carried no link to the checkpoints, the dataset, the DataPort record or the baseline
+  predictions: the first such link was line 347, 71.7 % down the file, and the project page
+  was never linked at all. All seven public resources are in the row now. Paper remains an
+  unlinked label — it is not on arXiv yet.
+
+### Fixed
+
+- **`docs/MODEL_ZOO.md` published 18 stale SHA256s.** Scrubbing the private research-repo URL
+  out of those `config.json` files changed their hashes and the docs were never updated, so
+  `check_security_hashes` failed: the docs were stale, not the assets. Republished against the
+  live Hub copies, fetched anonymously.
+
 ## [2.4.1] — 2026-08-25
 
 ### Fixed
@@ -1161,7 +1179,8 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.2...HEAD
+[2.4.2]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.8...v2.4.0
 [2.3.8]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.7...v2.3.8
