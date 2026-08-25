@@ -36,6 +36,8 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.4.2] — 2026-08-25
+
 ### Changed — every released artefact is reachable from the front page
 
 - **`README.md`'s nav row now carries every public resource.** It previously named the
@@ -70,17 +72,6 @@ always a **MAJOR** bump, even if the API is identical.
   verified 200 unauthenticated on 2026-08-25.
 - `README.md`'s *What's new* now reaches v2.4.1, and v2.3.8 is dated 2026-08-23 to match its
   tag and its CHANGELOG entry (it read 2026-08-22).
-
-## [2.4.2] — 2026-08-25
-
-### Changed
-
-- **Every released artefact is now linked from the first screenful of `README.md`.** The nav
-  row said the project page was "public on acceptance" after it was already public, and
-  carried no link to the checkpoints, the dataset, the DataPort record or the baseline
-  predictions: the first such link was line 347, 71.7 % down the file, and the project page
-  was never linked at all. All seven public resources are in the row now. Paper remains an
-  unlinked label — it is not on arXiv yet.
 
 ### Fixed
 
