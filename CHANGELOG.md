@@ -34,6 +34,17 @@ tag of the same name (`git tag` lists them).
 A version that *changes the headline 38.54 % val mIoU number* is
 always a **MAJOR** bump, even if the API is identical.
 
+## [2.4.1] — 2026-08-25
+
+### Fixed
+
+- **`uv.lock` and `SECURITY.md` still declared the old version**, so `uv lock --check`
+  failed on a clean checkout of `v2.4.0`. `uv sync` — the command the docs actually give
+  first — works either way, but the release gate compares all four version declarations
+  and this is the third time a run of releases has been needed to bring them back in step
+  (see the v2.3.1–v2.3.7 note in README.md). Lock regenerated; the supported-versions
+  table moves to `2.4.x`.
+
 ## [2.4.0] — 2026-08-25
 
 ### Fixed — the published reproduction command was silently evaluating a subset
@@ -1113,7 +1124,8 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.8...v2.4.0
 [2.3.8]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.7...v2.3.8
 [2.3.7]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.6...v2.3.7

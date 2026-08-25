@@ -457,7 +457,7 @@ wheels = [
 
 [[package]]
 name = "gssc"
-version = "2.3.8"
+version = "2.4.1"
 source = { editable = "." }
 dependencies = [
     { name = "einops" },
