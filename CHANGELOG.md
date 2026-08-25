@@ -36,6 +36,39 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+### Fixed — the published reproduction command was silently evaluating a subset
+
+- **`scripts/download_assets.py` now fetches and unpacks the released `.tar.zst` archives**
+  instead of reading a per-frame tree on the Hub. The prediction corpus is 609,349 files /
+  558 GiB / 600 GB uncompressed, and several of its directories hold more than the **10,000
+  files Hugging Face serves from one directory**, so the per-frame upload it used to read
+  could never be complete: `scpnet_predictions/08/` truncated at 10,000 files covering
+  **3,334 of sequence 08's 4,071 val frames**. The command `docs/DATASET.md`,
+  `configs/eval/val_1step.yaml`, `README.md` and `examples/quickstart.ipynb` all give for the
+  headline evaluation —
+  `python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'` —
+  therefore returned an incomplete val set, exited 0 and reported no error. Measured after the
+  fix, against the live repo: **12,213 files, 9,072,663,168 B, 4,071 distinct frame ids
+  `000000`–`004070`**, byte-identical to the reference tree.
+- The abandoned per-frame upload (219,590 files across four prefixes) has been deleted from
+  `Stone-Chern/GSSC-S2D2-datasets`, after verifying that every one of those paths is present
+  inside the ten archives. The repo now holds exactly the ten archives plus its dataset card.
+- **`--include` keeps its meaning and gets cheaper.** Patterns are still written against the
+  `<prefix>/<seq>/<frame>` layout the docs describe (and the unanchored `'08/*'` short form
+  still works); they now select both the archives to transfer and the members to unpack, so
+  the val-08 fetch moved from 9.07 GB of per-frame transfers to **one 703 MiB / 737 MB
+  archive** unpacking to the same 9.07 GB. A pattern that can match nothing exits with the
+  documented `docs/DATASET.md` pointer rather than downloading nothing and reporting success.
+- Every failure path still ends in that pointer rather than a traceback, including the two new
+  ones (an archive that did not arrive, and a missing zstd backend).
+- **New dependency: `zstandard>=0.22`**, so `uv sync` alone is enough to run the documented
+  download commands. The `zstd` binary is used as a fallback when the package is absent.
+- Sizes throughout `README.md`, `docs/DATASET.md`, `docs/REPRODUCIBILITY.md`,
+  `configs/eval/val_1step.yaml` and `examples/quickstart.ipynb` now separate **download** from
+  **on-disk**, which the archive layout makes differ by roughly 100x. `README.md`'s quickstart
+  fetches val 08 with `--include` rather than the whole SCPNet group, which unpacks to
+  324 GiB / 348 GB because the release materialises the three symlinked `synthetic*` farms.
+
 ## [2.3.8] — 2026-08-23
 
 - **Free Hugging Face mirror for the PS³ synthetic pool**, and `--synthetic-pool` now downloads

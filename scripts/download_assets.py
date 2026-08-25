@@ -3,34 +3,46 @@
 Usage::
 
     python scripts/download_assets.py --checkpoints          # 4.58 GiB / 4.9 GB models
-    python scripts/download_assets.py --predictions          # 177 GiB / 190 GB SCPNet real+synth predictions
-    python scripts/download_assets.py --js3c-predictions     # 189 GiB / 203 GB JS3C-Net cross-base predictions
-    python scripts/download_assets.py --lmscnet-predictions  # 45 GiB / 49 GB LMSCNet cross-base predictions
-    python scripts/download_assets.py --object-bank          # 313 MiB / 328 MB rare-class object bank
+    python scripts/download_assets.py --predictions          # 3.10 GiB / 3.33 GB of SCPNet archives -> 324 GiB / 348 GB on disk
+    python scripts/download_assets.py --js3c-predictions     # 1.35 GiB / 1.45 GB of JS3C-Net archives -> 189 GiB / 203 GB on disk
+    python scripts/download_assets.py --lmscnet-predictions  # 835 MiB / 876 MB LMSCNet archive -> 45 GiB / 49 GB on disk
+    python scripts/download_assets.py --object-bank          # 46 MiB / 48 MB object-bank archive -> 313 MiB / 328 MB on disk
     python scripts/download_assets.py --synthetic-pool 31K   # 2.15 GiB / 2.31 GB archive -> the 127 GiB / 136 GB headline synth pool
-    python scripts/download_assets.py --all                  # everything EXCEPT the synthetic pool (4.9 GB models + ~442 GB predictions [SCPNet 190 + JS3C 203 + LMSCNet 49] + 0.33 GB object bank; see docs/DATASET.md)
+    python scripts/download_assets.py --all                  # everything EXCEPT the synthetic pool (4.9 GB models + 5.7 GB of prediction/object-bank archives, which unpack to ~600 GB; see docs/DATASET.md)
 
-Every size here is the `GiB / GB` pair measured on the staged release payload and
-tabulated in docs/DATASET.md's disk-space table -- keep the two in step. The
-SCPNet figure is UNIQUE content: three of its `synthetic*` farms are symlinks
-into a fourth, so an upload that materialises links expands to 324 GiB / 348 GB
-(docs/DATASET.md explains which figure to size a transfer against).
+THE PREDICTION CORPUS SHIPS AS ARCHIVES, NOT AS PER-FRAME FILES, AND THIS SCRIPT UNPACKS IT.
+Uncompressed the corpus is 609,349 files and 558 GiB / 600 GB, and several of its directories
+hold more than the 10,000 files a Hugging Face directory can serve. It therefore lives on the
+Hub as TEN `zstd` archives totalling 5.31 GiB / 5.70 GB, and every mode below downloads the
+archives a request needs and extracts them into the same `data/<prefix>/...` layout
+docs/DATASET.md documents. Two figures are quoted for every group for that reason -- what
+crosses the network, and what lands on disk -- and they differ by about 100x. Sizes are
+measured on the released archives and tabulated in docs/DATASET.md's disk-space table; keep
+the two in step.
 
-Prediction groups are whole-prefix downloads by default. To take a subset -- one
-sequence, or the handful of frames the quickstart notebook needs -- narrow the fetch
-with ``--include``, whose patterns are passed straight through to
-``huggingface_hub.snapshot_download(allow_patterns=...)`` over the same repo tree
-docs/DATASET.md documents::
+Prediction groups are whole-group downloads by default. To take a subset -- one sequence, or
+the handful of frames the quickstart notebook needs -- narrow the fetch with ``--include``,
+whose patterns are matched against the same `<prefix>/<...>` tree docs/DATASET.md documents.
+``--include`` now does two things: it picks which ARCHIVES are worth transferring, and it
+picks which members are extracted out of them::
 
-    # val seq 08 only (8.5 GiB / 9.1 GB), instead of the whole 177 GiB / 190 GB prefix
+    # val seq 08 only: one 703 MiB / 737 MB archive instead of the group's 3.10 GiB / 3.33 GB,
+    # and 8.45 GiB / 9.07 GB extracted instead of 324 GiB / 348 GB
     python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'
 
-    # val 08 + the hidden test sequences, for a leaderboard submission (16.6 GiB / 17.8 GB)
+    # val 08 + the hidden test sequences, for a leaderboard submission (same one archive;
+    # 16.6 GiB / 17.8 GB extracted)
     python scripts/download_assets.py --predictions \
         --include 'scpnet_predictions/08/*' 'scpnet_predictions/1*/*' 'scpnet_predictions/2*/*'
 
-    # just the frame examples/quickstart.ipynb uses
+    # just the frames examples/quickstart.ipynb uses (same one archive, three files extracted)
     python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/000000_*'
+
+An archive is the smallest unit the Hub can serve, so ``--include`` cannot make a transfer
+smaller than the one archive that holds the match -- but it never transfers an archive whose
+contents cannot match, which is what keeps a single-sequence request off the 5.4 GB path. The
+archives are kept under ``<root>/_archives/`` after extraction so a re-run costs nothing;
+delete that directory to reclaim the space.
 
 ``--include`` applies only to the prediction / object-bank groups (the checkpoint
 group is a whole-repo snapshot, and ``--synthetic-pool`` is a single named archive);
@@ -57,9 +69,16 @@ and the PS3 dataset.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fnmatch
 import logging
+import shutil
+import subprocess
 import sys
+import tarfile
+from collections.abc import Iterator, Sequence
 from pathlib import Path
+from typing import NamedTuple
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,7 +114,88 @@ POOL_ARCHIVES = {
     "57K": ("synthetic_pool_57K.tar.gz", "3.88 GiB / 4.16 GB", "57,650"),
 }
 
+#: Where the archives are parked after download, relative to `--root`. Kept rather than
+#: deleted so a second run (a wider `--include`, an interrupted extraction) re-extracts
+#: without re-transferring; `_report` tells the user it is safe to remove.
+ARCHIVE_DIR = "_archives"
+
 logger = logging.getLogger("gssc.download")
+
+
+class Archive(NamedTuple):
+    """One released `.tar.zst`, and everything needed to fetch and unpack a subset of it.
+
+    ``dest`` is the directory the members must land under, RELATIVE TO ``--root``, and it is
+    empty exactly when the archive already carries that directory as its own top level.
+    Measured, not assumed: `lmscnet_predictions.tar.zst` and `object_bank.tar.zst` were built
+    from the parent of their payload and so hold `lmscnet_predictions/00/...`, while the
+    SCPNet and JS3C-Net archives were built from inside their prefix and hold `00/...` and
+    `synthetic_31k/...`. Getting this backwards silently produces `data/scpnet_predictions/`
+    with the sequences one level too high, or `data/lmscnet_predictions/lmscnet_predictions/`.
+
+    ``covers`` lists the repo-relative paths the archive's members live under -- the unit at
+    which `--include` can rule an archive out without opening it. It is deliberately coarse
+    (one entry per top-level directory); the fine-grained filtering happens per member during
+    extraction, so a coarse entry only ever costs a transfer, never a wrong result.
+    """
+    name: str
+    prefix: str
+    dest: str
+    covers: tuple[str, ...]
+    download: str
+    extracted: str
+    members: int
+
+
+def _seq_covers(prefix: str, extra: Sequence[str] = ()) -> tuple[str, ...]:
+    """`<prefix>/00` .. `<prefix>/21`, plus the archive's own loose files."""
+    return tuple([f"{prefix}/{s:02d}" for s in range(22)] + [f"{prefix}/{e}" for e in extra])
+
+
+#: THE RELEASE SURFACE OF `Stone-Chern/GSSC-S2D2-datasets`, MEASURED 2026-08-25 on the
+#: uploaded archives (member counts from `tar -tf`, byte counts from `tar -tvf`, download
+#: sizes from the Hub's own file metadata). The repo holds exactly these ten files plus
+#: `README.md`. It briefly ALSO held an abandoned per-frame upload of the same corpus --
+#: 219,590 of the 609,349 files, with `scpnet_predictions/08/` truncated at the Hub's
+#: 10,000-files-per-directory limit to 3,334 of sequence 08's 4,071 frames -- and this
+#: script used to read that tree exclusively, so the headline `--include
+#: 'scpnet_predictions/08/*'` fetch returned a SILENTLY INCOMPLETE val set and exited 0.
+#: The per-frame tree is deleted. Do not reintroduce a code path that reads it.
+ARCHIVES: tuple[Archive, ...] = (
+    Archive("scpnet_predictions_sequences.tar.zst", "scpnet_predictions", "scpnet_predictions",
+            _seq_covers("scpnet_predictions", ("LICENSE", "README.md")),
+            "703 MiB / 737 MB", "56.3 GiB / 60.4 GB", 81_308),
+    Archive("scpnet_predictions_synthetic.tar.zst", "scpnet_predictions", "scpnet_predictions",
+            ("scpnet_predictions/synthetic",),
+            "1.06 GiB / 1.14 GB", "120.4 GiB / 129.3 GB", 174_063),
+    Archive("scpnet_predictions_synthetic_31k.tar.zst", "scpnet_predictions", "scpnet_predictions",
+            ("scpnet_predictions/synthetic_31k",),
+            "623 MiB / 653 MB", "66.5 GiB / 71.4 GB", 96_117),
+    Archive("scpnet_predictions_synthetic_30000.tar.zst", "scpnet_predictions", "scpnet_predictions",
+            ("scpnet_predictions/synthetic_30000",),
+            "575 MiB / 603 MB", "60.4 GiB / 64.9 GB", 59_998),
+    Archive("scpnet_predictions_synthetic_10000.tar.zst", "scpnet_predictions", "scpnet_predictions",
+            ("scpnet_predictions/synthetic_10000",),
+            "191 MiB / 200 MB", "20.1 GiB / 21.6 GB", 19_998),
+    Archive("js3cnet_predictions_sequences.tar.zst", "js3cnet_predictions", "js3cnet_predictions",
+            _seq_covers("js3cnet_predictions",
+                        ("LICENSE", "README.md", "synthetic_31k_bad_frames.txt")),
+            "1.07 GiB / 1.15 GB", "52.9 GiB / 56.8 GB", 27_105),
+    Archive("js3cnet_predictions_synthetic_filtered.tar.zst", "js3cnet_predictions", "js3cnet_predictions",
+            ("js3cnet_predictions/synthetic_filtered",),
+            "154 MiB / 162 MB", "74.6 GiB / 80.1 GB", 38_322),
+    Archive("js3cnet_predictions_synthetic_31k.tar.zst", "js3cnet_predictions", "js3cnet_predictions",
+            ("js3cnet_predictions/synthetic_31k",),
+            "124 MiB / 130 MB", "61.4 GiB / 65.9 GB", 31_442),
+    # Built from the parent directory: members already read `lmscnet_predictions/...`.
+    Archive("lmscnet_predictions.tar.zst", "lmscnet_predictions", "",
+            ("lmscnet_predictions",),
+            "835 MiB / 876 MB", "45.3 GiB / 48.7 GB", 23_203),
+    # Likewise: members already read `object_bank/...`.
+    Archive("object_bank.tar.zst", "object_bank", "",
+            ("object_bank",),
+            "46 MiB / 48 MB", "313 MiB / 328 MB", 57_793),
+)
 
 
 #: The three places a reader can get an asset when this script cannot fetch it. Every exit
@@ -148,7 +248,9 @@ def _synthetic_pool_note(root: Path, variant: str) -> str:
     a login modal, never as an href -- and it serves files only to a signed-in, subscribed
     session, so no anonymous request of any shape can succeed. A command that 404s is worse
     than no command: it reads as a supported path and fails only after the reader has trusted
-    it. ``tar -xzf`` is spelled out because extraction is the half the user still runs locally.
+    it. ``tar -xzf`` is spelled out because extraction is the half the user still runs locally
+    for THIS asset: the pool ships as a plain gzip tarball on both hosts, and unlike the
+    prediction archives it is not unpacked for you.
     """
     name, size, scenes = POOL_ARCHIVES[variant]
     other = "57K" if variant == "31K" else "31K"
@@ -174,8 +276,17 @@ def _synthetic_pool_note(root: Path, variant: str) -> str:
     )
 
 
-def _fetch(snapshot_download, label: str, repo_id: str, **kwargs) -> None:
+def _fetch(snapshot_download, label: str, repo_id: str, **kwargs) -> list[str]:
     """One snapshot_download, with every failure turned into the documented pointer.
+
+    Returns the `allow_patterns` the fetch was made with -- for the dataset groups, the
+    archive names that are now on disk and waiting to be unpacked. THIS RETURN EXISTS SO
+    THE ARCHIVE NAMES CAN STAY INSIDE THE `allow_patterns=` EXPRESSION AT THE CALL SITE:
+    .release_checks/check_asset_namespace.py reads that keyword with `ast` and can follow a
+    call's literal arguments but not a local variable, so hoisting the list to
+    `names = _wanted([...]); allow_patterns=names` makes it report PARSE DRIFT -- measured,
+    not guessed, on exactly that shape. Recomputing the list a second line later would work
+    too and would be one more place for the two copies to disagree.
 
     ``_ensure_url_configured`` guards exactly one shape of unavailability -- a
     bracketed all-caps URL -- and nothing in this file has that shape any more. The two
@@ -190,6 +301,7 @@ def _fetch(snapshot_download, label: str, repo_id: str, **kwargs) -> None:
     """
     try:
         snapshot_download(repo_id=repo_id, **kwargs)
+        return list(kwargs.get("allow_patterns") or [])
     except (KeyboardInterrupt, SystemExit):
         raise
     except BaseException as exc:  # broad on purpose: see the docstring above
@@ -203,13 +315,206 @@ def _fetch(snapshot_download, label: str, repo_id: str, **kwargs) -> None:
         )
 
 
+# --------------------------------------------------------------------------- selection
+
+
+def _anchor(prefix: str, include: Sequence[str] | None) -> list[str] | None:
+    """The user's ``--include`` patterns, expressed over the documented `<prefix>/...` tree.
+
+    Returns ``None`` for "no restriction". Each pattern that already names the prefix is
+    passed through as-is and anything else is anchored under it, so both
+    ``--include 'scpnet_predictions/08/*'`` and ``--include '08/*'`` work -- the behaviour
+    this flag had when the patterns went straight to
+    ``huggingface_hub.snapshot_download(allow_patterns=...)`` over a per-frame tree. That
+    tree is gone; the patterns now select archives (below) and then members (during
+    extraction), and they keep meaning exactly what docs/DATASET.md says they mean.
+
+    A trailing ``/`` is completed to ``/*``, matching what huggingface_hub did to a
+    directory-shaped pattern, so a reader's muscle memory does not silently select nothing.
+    """
+    if not include:
+        return None
+    out: list[str] = []
+    for pat in include:
+        pat = pat.lstrip("/")
+        pat = pat if pat.startswith(f"{prefix}/") else f"{prefix}/{pat}"
+        out.append(pat + "*" if pat.endswith("/") else pat)
+    return out
+
+
+def _may_hold(cover: str, pattern: str) -> bool:
+    """Could an archive whose members live under `cover` hold anything matching `pattern`?
+
+    Segment-wise, over the shorter of the two: `scpnet_predictions/08` versus
+    `scpnet_predictions/08/*` compares two segments and matches; versus
+    `scpnet_predictions/synthetic_31k/*` it does not. Comparing the strings whole would
+    fail the first case (the cover is a prefix of the pattern, not equal to it), and
+    comparing only the first segment would select every archive in the group.
+    """
+    for c, p in zip(cover.split("/"), pattern.split("/")):
+        if not fnmatch.fnmatchcase(c, p):
+            return False
+    return True
+
+
+def _wanted(names: Sequence[str], selected: Sequence[str] | None) -> list[str]:
+    """Which of `names` to actually transfer, given the anchored ``--include`` patterns.
+
+    THE NAMES ARE SPELLED OUT AT EACH CALL SITE, NOT LOOKED UP HERE, for the same reason
+    the `--synthetic-pool` branches spell theirs out: .release_checks/check_asset_namespace.py
+    reads these call sites with `ast` to prove the files this script asks the Hub for are the
+    files the upload procedure puts there, and a computed list makes it report PARSE DRIFT
+    instead of a filter set. This function only ever REMOVES names it was handed.
+    """
+    if not selected:
+        return list(names)
+    keep = [a.name for a in ARCHIVES if a.name in names
+            and any(_may_hold(c, p) for c in a.covers for p in selected)]
+    if not keep:
+        sys.exit(
+            f"\n--include {list(selected)!r} matches nothing in this asset group.\n"
+            f"  patterns are matched against the repo tree docs/DATASET.md documents, e.g. "
+            f"'scpnet_predictions/08/*'.\n"
+            f"  this group ships: {', '.join(sorted(names))}\n"
+            "Check the pattern, or drop --include to take the whole group:\n"
+            + _MANUAL_ROUTES
+        )
+    logger.info("--include selects %d of %d archive(s): %s",
+                len(keep), len(names), ", ".join(keep))
+    return keep
+
+
+# --------------------------------------------------------------------------- extraction
+
+
+@contextlib.contextmanager
+def _open_tar(archive: Path) -> Iterator[tarfile.TarFile]:
+    """Stream a `.tar.zst` as a TarFile, through python-zstandard or the `zstd` binary.
+
+    Streaming (`r|`) rather than random access is deliberate: these archives decompress to
+    tens of GiB and a seekable wrapper would either buffer that or decompress it repeatedly
+    to serve seeks. Two backends because neither is universally present -- `zstandard` is a
+    declared dependency of this project, the CLI is what a system package manager installs --
+    and an environment with neither gets an install line, not an ImportError traceback.
+    """
+    try:
+        import zstandard
+    except ImportError:
+        pass
+    else:
+        with archive.open("rb") as raw:
+            reader = zstandard.ZstdDecompressor().stream_reader(raw)
+            with tarfile.open(fileobj=reader, mode="r|") as tar:
+                yield tar
+        return
+    if shutil.which("zstd") is None:
+        sys.exit(
+            f"\nCannot unpack {archive.name}: neither the `zstandard` Python package nor the "
+            "`zstd` binary is available.\n"
+            "Install either one:\n"
+            "  uv pip install zstandard        # or: pip install zstandard\n"
+            "  apt install zstd                # or: brew install zstd\n"
+            "Then re-run this command -- the archive is already downloaded and will not be "
+            "transferred again.\n"
+            "Get the assets another way:\n" + _MANUAL_ROUTES
+        )
+    proc = subprocess.Popen(["zstd", "-dc", str(archive)], stdout=subprocess.PIPE)
+    try:
+        with tarfile.open(fileobj=proc.stdout, mode="r|") as tar:
+            yield tar
+    finally:
+        if proc.stdout is not None:
+            proc.stdout.close()
+        proc.wait()
+
+
+#: `TarFile.extract(filter=...)` arrived in 3.12 and is the interpreter's own version of the
+#: rule `_safe` enforces below. Pass it where it exists (it also silences 3.12's deprecation
+#: warning about the unset default) and rely on `_safe` alone on 3.10/3.11, which this project
+#: still supports.
+_EXTRACT_KW = {"filter": "data"} if sys.version_info >= (3, 12) else {}
+
+
+def _safe(member: tarfile.TarInfo) -> bool:
+    """Reject anything that could write outside the destination, or is not a plain file/dir.
+
+    These archives are ours and hold only `.npy`, `.pkl`, `.json`, `.txt` and two licence
+    files, so nothing legitimate is lost by refusing links, devices and absolute or
+    parent-relative names. `tarfile`'s own `filter='data'` would express this, but it landed
+    in 3.12 and this project supports 3.10.
+    """
+    name = member.name
+    if name.startswith("/") or name.startswith("../") or "/../" in name or name == "..":
+        return False
+    return member.isfile() or member.isdir()
+
+
+def _extract(archive: Path, root: Path, dest: str,
+             selected: Sequence[str] | None) -> tuple[int, int]:
+    """Unpack the members of `archive` that `selected` asks for. Returns (files, skipped).
+
+    `dest` is prepended to each member name to recover the repo-relative path the
+    `--include` patterns are written against; see `Archive.dest` for why it is empty for
+    two of the ten archives.
+    """
+    target = root / dest if dest else root
+    target.mkdir(parents=True, exist_ok=True)
+    kept = skipped = 0
+    with _open_tar(archive) as tar:
+        for member in tar:
+            path = f"{dest}/{member.name}" if dest else member.name
+            if selected is not None and not any(
+                    fnmatch.fnmatchcase(path, p) for p in selected):
+                skipped += 1
+                continue
+            if not _safe(member):
+                logger.warning("skipping unsafe archive member %r", member.name)
+                skipped += 1
+                continue
+            tar.extract(member, path=target, **_EXTRACT_KW)
+            if member.isfile():
+                kept += 1
+                if kept % 20_000 == 0:
+                    logger.info("  ... %d files extracted from %s", kept, archive.name)
+    return kept, skipped
+
+
+def _unpack(root: Path, names: Sequence[str], selected: Sequence[str] | None) -> None:
+    """Extract every archive just downloaded, or exit into the documented pointer.
+
+    A MISSING ARCHIVE IS A FAILED FETCH, NOT A CRASH. `_fetch` turns an unreachable repo
+    into the docs/DATASET.md pointer, but a fetch that "succeeds" without producing the
+    file -- a stubbed or offline hub, a partial snapshot, a pattern the Hub matched to
+    nothing -- would otherwise reach the extractor and raise FileNotFoundError, which is
+    the traceback three documents promise the user will never see.
+    """
+    by_name = {a.name: a for a in ARCHIVES}
+    for name in names:
+        arc = by_name[name]
+        path = root / ARCHIVE_DIR / name
+        if not path.is_file():
+            sys.exit(
+                f"\nDatasets: {name} was not downloaded, so there is nothing to unpack.\n"
+                f"  expected: {path}\n"
+                "The Hugging Face repo answered, but did not deliver that archive. Retry, or "
+                "get the assets another way:\n" + _MANUAL_ROUTES
+            )
+        logger.info("Unpacking %s (%s -> %s on disk) ...",
+                    name, arc.download, arc.extracted)
+        kept, skipped = _extract(path, root, arc.dest, selected)
+        logger.info("  %s: %d file(s) extracted, %d skipped by --include",
+                    name, kept, skipped)
+    logger.info("Archives kept in %s so a re-run costs no transfer; delete that directory "
+                "to reclaim the space.", root / ARCHIVE_DIR)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoints", action="store_true", help="Download model checkpoints (4.58 GiB / 4.9 GB)")
-    parser.add_argument("--predictions", action="store_true", help="Download SCPNet predictions (177 GiB / 190 GB unique, real + synth)")
-    parser.add_argument("--js3c-predictions", action="store_true", help="Download JS3C-Net predictions (189 GiB / 203 GB, cross-base eval)")
-    parser.add_argument("--lmscnet-predictions", action="store_true", help="Download LMSCNet predictions (45 GiB / 49 GB, cross-base eval)")
-    parser.add_argument("--object-bank", action="store_true", help="Download rare-class object bank (313 MiB / 328 MB of data; 448 MiB / 470 MB of disk blocks)")
+    parser.add_argument("--predictions", action="store_true", help="Download SCPNet predictions (3.10 GiB / 3.33 GB of archives; 324 GiB / 348 GB unpacked, real + synth)")
+    parser.add_argument("--js3c-predictions", action="store_true", help="Download JS3C-Net predictions (1.35 GiB / 1.45 GB of archives; 189 GiB / 203 GB unpacked, cross-base eval)")
+    parser.add_argument("--lmscnet-predictions", action="store_true", help="Download LMSCNet predictions (835 MiB / 876 MB archive; 45 GiB / 49 GB unpacked, cross-base eval)")
+    parser.add_argument("--object-bank", action="store_true", help="Download rare-class object bank (46 MiB / 48 MB archive; 313 MiB / 328 MB of data unpacked, 448 MiB / 470 MB of disk blocks)")
     # Only 31K and 57K are staged for release. 0K means real-only, so no tarball can
     # ever exist for it; 10K and 20K exist locally but are not part of the release
     # surface. Offering a choice with nothing behind it is a promise the script
@@ -221,16 +526,23 @@ def main() -> None:
                              "(10.21227/nqgf-9k39). 31K = 2.15 GiB / 2.31 GB compressed "
                              "-> 127 GiB / 136 GB unpacked, 57K = 3.88 GiB / 4.16 GB "
                              "-> 229 GiB / 246 GB unpacked")
-    parser.add_argument("--all", action="store_true", help="Download everything EXCEPT the synthetic pool (4.9 GB models + ~442 GB predictions [SCPNet 190 + JS3C 203 + LMSCNet 49] + 0.33 GB object bank; see docs/DATASET.md disk-space table). The synthetic pool is opt-in via --synthetic-pool because it is only needed to retrain from scratch.")
+    parser.add_argument("--all", action="store_true", help="Download everything EXCEPT the synthetic pool (4.9 GB of models + 5.7 GB of prediction and object-bank archives, which unpack to ~600 GB; see docs/DATASET.md disk-space table). The synthetic pool is opt-in via --synthetic-pool because it is only needed to retrain from scratch.")
     parser.add_argument("--root", default=str(REPO_ROOT / "data"), help="Where to store downloads")
     parser.add_argument(
         "--include", nargs="+", metavar="PATTERN", default=None,
         help="Restrict a prediction / object-bank download to these glob patterns "
-             "(huggingface_hub allow_patterns over the dataset repo, whose tree matches "
-             "the layout in docs/DATASET.md). Example: "
-             "--predictions --include 'scpnet_predictions/08/*' fetches val seq 08 only "
-             "(8.5 GiB / 9.1 GB) instead of the whole 177 GiB / 190 GB prefix. Ignored "
-             "with --all and with --checkpoints.",
+             "(matched against the repo tree docs/DATASET.md documents, then used to pick "
+             "both the archives to transfer and the members to unpack). Example: "
+             "--predictions --include 'scpnet_predictions/08/*' transfers one 703 MiB / "
+             "737 MB archive instead of the group's 3.10 GiB / 3.33 GB and unpacks val "
+             "seq 08 of the SCPNet predictions alone (8.45 GiB / 9.07 GB). "
+             # The sentence below is on its own line ON PURPOSE. It names `--checkpoints`,
+             # which is one of .release_checks/check_asset_coverage.py's
+             # BUNDLE_CLAIM_HINTS, so any size on the SAME PHYSICAL LINE is read as a claim
+             # about the 4.58 GiB checkpoint bundle and fails that gate at -85%. Its escape
+             # hatch is a prediction-ish word within 90 characters of the number, which the
+             # line above carries and this one does not need.
+             "Ignored with --all and with --checkpoints.",
     )
     args = parser.parse_args()
 
@@ -286,54 +598,59 @@ def main() -> None:
 
     root = Path(args.root)
     root.mkdir(parents=True, exist_ok=True)
+    archives = root / ARCHIVE_DIR
 
     logging.basicConfig(level=logging.INFO, format="[%(name)s] %(message)s")
 
-    def _patterns(prefix: str) -> list[str]:
-        """allow_patterns for one asset prefix, narrowed by --include when given.
-
-        Without --include this is the whole prefix (the historical behaviour). With
-        it, each user pattern that already names the prefix is passed through as-is
-        and anything else is anchored under it, so both
-        ``--include 'scpnet_predictions/08/*'`` and ``--include '08/*'`` work.
-        """
-        if not args.include or args.all:
-            return [f"{prefix}/*"]
-        out = []
-        for pat in args.include:
-            pat = pat.lstrip("/")
-            out.append(pat if pat.startswith(f"{prefix}/") else f"{prefix}/{pat}")
-        logger.info("Restricting %s to %s", prefix, out)
-        return out
+    include = None if args.all else args.include
 
     if args.checkpoints or args.all:
         logger.info("Downloading checkpoints from %s ...", HF_REPO_MODELS)
         _fetch(snapshot_download, "Checkpoints", HF_REPO_MODELS,
                local_dir=root / "checkpoints")
-    # snapshot_download preserves the matched pattern prefix in the output tree,
-    # so the local_dir must be `root` (not `root / "<name>"`) or the files land
-    # at root/<name>/<name>/... (double-nested). The allow_patterns prefix is the
-    # single directory level we want.
+    # The archives land in `<root>/_archives/` and are unpacked into `<root>/`, which is what
+    # puts `scpnet_predictions/08/000000_pred.npy` where docs/DATASET.md says it lives. The
+    # archive names are literals at each call site so that
+    # .release_checks/check_asset_namespace.py can read them; `_wanted` only ever drops names
+    # `--include` has ruled out.
     if args.predictions or args.all:
-        logger.info("Downloading SCPNet predictions from %s ...", HF_REPO_DATA)
-        _fetch(snapshot_download, "Datasets (predictions)", HF_REPO_DATA,
-               repo_type="dataset", allow_patterns=_patterns("scpnet_predictions"),
-               local_dir=root)
+        logger.info("Downloading SCPNet prediction archives from %s ...", HF_REPO_DATA)
+        sel = _anchor("scpnet_predictions", include)
+        names = _fetch(snapshot_download, "Datasets (predictions)", HF_REPO_DATA,
+                       repo_type="dataset", local_dir=archives,
+                       allow_patterns=_wanted([
+                           "scpnet_predictions_sequences.tar.zst",
+                           "scpnet_predictions_synthetic.tar.zst",
+                           "scpnet_predictions_synthetic_31k.tar.zst",
+                           "scpnet_predictions_synthetic_30000.tar.zst",
+                           "scpnet_predictions_synthetic_10000.tar.zst",
+                       ], sel))
+        _unpack(root, names, sel)
     if args.js3c_predictions or args.all:
-        logger.info("Downloading JS3C-Net predictions from %s ...", HF_REPO_DATA)
-        _fetch(snapshot_download, "Datasets (JS3C-Net predictions)", HF_REPO_DATA,
-               repo_type="dataset", allow_patterns=_patterns("js3cnet_predictions"),
-               local_dir=root)
+        logger.info("Downloading JS3C-Net prediction archives from %s ...", HF_REPO_DATA)
+        sel = _anchor("js3cnet_predictions", include)
+        names = _fetch(snapshot_download, "Datasets (JS3C-Net predictions)", HF_REPO_DATA,
+                       repo_type="dataset", local_dir=archives,
+                       allow_patterns=_wanted([
+                           "js3cnet_predictions_sequences.tar.zst",
+                           "js3cnet_predictions_synthetic_filtered.tar.zst",
+                           "js3cnet_predictions_synthetic_31k.tar.zst",
+                       ], sel))
+        _unpack(root, names, sel)
     if args.lmscnet_predictions or args.all:
-        logger.info("Downloading LMSCNet predictions from %s ...", HF_REPO_DATA)
-        _fetch(snapshot_download, "Datasets (LMSCNet predictions)", HF_REPO_DATA,
-               repo_type="dataset", allow_patterns=_patterns("lmscnet_predictions"),
-               local_dir=root)
+        logger.info("Downloading LMSCNet prediction archive from %s ...", HF_REPO_DATA)
+        sel = _anchor("lmscnet_predictions", include)
+        names = _fetch(snapshot_download, "Datasets (LMSCNet predictions)", HF_REPO_DATA,
+                       repo_type="dataset", local_dir=archives,
+                       allow_patterns=_wanted(["lmscnet_predictions.tar.zst"], sel))
+        _unpack(root, names, sel)
     if args.object_bank or args.all:
-        logger.info("Downloading object bank from %s ...", HF_REPO_DATA)
-        _fetch(snapshot_download, "Datasets (object bank)", HF_REPO_DATA,
-               repo_type="dataset", allow_patterns=_patterns("object_bank"),
-               local_dir=root)
+        logger.info("Downloading object-bank archive from %s ...", HF_REPO_DATA)
+        sel = _anchor("object_bank", include)
+        names = _fetch(snapshot_download, "Datasets (object bank)", HF_REPO_DATA,
+                       repo_type="dataset", local_dir=archives,
+                       allow_patterns=_wanted(["object_bank.tar.zst"], sel))
+        _unpack(root, names, sel)
     # The synthetic pool: one archive out of its own mirror, then the DOI to cite it by.
     if args.synthetic_pool:
         _name, size, scenes = POOL_ARCHIVES[args.synthetic_pool]

@@ -76,7 +76,54 @@ of the eval-only totals in the disk-space table below.
 > under "Headline") has the code path. Evaluation of the released checkpoints is
 > unaffected.
 
-## SCPNet predictions (required, ~177 GiB / ~190 GB real + synth)
+## How the released predictions ship: ten archives, unpacked for you
+
+The three prediction trees and the object bank are **609,349 files / 558 GiB /
+600 GB** uncompressed, and several of their directories hold more than the
+**10,000 files Hugging Face serves from one directory**. They are therefore
+released as **ten `zstd` archives totalling 5.31 GiB / 5.70 GB** on
+[`Stone-Chern/GSSC-S2D2-datasets`](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets),
+and `scripts/download_assets.py` downloads the archives a request needs and
+**extracts them into the `data/<prefix>/...` layout this file documents**. You
+never handle the archives yourself; every command below is the whole workflow.
+
+Two numbers therefore describe every fetch, and they differ by roughly 100x:
+
+* **download** — the compressed archive(s) that cross the network;
+* **on disk** — what they unpack to, which is what the disk-space table at the
+  bottom of this page sizes.
+
+| Archive | Download | Unpacks to | Files | Holds |
+|---|---:|---:|---:|---|
+| `scpnet_predictions_sequences.tar.zst` | 703 MiB / 737 MB | 56.3 GiB / 60.4 GB | 81,308 | `scpnet_predictions/{00..21}` + its `LICENSE`, `README.md` |
+| `scpnet_predictions_synthetic.tar.zst` | 1.06 GiB / 1.14 GB | 120.4 GiB / 129.3 GB | 174,063 | `scpnet_predictions/synthetic/` |
+| `scpnet_predictions_synthetic_31k.tar.zst` | 623 MiB / 653 MB | 66.5 GiB / 71.4 GB | 96,117 | `scpnet_predictions/synthetic_31k/` |
+| `scpnet_predictions_synthetic_30000.tar.zst` | 575 MiB / 603 MB | 60.4 GiB / 64.9 GB | 59,998 | `scpnet_predictions/synthetic_30000/` |
+| `scpnet_predictions_synthetic_10000.tar.zst` | 191 MiB / 200 MB | 20.1 GiB / 21.6 GB | 19,998 | `scpnet_predictions/synthetic_10000/` |
+| `js3cnet_predictions_sequences.tar.zst` | 1.07 GiB / 1.15 GB | 52.9 GiB / 56.8 GB | 27,105 | `js3cnet_predictions/{00..21}` + `LICENSE`, `README.md`, the bad-frames list |
+| `js3cnet_predictions_synthetic_filtered.tar.zst` | 154 MiB / 162 MB | 74.6 GiB / 80.1 GB | 38,322 | `js3cnet_predictions/synthetic_filtered/` |
+| `js3cnet_predictions_synthetic_31k.tar.zst` | 124 MiB / 130 MB | 61.4 GiB / 65.9 GB | 31,442 | `js3cnet_predictions/synthetic_31k/` |
+| `lmscnet_predictions.tar.zst` | 835 MiB / 876 MB | 45.3 GiB / 48.7 GB | 23,203 | all of `lmscnet_predictions/` |
+| `object_bank.tar.zst` | 46 MiB / 48 MB | 313 MiB / 328 MB | 57,793 | all of `object_bank/` |
+| **all ten** | **5.31 GiB / 5.70 GB** | **558.3 GiB / 599.5 GB** | **609,349** | |
+
+`--include` reads this table for you. A pattern rules out every archive that
+cannot hold a match, so a single-sequence request never touches the 5.4 GB path:
+`--include 'scpnet_predictions/08/*'` transfers **one 737 MB archive** and
+unpacks **only** sequence 08 out of it. An archive is the smallest unit the Hub
+can serve, so that is also the floor: asking for one frame still transfers that
+one archive.
+
+**Unpacking needs `zstd`.** `download_assets.py` uses the `zstandard` Python
+package if it is importable and the `zstd` binary otherwise; with neither it
+stops with the install line rather than a traceback. `pip install zstandard`,
+`apt install zstd` or `brew install zstd` all satisfy it.
+
+Downloaded archives are kept in `data/_archives/` so a second run (a wider
+`--include`, an interrupted extraction) costs no transfer. Delete that directory
+when you are done to reclaim up to 5.31 GiB / 5.70 GB; nothing reads it.
+
+## SCPNet predictions (required; 3.10 GiB / 3.33 GB download, ~324 GiB / ~348 GB on disk)
 
 These are precomputed SCPNet base predictions for val seq 08, test seqs
 11..21, and the synthetic pools, so you can run the S²D² refiner without first
@@ -84,13 +131,19 @@ running SCPNet yourself:
 
     python scripts/download_assets.py --predictions
 
-`download_assets.py --predictions` provisions these from the hosted mirror.
-Narrow it to what you actually need with `--include`, whose patterns go straight
-to `huggingface_hub.snapshot_download(allow_patterns=...)`:
+`download_assets.py --predictions` provisions these from the hosted mirror: it
+downloads the five SCPNet archives and unpacks them into `data/scpnet_predictions/`.
+Narrow it to what you actually need with `--include`, whose patterns are matched
+against the `<prefix>/<seq>/<frame>` layout documented below and select both the
+archives to transfer and the members to unpack:
 
 ```bash
-python scripts/download_assets.py --predictions                                  # whole tree, 177 GiB / 190 GB
-python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'   # val seq 08 only, 9.07 GB
+# whole group: 3.10 GiB / 3.33 GB downloaded, 324 GiB / 348 GB unpacked
+python scripts/download_assets.py --predictions
+
+# val seq 08 only (the headline eval): ONE 703 MiB / 737 MB archive downloaded,
+# 8.45 GiB / 9.07 GB unpacked -- 12,213 files, all 4,071 val frames
+python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'
 ```
 
 To regenerate them locally instead, run the frozen base yourself against an
@@ -149,18 +202,22 @@ count here is measured (`ls -U <dir> | wc -l` for entries,
 > **`synthetic_10000/`, `synthetic_30000/` and `synthetic_31k/` hold no bytes of
 > their own in the staging tree** — they are directories of symlinks into
 > `synthetic/` (19,998 / 59,998 / 96,117 links respectively), so `synthetic/` is
-> counted once and the tree's **unique content is 177 GiB / 190 GB**. A transfer
-> that materialises symlinks as real files (most upload tools do) expands it back
-> out to **324 GiB / 348 GB**, so size that kind of transfer against the
-> materialised figure rather than against the unique content. The materialised
-> figure is unique content plus the three farms measured separately
-> (176.68 + 20.14 + 60.43 + 66.50 = 323.75 GiB); do **not** try to get it from a
-> plain `os.walk(followlinks=True)`, which does not terminate on a sensible
-> number here — `synthetic/synthetic_31k` is a symlink back to the sibling farm
-> `synthetic_31k/`, which links back into `synthetic/`, and walking that cycle
-> reports thousands of GiB.
+> counted once and the tree's **unique content is 177 GiB / 190 GB**. **The
+> release materialises them**: each farm is its own archive of real files, so
+> taking the whole group with a bare `--predictions` lands **324 GiB / 348 GB**
+> on your disk, not 177 GiB. That materialised figure is unique content plus the
+> three farms measured separately (176.68 + 20.14 + 60.43 + 66.50 = 323.75 GiB).
+> **Fetch the farms you need instead.** The headline `31k_mf` retrain reads
+> `train_sequences: "00,…,10,synthetic"`, so it wants `..._sequences` +
+> `..._synthetic` — 1.79 GiB / 1.87 GB downloaded, 176.7 GiB / 189.7 GB unpacked,
+> which is the figure the full-retrain row of the disk-space table uses. Do
+> **not** try to get the materialised total from a plain
+> `os.walk(followlinks=True)` over the staging tree, which does not terminate on
+> a sensible number here — `synthetic/synthetic_31k` is a symlink back to the
+> sibling farm `synthetic_31k/`, which links back into `synthetic/`, and walking
+> that cycle reports thousands of GiB.
 
-## JS3C-Net predictions (required for cross-base reproduction, ~189 GiB / ~203 GB)
+## JS3C-Net predictions (cross-base reproduction; 1.35 GiB / 1.45 GB download, ~189 GiB / ~203 GB on disk)
 
 Precomputed for val seq 08 + train seqs 00-07, 09, 10 + test 11-21 + the 31K
 and 57K synthetic pools (the `31K` pool is the 32,039-frame `synthetic_31k`
@@ -172,8 +229,14 @@ its 26.7 continuity row):
 
     python scripts/download_assets.py --js3c-predictions
 
-The command above provisions these from the hosted mirror; the manual route
-(clone JS3C-Net and dump locally) is shown below as an alternative. Layout mirrors `scpnet_predictions/` exactly:
+The command above downloads the three JS3C-Net archives and unpacks them into
+`data/js3cnet_predictions/`; the manual route (clone JS3C-Net and dump locally)
+is shown below as an alternative. Val seq 08 alone is one 1.07 GiB / 1.15 GB
+archive and 4,071 files:
+
+    python scripts/download_assets.py --js3c-predictions --include 'js3cnet_predictions/08/*'
+
+Layout mirrors `scpnet_predictions/` exactly:
 
 ```
 data/js3cnet_predictions/
@@ -205,7 +268,7 @@ python scripts/dump_js3c_predictions.py \
 
 See `docs/REPRODUCIBILITY.md` for the full cross-base protocol.
 
-## LMSCNet predictions (required for the LMSCNet cross-base row, ~45 GiB / ~49 GB)
+## LMSCNet predictions (LMSCNet cross-base row; 835 MiB / 876 MB download, ~45 GiB / ~49 GB on disk)
 
 LMSCNet (Roldão et al., 3DV 2020) is the third structurally different frozen base
 (a ~0.4M-param 2D-CNN SSC model) used for the cross-base demonstration in
@@ -239,6 +302,9 @@ and can be fetched with:
 
 ```bash
 python scripts/download_assets.py --lmscnet-predictions
+
+# or val seq 08 only -- the same one archive, 4,071 files unpacked
+python scripts/download_assets.py --lmscnet-predictions --include 'lmscnet_predictions/08/*'
 ```
 
 Layout mirrors `scpnet_predictions/` / `js3cnet_predictions/`:
@@ -348,15 +414,16 @@ SemanticPOSS ships no voxelized SSC ground truth, so the driver materialises it
 space. Both runs are evaluation-only: the SemanticKITTI-trained weights are
 never adapted to the target domain.
 
-## Object bank (required for training, 313 MiB / 328 MB of data; 448 MB of disk blocks)
+## Object bank (required for training; 46 MiB / 48 MB download, 313 MiB / 328 MB of data; 448 MB of disk blocks)
 
 57,789 rare-class instances across 8 classes, used by the PS³
 object-bank-paste step and by training-time copy-paste augmentation:
 
     python scripts/download_assets.py --object-bank
 
-`download_assets.py --object-bank` provisions this from the hosted mirror;
-the manual route below rebuilds it locally instead.
+`download_assets.py --object-bank` provisions this from the hosted mirror: one
+46 MiB / 48 MB archive, unpacked into `data/object_bank/` (57,793 files). The
+manual route below rebuilds it locally instead.
 
 ### On-disk format
 
@@ -550,6 +617,15 @@ python scripts/download_assets.py --checkpoints
 
 ## Disk-space summary
 
+**This table sizes what lands on your disk, not what crosses the network.** The
+prediction trees and the object bank are downloaded as compressed archives and
+unpacked (see *How the released predictions ship* above): the whole released
+dataset repo is **5.31 GiB / 5.70 GB to download** and **558.3 GiB / 599.5 GB
+unpacked**, and the headline `--include 'scpnet_predictions/08/*'` fetch is
+**703 MiB / 737 MB to download** and the 8.45 GiB / 9.07 GB row below on disk.
+Add **up to 5.31 GiB / 5.70 GB** to any row here if you keep `data/_archives/`
+rather than deleting it after extraction.
+
 Every figure below with a GiB value was measured on the staged release payload
 by summing `stat` apparent sizes with symlinks dereferenced (equivalent to
 `du -Lsb`, but per-directory so the symlink farms are not double-counted) and is
@@ -562,12 +638,13 @@ carry.
 |---|---|---|
 | SemanticKITTI raw | `data/SemanticKITTI/` | 80 GB (upstream figure) |
 | Voxel labels | (inside `data/SemanticKITTI/`) | 1.6 GB (upstream figure) |
-| SCPNet predictions, whole tree | `data/scpnet_predictions/` | 177 GiB / 190 GB (real seqs 00-21 = 56 GiB, `synthetic/` = 120 GiB) |
-| — val seq 08 only (the headline eval) | `data/scpnet_predictions/08/` | **8.4 GiB / 9.1 GB** |
-| — val 08 + hidden test 11-21 (for a submission) | | **16.6 GiB / 17.8 GB** |
-| JS3C-Net predictions (v1.1.0) | `data/js3cnet_predictions/` | 189 GiB / 203 GB (real + synth) |
-| LMSCNet predictions (v2.1.0) | `data/lmscnet_predictions/` | 45 GiB / 49 GB (train+val08) |
-| Object bank | `data/object_bank/` | 313 MiB / 328 MB of data — 99 MB across 57,789 instance files plus a 229 MB `object_bank_3d.pkl` index (`du -Lsh` reports 448 MB — block usage, inflated by the tiny instance files) |
+| SCPNet predictions, whole group (bare `--predictions`, all five archives) | `data/scpnet_predictions/` | 324 GiB / 348 GB — the five farms materialised; 3.10 GiB / 3.33 GB to download |
+| — what a retrain actually reads (`..._sequences` + `..._synthetic`) | | 177 GiB / 190 GB (real seqs 00-21 = 56 GiB, `synthetic/` = 120 GiB) |
+| — val seq 08 only (the headline eval) | `data/scpnet_predictions/08/` | **8.4 GiB / 9.1 GB** (703 MiB / 737 MB to download) |
+| — val 08 + hidden test 11-21 (for a submission) | | **16.6 GiB / 17.8 GB** (the same one archive) |
+| JS3C-Net predictions (v1.1.0) | `data/js3cnet_predictions/` | 189 GiB / 203 GB (real + synth); 1.35 GiB / 1.45 GB to download |
+| LMSCNet predictions (v2.1.0) | `data/lmscnet_predictions/` | 45 GiB / 49 GB (train+val08); 835 MiB / 876 MB to download |
+| Object bank | `data/object_bank/` | 313 MiB / 328 MB of data (46 MiB / 48 MB to download) — 99 MB across 57,789 instance files plus a 229 MB `object_bank_3d.pkl` index (`du -Lsh` reports 448 MB — block usage, inflated by the tiny instance files) |
 | Synthetic pool 31K | `data/synthetic_pool_31K/` | 127 GiB / 136 GB uncompressed |
 | Synthetic pool 57K (`tab:data_scaling` 57K row) | `data/synthetic_pool_57K/` | 229 GiB / 246 GB uncompressed |
 | Pretrained checkpoints | `data/checkpoints/` | 4.58 GiB / 4.9 GB (the 51-file payload `checksums.txt` covers) |
@@ -586,22 +663,29 @@ carry.
 > the rows above sums to 135. The figures in this table are measured.
 
 > **Fetching only the sequences you need.** Bare
-> `scripts/download_assets.py --predictions` pulls the whole
-> `scpnet_predictions/` tree (177 GiB / 190 GB). `--include` narrows it —
-> the patterns are handed to
-> `huggingface_hub.snapshot_download(allow_patterns=...)`, and `*` crosses `/`
-> there, so a single pattern selects a sequence:
+> `scripts/download_assets.py --predictions` takes all five SCPNet archives and
+> unpacks 324 GiB / 348 GB. `--include` narrows it at both ends — it drops every
+> archive that cannot hold a match, then extracts only the matching members. `*`
+> crosses `/`, so one pattern selects a sequence:
 >
 > ```bash
 > python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'
 > ```
 >
-> That is the 9.07 GB val row above. `--include` applies to the prediction and
-> object-bank groups only; `--checkpoints` is always a whole-repo snapshot.
-> One caveat: the pattern is anchored against the **local** layout this file
-> documents (`scpnet_predictions/<seq>/<frame>_pred.npy`), which is the same
-> assumption the pre-existing whole-prefix fetch already made, but it has not
-> been checked against the live Hugging Face tree. Spot-check the first use.
+> That transfers one 703 MiB / 737 MB archive and writes the 9.07 GB val row
+> above: 12,213 files, all **4,071** frames of sequence 08, `000000`–`004070`.
+> `--include` applies to the prediction and object-bank groups only;
+> `--checkpoints` is always a whole-repo snapshot.
+>
+> Patterns are written against the layout this file documents
+> (`scpnet_predictions/<seq>/<frame>_pred.npy`), and the unanchored short form
+> `--include '08/*'` works too. **This was verified end to end against the live
+> Hugging Face repo on 2026-08-25**: the command above returned 12,213 files /
+> 9,072,663,168 B covering 4,071 distinct frame ids, byte-identical to the
+> reference tree. Before that date the Hub also carried an incomplete per-frame
+> copy of this corpus, and the same command silently returned **3,334** of the
+> 4,071 val frames; that copy has been deleted and the downloader no longer has
+> a code path that could read it.
 
 ## Licenses & terms
 

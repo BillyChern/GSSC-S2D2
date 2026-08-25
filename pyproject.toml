@@ -42,6 +42,12 @@ dependencies = [
     "einops>=0.7",
     "safetensors>=0.4.3",
     "huggingface-hub>=0.24",
+    # The released prediction corpus ships as .tar.zst archives (609,349 files, several
+    # directories over the Hub's 10,000-per-directory limit), and
+    # scripts/download_assets.py unpacks them. It falls back to the `zstd` binary when
+    # this import fails, but a plain `uv sync` should be enough to run the documented
+    # download commands end to end.
+    "zstandard>=0.22",
     "tensorboard>=2.16",
     # spconv: install separately, see docs/REPRODUCIBILITY.md
     # spconv-cu126==2.3.8
@@ -83,7 +89,10 @@ ps3 = [
 [project.urls]
 "Homepage" = "https://github.com/BillyChern/GSSC-S2D2"
 "Issues" = "https://github.com/BillyChern/GSSC-S2D2/issues"
-"Project page" = "https://billychern.github.io/GSSC-project-page/"
+# The account has a verified custom domain (shichen.world, HTTPS enforced), so
+# billychern.github.io/GSSC-project-page/ answers 301 -> this URL. Measured
+# 2026-08-25. Record the destination directly; do not reintroduce the github.io form.
+"Project page" = "https://shichen.world/GSSC-project-page/"
 # Paper link added on acceptance (the manuscript is under review).
 
 # No console-script entry points: the repository is driven through the

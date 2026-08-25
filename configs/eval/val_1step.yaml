@@ -4,9 +4,12 @@ split: val
 sequences: "08"
 # base_pred_dir: data/scpnet_predictions  (default if omitted; eval defaults to
 # <data-root>/scpnet_predictions). This row needs only val seq 08 of that tree —
-# 8.5 GiB / 9.1 GB, fetched with
+# 8.4 GiB / 9.1 GB on disk for a 703 MiB / 737 MB download, fetched with
 #   python scripts/download_assets.py --predictions --include 'scpnet_predictions/08/*'
-# — not the whole 177 GiB / 190 GB prefix. The "~135 GB" this comment used to quote
-# was measured on nothing: see the retraction in docs/DATASET.md's disk-space table.
+# That command was verified end to end against the live Hugging Face repo on
+# 2026-08-25 and returns all 4,071 val frames (12,213 files). It is not the whole
+# SCPNet group, which is 3.10 GiB / 3.33 GB to download and 324 GiB / 348 GB on disk.
+# The "~135 GB" this comment used to quote was measured on nothing: see the
+# retraction in docs/DATASET.md's disk-space table.
 correction_steps: 1
 tta: none
