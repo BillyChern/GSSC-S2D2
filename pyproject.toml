@@ -87,13 +87,29 @@ ps3 = [
 ]
 
 [project.urls]
+# Every URL below was verified 200 with an unauthenticated request on 2026-08-25.
+# This table is the published metadata's copy of the README nav row: a reader who
+# never opens the repository should still reach every released artefact from here.
 "Homepage" = "https://github.com/BillyChern/GSSC-S2D2"
-"Issues" = "https://github.com/BillyChern/GSSC-S2D2/issues"
 # The account has a verified custom domain (shichen.world, HTTPS enforced), so
 # billychern.github.io/GSSC-project-page/ answers 301 -> this URL. Measured
 # 2026-08-25. Record the destination directly; do not reintroduce the github.io form.
 "Project page" = "https://shichen.world/GSSC-project-page/"
-# Paper link added on acceptance (the manuscript is under review).
+"Checkpoints" = "https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints"
+# The PS3 pool has two hosts and they answer different questions: CITE the DOI,
+# DOWNLOAD from the free mirror. Both are listed so neither is mistaken for the other.
+"PS3 dataset (cite this DOI)" = "https://dx.doi.org/10.21227/nqgf-9k39"
+"PS3 dataset (free download)" = "https://huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI"
+# A DIFFERENT repository from the pool above: baseline prediction dumps + object bank.
+"Base predictions" = "https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets"
+"Leaderboard" = "https://www.codabench.org/competitions/13814/#/results-tab"
+"Model Zoo" = "https://github.com/BillyChern/GSSC-S2D2/blob/main/docs/MODEL_ZOO.md"
+"Reproducibility" = "https://github.com/BillyChern/GSSC-S2D2/blob/main/docs/REPRODUCIBILITY.md"
+"Changelog" = "https://github.com/BillyChern/GSSC-S2D2/blob/main/CHANGELOG.md"
+"Issues" = "https://github.com/BillyChern/GSSC-S2D2/issues"
+# No paper URL: the manuscript is under review and is not posted anywhere, so there is
+# nothing to link. Add one when a preprint or the published article actually exists --
+# a DOI arrives on acceptance, but a preprint link would arrive before that.
 
 # No console-script entry points: the repository is driven through the
 # self-contained driver scripts in ``scripts/`` (see README), e.g.

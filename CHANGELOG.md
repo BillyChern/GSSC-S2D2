@@ -34,6 +34,43 @@ tag of the same name (`git tag` lists them).
 A version that *changes the headline 38.54 % val mIoU number* is
 always a **MAJOR** bump, even if the API is identical.
 
+## [Unreleased]
+
+### Changed — every released artefact is reachable from the front page
+
+- **`README.md`'s nav row now carries every public resource.** It previously named the
+  project page as *"public on acceptance"* — false: `https://shichen.world/GSSC-project-page/`
+  answers 200 to an unauthenticated request — and linked none of the released artefacts, so
+  the first link to the checkpoints sat at README.md:347, 71 % of the way down the file. The
+  row now leads with the project page, the checkpoints, the PS³ pool (free mirror *and* the
+  citable DataPort DOI, kept distinct) and the baseline predictions. **Paper** stays an
+  unlinked `*(under review)*` label: no preprint is posted, so there is nothing to link, and
+  the previous *"link added on acceptance"* named the wrong trigger — a preprint link would
+  arrive before a DOI does.
+- **The PS³ Hugging Face mirror is described in the present tense.** `README.md`,
+  `docs/DATASET.md`, `examples/quickstart.ipynb` and `scripts/download_assets.py` all said it
+  "goes public with the other release repos" or was "PRIVATE today"; the downloader's own
+  docstring told a reader an anonymous fetch would fail. Measured logged out on 2026-08-25:
+  the repo resolves 200, `private: false`, `gated: false`.
+- **The pinned submission snapshot is v2.4.1, not v2.3.8.** `README.md` and
+  `docs/DATASET.md`'s datasheet still named v2.3.8 while `supplementary.tex` pins
+  `v2.4.1`. v2.3.8 predates the archive fix, so that pointer sent a reviewer to the
+  downloader that silently returned 3,334 of 4,071 val frames.
+- **`docs/DATASET.md` documents the checkpoints' manual provisioning route**, which
+  `README.md` and `docs/MODEL_ZOO.md` both promised and which did not exist — the section was
+  a bare one-line command while every other artefact had one.
+- **Archive counts corrected.** `README.md` attributed 609,349 files to "the prediction
+  corpus" and then said it ships as ten archives; the 609,349 covers the three prediction
+  trees *and* the object bank, which ship as nine + one. `examples/quickstart.ipynb` said the
+  SCPNet predictions ship as ten archives; they ship as five. No size figure changed — all
+  were re-measured against the live Hub and were already correct.
+- **`pyproject.toml`'s `[project.urls]` and `CITATION.cff` carry the same set.** The URL
+  table went from 3 entries to 11; `CITATION.cff` gains `repository-code` and
+  `repository-artifact`, and its `url` becomes the project page. Every URL in both was
+  verified 200 unauthenticated on 2026-08-25.
+- `README.md`'s *What's new* now reaches v2.4.1, and v2.3.8 is dated 2026-08-23 to match its
+  tag and its CHANGELOG entry (it read 2026-08-22).
+
 ## [2.4.1] — 2026-08-25
 
 ### Fixed

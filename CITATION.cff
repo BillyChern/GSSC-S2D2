@@ -12,7 +12,12 @@ authors:
     given-names: "Weifeng"
     affiliation: "College of Computer Science and Artificial Intelligence, Fudan University"
     email: "wfge@fudan.edu.cn"
-url: "https://github.com/BillyChern/GSSC-S2D2"
+# `url` is the landing page a reader should start from; `repository-code` is the source
+# and `repository-artifact` the released weights. All three verified 200 logged out on
+# 2026-08-25. The PS3 pool is a separate artefact and stays in `references` below.
+url: "https://shichen.world/GSSC-project-page/"
+repository-code: "https://github.com/BillyChern/GSSC-S2D2"
+repository-artifact: "https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints"
 license: MIT
 version: 2.4.1
 date-released: 2026-08-25

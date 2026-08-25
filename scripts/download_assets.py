@@ -59,9 +59,9 @@ deposit and carry the same CC-BY-NC-SA 4.0 LICENSE, so no IEEE subscription is n
 The DataPort record remains the alternative for anyone who prefers the archival
 deposit, but it is not the free route and this script cannot fetch from it: it is
 marked "Subscription Required", serves dataset files only to a signed-in session and
-publishes no direct file URL. The mirror is private until the release repos are
-flipped public together, so until then an anonymous fetch fails -- into the same
-docs/DATASET.md pointer every other unreachable repo produces, never a traceback.
+publishes no direct file URL. The mirror is public and serves anonymous downloads; if any
+repo is ever unreachable the fetch ends in the same docs/DATASET.md pointer every other
+unreachable repo produces, never a traceback.
 Nothing here waits on paper acceptance: the paper's availability footnote already
 sends readers to github.com/BillyChern/GSSC-S2D2 for the code, the pre-trained models
 and the PS3 dataset.
@@ -94,8 +94,9 @@ HF_REPO_DATA = "Stone-Chern/GSSC-S2D2-datasets"
 # LICENSE, which is what permits the redistribution -- are mirrored on the Hugging Face
 # dataset repo below, which needs no IEEE subscription. That is what `--synthetic-pool`
 # downloads. Cite the DOI; take the bytes from whichever host suits you.
-# The mirror is PRIVATE today and flips public with the other release repos, so an anonymous
-# fetch fails until then; `_fetch` turns that into the documented docs/DATASET.md pointer.
+# The mirror is PUBLIC and serves anonymous downloads (re-measured logged out 2026-08-25:
+# the repo id resolves 200 with no token). Should it ever be unreachable, `_fetch` turns that
+# into the documented docs/DATASET.md pointer rather than a traceback.
 # The pool is NOT embargoed until publication, so do NOT describe it that way in the docs:
 # what stood between a reader and the archive was IEEE's access gate, not our release date.
 HF_REPO_SYNTH = "Stone-Chern/PS3-SemanticKITTI"

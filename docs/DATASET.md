@@ -496,14 +496,13 @@ can fetch from it. The **same two archives, byte-identical and carrying the same
 CC-BY-NC-SA 4.0 LICENSE, are mirrored on the Hugging Face dataset repo
 [`Stone-Chern/PS3-SemanticKITTI`](https://huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI),
 which needs no IEEE subscription** — that mirror is what `--synthetic-pool`
-downloads, and it is published alongside the other release repos rather than
-being reachable ahead of them. The DataPort record stays the alternative for
-anyone who prefers the archival deposit, retrieved by hand from a signed-in
-browser session (the same statement as under *Maintenance* below). Either way the
-**local PS³ rebuild described under *regenerate the pool yourself* below needs no
-account on either host.** Nothing here is a release embargo: the
-paper's availability footnote states that the code, the checkpoints and
-the PS³ dataset are available at
+downloads, it is public, and it serves anonymous downloads. The DataPort
+record stays the alternative for anyone who prefers the archival deposit,
+retrieved by hand from a signed-in browser session (the same statement as
+under *Maintenance* below). Either way the **local PS³ rebuild described under
+*regenerate the pool yourself* below needs no account on either host.**
+Nothing here is a release embargo: the paper's availability footnote states
+that the code, the checkpoints and the PS³ dataset are available at
 [github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2), and
 nothing in this datasheet is withheld pending acceptance.
 
@@ -614,6 +613,21 @@ The pool is built by the Paired Sparse–Dense Scene Synthesis (PS³) pipeline:
 ```bash
 python scripts/download_assets.py --checkpoints
 ```
+
+They land in `data/checkpoints/<group>/<name>/`, the layout
+[docs/MODEL_ZOO.md](MODEL_ZOO.md) documents per checkpoint.
+
+**Manual route.** The same tree is browsable and downloadable without an account
+at [`Stone-Chern/GSSC-S2D2-checkpoints`](https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints)
+— 18 per-checkpoint subdirs under `gssc_mf/`, `gssc_sf/`, `gssc_js3c/`,
+`gssc_lmsc/`, `gssc_timesteps/`, `pyramid/` and `bev/`, plus the flat
+`scpnet_v2_port.pth`. Take the files you want and put them at the same relative
+paths under `data/checkpoints/` (the headline one is
+`gssc_mf/gssc_31k_mf_step40000/model_ema.safetensors`); nothing else about the
+eval commands changes. `checksums.txt` at the root of that repo covers every
+payload file, and `SECURITY.md` gives the `sha256sum -c` recipe — run it from
+inside `data/checkpoints/`, since the paths it lists are relative to that
+directory.
 
 ## Disk-space summary
 
@@ -739,7 +753,7 @@ contents are identical; only the directory label differs.
   [github.com/BillyChern/GSSC-S2D2](https://github.com/BillyChern/GSSC-S2D2).
   This is also the errata channel: file an issue if a frame, count, or shape
   here does not match what you downloaded.
-- **Version:** v2.3.8 (the submission snapshot; bump this WITH supplementary.tex's tag).
+- **Version:** v2.4.1 (the submission snapshot; bump this WITH supplementary.tex's tag).
 - **Mirror:** the full synthetic pool is archived on IEEE DataPort as
   PS3-SemanticKITTI, [doi:10.21227/nqgf-9k39](https://dx.doi.org/10.21227/nqgf-9k39)
   (deposited 2026-08-23), which is the identifier to cite, and mirrored
