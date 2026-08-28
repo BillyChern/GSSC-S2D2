@@ -91,6 +91,10 @@ ps3 = [
 # This table is the published metadata's copy of the README nav row: a reader who
 # never opens the repository should still reach every released artefact from here.
 "Homepage" = "https://github.com/BillyChern/GSSC-S2D2"
+# The Paper URL is the arXiv preprint's landing page; the manuscript is still under review.
+# arXiv also mints a DataCite DOI (10.48550/arXiv.2608.26737) -- CITATION.cff carries it;
+# [project.urls] holds URLs only.
+"Paper" = "https://arxiv.org/abs/2608.26737"
 # The account has a verified custom domain (shichen.world, HTTPS enforced), so
 # billychern.github.io/GSSC-project-page/ answers 301 -> this URL. Measured
 # 2026-08-25. Record the destination directly; do not reintroduce the github.io form.
@@ -107,9 +111,10 @@ ps3 = [
 "Reproducibility" = "https://github.com/BillyChern/GSSC-S2D2/blob/main/docs/REPRODUCIBILITY.md"
 "Changelog" = "https://github.com/BillyChern/GSSC-S2D2/blob/main/CHANGELOG.md"
 "Issues" = "https://github.com/BillyChern/GSSC-S2D2/issues"
-# No paper URL: the manuscript is under review and is not posted anywhere, so there is
-# nothing to link. Add one when a preprint or the published article actually exists --
-# a DOI arrives on acceptance, but a preprint link would arrive before that.
+# The paper URL is above, beside Homepage. It landed when the arXiv PREPRINT was posted --
+# which is the trigger this comment already named: a DOI arrives on acceptance, a preprint
+# link arrives before that. On acceptance, add the published article's URL alongside it; do
+# not replace the arXiv one, which stays the permanent home of the reviewed version.
 
 # No console-script entry points: the repository is driven through the
 # self-contained driver scripts in ``scripts/`` (see README), e.g.

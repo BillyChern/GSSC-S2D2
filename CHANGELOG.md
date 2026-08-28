@@ -36,6 +36,28 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+### Changed — the paper is a public preprint, so the `Paper` control is live
+
+- **Every artefact that named the paper now links it.** `README.md`'s nav row, its *What's new*
+  leaderboard entry and its figures FAQ, `pyproject.toml`'s `[project.urls]`, `CITATION.cff`,
+  `src/gssc/__init__.py` and both Hugging Face cards point at
+  [the arXiv preprint](https://arxiv.org/abs/2608.26737). The `Paper` label was deliberately
+  inert while no preprint existed; the trigger was the preprint, not acceptance — which is what
+  the v2.4.2 entry below already said.
+- **The shared BibTeX block is a citable arXiv entry.** `@unpublished` → `@misc` carrying
+  `eprint` / `archivePrefix` / `primaryClass`, arXiv's DataCite DOI `10.48550/arXiv.2608.26737`
+  and the abs URL, in all three copies (`README.md`, the model card, the dataset card). The key
+  `chen2026gssc` and `note = {Under review}` are unchanged, so an entry already copied out keeps
+  working.
+- **`CITATION.cff`'s `preferred-citation` reads `status: preprint`**, not `submitted`, and gains
+  `doi:` and `url:`. It stays `type: unpublished`: the manuscript is publicly available but not
+  published — no journal, volume or pages — and `type: article` would render as a `journal`-less
+  BibTeX `@article`. The old `# DOI omitted ... on acceptance` note named the wrong trigger.
+- **Both Hugging Face cards carry an `arxiv:2608.26737` tag**, so the Hub renders a paper link on
+  the checkpoint and dataset repos.
+
+The manuscript is still under review and no artefact names a venue.
+
 ## [2.4.2] — 2026-08-25
 
 ### Changed — every released artefact is reachable from the front page

@@ -3,6 +3,8 @@
 Reference implementation accompanying the paper "Generative Semantic Scene
 Completion" (2026, under review). Package entry point.
 
+Preprint: https://arxiv.org/abs/2608.26737
+
 The recommended way to use this codebase is through the driver scripts in
 ``scripts/`` (see the project README). Importing the submodules directly is
 also supported for advanced users:

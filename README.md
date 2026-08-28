@@ -4,7 +4,7 @@
 
 ### A three-pillar generative framework: PS³ · SGSC · S²D²
 
-📄 **Paper** *(under review)* &nbsp;·&nbsp; 🌐 **[Project page](https://shichen.world/GSSC-project-page/)** &nbsp;·&nbsp; 🤗 **[Checkpoints](https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints)** &nbsp;·&nbsp; 🧩 **PS³ dataset** [free download](https://huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI) / [DataPort DOI](https://dx.doi.org/10.21227/nqgf-9k39) &nbsp;·&nbsp; 🗃️ **[Base predictions](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets)** &nbsp;·&nbsp; 🏆 **[Leaderboard](https://www.codabench.org/competitions/13814/#/results-tab)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
+📄 **[Paper (arXiv)](https://arxiv.org/abs/2608.26737)** *(under review)* &nbsp;·&nbsp; 🌐 **[Project page](https://shichen.world/GSSC-project-page/)** &nbsp;·&nbsp; 🤗 **[Checkpoints](https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints)** &nbsp;·&nbsp; 🧩 **PS³ dataset** [free download](https://huggingface.co/datasets/Stone-Chern/PS3-SemanticKITTI) / [DataPort DOI](https://dx.doi.org/10.21227/nqgf-9k39) &nbsp;·&nbsp; 🗃️ **[Base predictions](https://huggingface.co/datasets/Stone-Chern/GSSC-S2D2-datasets)** &nbsp;·&nbsp; 🏆 **[Leaderboard](https://www.codabench.org/competitions/13814/#/results-tab)** &nbsp;·&nbsp; 📦 **[Model Zoo](docs/MODEL_ZOO.md)** &nbsp;·&nbsp; 📊 **[Reproducibility](docs/REPRODUCIBILITY.md)** &nbsp;·&nbsp; 📒 **[Colab](examples/quickstart.ipynb)** &nbsp;·&nbsp; 🐛 **[Issues](https://github.com/BillyChern/GSSC-S2D2/issues)**
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BillyChern/GSSC-S2D2/blob/main/examples/quickstart.ipynb)
 
@@ -51,7 +51,7 @@ The paper organises the method into three pillars that share one structured-sour
 * **2026-05-14** — Release **v1.1.0**: JS3C-Net cross-base support. Stacked on the point-voxel hybrid JS3C-Net (Yan et al., AAAI 2021), one-step S²D² lifts JS3C-Net val mIoU **22.7 % → 24.3 % (+1.6 pp)** — the paper's headline for this base, and what `scripts/reproduce_table.py` yields: derived BEV, scored by the official `semantic-kitti-api` on all 4,071 frames of seq 08. The *same* derived-BEV setting read instead by the paper's internal training-time evaluator reports **26.7 % (+4.0 pp against the official 22.7 % base, +4.3 against the internal 22.4 %)**; what separates 26.7 from 24.3 is the evaluator, not the BEV source, and the paper keeps that row only for continuity with earlier drafts, unmatched in protocol to the SCPNet and LMSCNet rows (supplementary Tab. XV). GT-BEV conditioning is a separate diagnostic, not either of those numbers: running the released real-only checkpoint with GT BEV instead of the derived one reads **26.05 %** under the official api, a repo-measured figure the paper does not print — see `docs/REPRODUCIBILITY.md`. Release-asset layout migrated to per-checkpoint safetensors subdirs matching the modern HF Hub convention.
 * **2026-04** — Public release **v1.0.0**. Headline checkpoint released under the repository's MIT licence; eval round-trip verified at 38.54 % val mIoU.
 * **2026-04** — Secondary BEV-task reproduction path added (`eval/bev_secondary` config + driver, checkpoint `bev/bev_s2d2_scpnet`). LiDAR-only BEV refinement at 36.1 % mIoU, scored by the training-time 2D BEV evaluator on 100 fixed val frames (seed 42) — not the 4,071-frame `semantic-kitti-api` protocol.
-* **2026-03** — **39.2 %** mIoU on the SemanticKITTI hidden-test leaderboard (*N* = 4 with an 8-view *D*<sub>4</sub> ensemble; the single-step no-TTA submission scored 38.8 %) — paper under review.
+* **2026-03** — **39.2 %** mIoU on the SemanticKITTI hidden-test leaderboard (*N* = 4 with an 8-view *D*<sub>4</sub> ensemble; the single-step no-TTA submission scored 38.8 %) — paper under review; the preprint is on [arXiv](https://arxiv.org/abs/2608.26737).
 
 ---
 
@@ -394,18 +394,23 @@ A. Every paper artefact corresponds to a config file. `python scripts/train.py t
 A. Same convention as every method in the leaderboard table: a SemanticKITTI SSC training run is expensive (ours: ~37 GPU-hours to the released step-40000 checkpoint, ~90 for the full 100K-iteration launch), and the official scoring server takes a single submission. We use a single seed (42) to match this convention. See the paper's §IV *Baselines and protocol* run-in, and supplementary Appendix H (*Single-seed reporting*), for the variance-disclosure discussion.
 
 **Q. Where do I find figures and paper-typesetting source?**
-A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `assets/qualitative.png`) live under `assets/` and are embedded above. The full paper figure set and the LaTeX typesetting source live in the (private until publication) paper repo, not here. This repo focuses on **method reproduction**; the shipped notebook (`examples/quickstart.ipynb`) walks through the headline eval end-to-end.
+A. The three README figures (`assets/teaser.png`, `assets/architecture.png`, `assets/qualitative.png`) live under `assets/` and are embedded above. The full paper figure set and the LaTeX typesetting source live in the paper repo, which stays private; the manuscript itself is public as an [arXiv preprint](https://arxiv.org/abs/2608.26737). This repo focuses on **method reproduction**; the shipped notebook (`examples/quickstart.ipynb`) walks through the headline eval end-to-end.
 
 ---
 
 ## Citation
 
 ```bibtex
-@unpublished{chen2026gssc,
-  title   = {Generative Semantic Scene Completion},
-  author  = {Chen, Shi and Ge, Weifeng},
-  note    = {Under review},
-  year    = {2026}
+@misc{chen2026gssc,
+  title         = {Generative Semantic Scene Completion},
+  author        = {Chen, Shi and Ge, Weifeng},
+  year          = {2026},
+  eprint        = {2608.26737},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  doi           = {10.48550/arXiv.2608.26737},
+  url           = {https://arxiv.org/abs/2608.26737},
+  note          = {Under review}
 }
 ```
 

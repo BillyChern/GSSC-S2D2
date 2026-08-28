@@ -22,13 +22,20 @@ license: MIT
 version: 2.4.2
 date-released: 2026-08-25
 preferred-citation:
-  # type: unpublished + status: submitted, because the manuscript is under review and
-  # not yet published anywhere. Both values are in the CFF 1.2.0 enums, and the
-  # `reference` definition requires only authors/title/type, so omitting `journal` is
-  # valid -- see https://github.com/citation-file-format/citation-file-format/blob/1.2.0/schema.json
-  # On acceptance: type -> article, add `journal:` and `doi:`, drop `status:`.
+  # type: unpublished + status: preprint. The manuscript is PUBLICLY AVAILABLE as an arXiv
+  # preprint but NOT PUBLISHED: there is no journal, volume or pages to record. `unpublished`
+  # says the second thing, `preprint` says the first, and both are in the CFF 1.2.0 enums --
+  # see https://github.com/citation-file-format/citation-file-format/blob/1.2.0/schema.json
+  # `status: submitted` was retired here BY THE PREPRINT, not by acceptance: it describes a
+  # work a reader cannot retrieve, which stopped being true the moment the preprint went up.
+  # `type: article` is deliberately NOT used. cffconvert renders it as BibTeX `@article`,
+  # whose `journal` is a required field in the standard styles, so it would emit a broken
+  # entry -- and `journal: arXiv` is not the repair: arXiv is not a journal, and no artefact
+  # names a venue before acceptance.
+  # On acceptance: type -> article, add `journal:`, swap `doi:` for the published DOI (keep
+  # the arXiv `url:` -- it stays the preprint's permanent home), and drop `status:`.
   type: unpublished
-  status: submitted
+  status: preprint
   title: "Generative Semantic Scene Completion"
   authors:
     - family-names: "Chen"
@@ -38,13 +45,18 @@ preferred-citation:
       given-names: "Weifeng"
       affiliation: "College of Computer Science and Artificial Intelligence, Fudan University"
   year: 2026
-  notes: "Under review."
-  # DOI omitted: the paper is under review; a DOI will be added on acceptance.
+  # arXiv mints a DataCite DOI for every submission, so the preprint already HAS a persistent
+  # identifier -- the old "a DOI will be added on acceptance" named the wrong trigger. `doi`
+  # and `url` are both valid on a `reference`: the DOI is the identifier to cite, and the
+  # version-less abs URL is the landing page, which always resolves to the newest version.
+  doi: "10.48550/arXiv.2608.26737"
+  url: "https://arxiv.org/abs/2608.26737"
+  notes: "arXiv preprint; under review."
 
 # The PS3 synthetic pool is a separate artefact with its own DOI, not part of this
 # software release, so it is a `references` entry rather than anything under
 # `preferred-citation`. Cite it IN ADDITION to the paper if you train on the pool.
-# Unrelated to the `# DOI omitted` note above, which is about the manuscript.
+# Unrelated to the `doi:` under `preferred-citation` above, which is the manuscript's arXiv DOI.
 # `doi`/`url` name the IEEE DataPort deposit because that is the CITABLE identifier of
 # record; `repository-artifact` names the free Hugging Face mirror, which is where the
 # same (byte-identical) archives are actually downloaded from. Cite the DOI, download
