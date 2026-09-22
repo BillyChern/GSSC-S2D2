@@ -36,6 +36,18 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+## [2.4.3] — 2026-09-22
+
+### Added: Zenodo archiving and an ORCID iD in the citation metadata
+
+- **Releases are archived on Zenodo.** The repository is connected to Zenodo, so this and every
+  later GitHub release is deposited with its own DOI, plus a concept DOI that always resolves to
+  the latest version. The README carries the badge once the first DOI is minted.
+- **`CITATION.cff` lists Shi Chen's ORCID iD** (`0009-0003-7365-6983`) for the software and the
+  preferred citation, so the Zenodo and DataCite records link to the author profile.
+- Version strings move to `2.4.3` in `pyproject.toml`, `src/gssc/__init__.py`, `uv.lock` and
+  `CITATION.cff`. No API, config, checkpoint or measured-value change.
+
 ### Changed — the paper is a public preprint, so the `Paper` control is live
 
 - **Every artefact that named the paper now links it.** `README.md`'s nav row, its *What's new*
@@ -1192,7 +1204,8 @@ is **v2.3.1**.
 - ruff lint gate + 80 pytest cases (89.4 % coverage on the testable
   inference + utils subset).
 
-[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.2...HEAD
+[Unreleased]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.3...HEAD
+[2.4.3]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.2...v2.4.3
 [2.4.2]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.1...v2.4.2
 [2.4.1]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/BillyChern/GSSC-S2D2/compare/v2.3.8...v2.4.0

@@ -6,6 +6,7 @@ abstract: "Official PyTorch implementation of S²D² (Structured Source Discrete
 authors:
   - family-names: "Chen"
     given-names: "Shi"
+    orcid: "https://orcid.org/0009-0003-7365-6983"
     affiliation: "Fudan University; Robotics Institute, Carnegie Mellon University"
     email: "shic@andrew.cmu.edu"
   - family-names: "Ge"
@@ -19,8 +20,8 @@ url: "https://shichen.world/GSSC-project-page/"
 repository-code: "https://github.com/BillyChern/GSSC-S2D2"
 repository-artifact: "https://huggingface.co/Stone-Chern/GSSC-S2D2-checkpoints"
 license: MIT
-version: 2.4.2
-date-released: 2026-08-25
+version: 2.4.3
+date-released: 2026-09-22
 preferred-citation:
   # type: unpublished + status: preprint. The manuscript is PUBLICLY AVAILABLE as an arXiv
   # preprint but NOT PUBLISHED: there is no journal, volume or pages to record. `unpublished`
@@ -40,6 +41,7 @@ preferred-citation:
   authors:
     - family-names: "Chen"
       given-names: "Shi"
+      orcid: "https://orcid.org/0009-0003-7365-6983"
       affiliation: "Fudan University; Robotics Institute, Carnegie Mellon University"
     - family-names: "Ge"
       given-names: "Weifeng"
@@ -67,6 +69,7 @@ references:
     authors:
       - family-names: "Chen"
         given-names: "Shi"
+        orcid: "https://orcid.org/0009-0003-7365-6983"
       - family-names: "Ge"
         given-names: "Weifeng"
     publisher:
