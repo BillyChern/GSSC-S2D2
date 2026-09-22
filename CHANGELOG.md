@@ -36,6 +36,13 @@ always a **MAJOR** bump, even if the API is identical.
 
 ## [Unreleased]
 
+### Added: the Zenodo DOI
+
+- **v2.4.3 is archived on Zenodo** as [10.5281/zenodo.22900924](https://doi.org/10.5281/zenodo.22900924). The concept DOI
+  [10.5281/zenodo.22900923](https://doi.org/10.5281/zenodo.22900923) always resolves to the latest archived release.
+  `README.md` carries the DOI badge and names both DOIs in the v2.4.3 bullet, and `CITATION.cff` carries
+  the concept DOI as the software identifier. The preferred citation (the arXiv preprint) is unchanged.
+
 ## [2.4.3] — 2026-09-22
 
 ### Added: Zenodo archiving and an ORCID iD in the citation metadata

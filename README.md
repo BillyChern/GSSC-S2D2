@@ -11,6 +11,7 @@
 [![Test status](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/test.yml/badge.svg)](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/test.yml)
 [![Lint status](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/lint.yml/badge.svg)](https://github.com/BillyChern/GSSC-S2D2/actions/workflows/lint.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22900923.svg)](https://doi.org/10.5281/zenodo.22900923)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![PyTorch 2.4](https://img.shields.io/badge/pytorch-2.4-orange.svg)](https://pytorch.org/)
 [![Code style: ruff](https://img.shields.io/badge/lint-ruff-46a2f1.svg)](https://github.com/astral-sh/ruff)
@@ -39,7 +40,7 @@ The paper organises the method into three pillars that share one structured-sour
 
 ### What's new
 
-* **2026-09-22**: Release **v2.4.3**. The repository is now archived on Zenodo, so this and every later release is deposited with its own DOI, and a concept DOI always resolves to the latest version. `CITATION.cff` now lists the first author's ORCID iD. No API, config, checkpoint or measured-value change.
+* **2026-09-22**: Release **v2.4.3**. The repository is now archived on Zenodo: this release is [10.5281/zenodo.22900924](https://doi.org/10.5281/zenodo.22900924), and the concept DOI [10.5281/zenodo.22900923](https://doi.org/10.5281/zenodo.22900923) always resolves to the latest version. `CITATION.cff` now lists the first author's ORCID iD. No API, config, checkpoint or measured-value change.
 * **2026-08-27** — The manuscript is public as an [arXiv preprint](https://arxiv.org/abs/2608.26737) — arXiv:2608.26737, [DOI 10.48550/arXiv.2608.26737](https://doi.org/10.48550/arXiv.2608.26737) — and is still under review. The BibTeX block below and `CITATION.cff` carry the eprint id and DOI, so this work is now citable without pointing at an unpublished manuscript. The released checkpoints and both datasets are collected on its [Hugging Face paper page](https://huggingface.co/papers/2608.26737).
 * **2026-08-25** — Release **v2.4.2**. Every released artefact is now linked from the first screenful: the nav row carries the project page, the checkpoints, the PS³ pool (free mirror and the citable DataPort DOI) and the baseline predictions. Previously the first link to any of them sat 71 % down the file and the project page was never linked at all. Also republishes 18 stale `config.json` SHA256s in [docs/MODEL_ZOO.md](docs/MODEL_ZOO.md).
 * **2026-08-25** — Release **v2.4.1**. Brings `uv.lock` and `SECURITY.md` back in step with the shipped version, so `uv lock --check` is clean on a fresh checkout; supported-versions table moves to `2.4.x`. No API, config or measured-value change.
