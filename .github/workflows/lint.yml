@@ -11,6 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The runner's system Python (Ubuntu 24.04, 3.12) is marked EXTERNALLY-MANAGED,
+      # so `uv pip install --system` refuses it. Provide a toolcache interpreter first;
+      # 3.10 matches [tool.mypy].python_version and the test workflow.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
       - uses: astral-sh/setup-uv@v3
       # Pinned to the same version as .pre-commit-config.yaml's `rev:` and
       # pyproject's dev extra; an unpinned install lets CI drift off both.
@@ -22,6 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The runner's system Python (Ubuntu 24.04, 3.12) is marked EXTERNALLY-MANAGED,
+      # so `uv pip install --system` refuses it. Provide a toolcache interpreter first;
+      # 3.10 matches [tool.mypy].python_version and the test workflow.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
       - uses: astral-sh/setup-uv@v3
       - name: Install mypy + stubs
         run: uv pip install --system "mypy>=1.10" "types-PyYAML>=6.0"
